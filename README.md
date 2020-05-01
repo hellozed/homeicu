@@ -1,3 +1,13 @@
+![HealthyPi Display](docs/images/HealthyPi_Complete.jpg)
+
+
+HealthyPi v4 measures the following parameters in real-time and with high accuracy:
+
+* Electrocardiogram (ECG) data, heart rate, and heart-rate variability
+* Respiration based on impedance pneumography
+* Pulse oximetry (SPO₂)
+* Body temperature
+
 ![HomeICU](http://homeicu.ca/wp-content/uploads/2020/04/cropped-homeicu.png)
 
 # HomeICU - low-cost remote vital signs monitor
@@ -5,7 +15,7 @@
 [Website](http://homeicu.ca/) 
 
 
-HomeICU is an Open-Source COVID19 patient monitor that uses wearable sensors to measure the patient's vital signs and enable doctors to monitor patient's symptoms remotely over the Internet. 
+HomeICU is an Open-Source COVID19 patient monitor that uses wearable sensors to measure the patient's vital signs and enable doctors do medical diagnosis and treatment remotely over the Internet. 
 
 HomeICU include sensors for measuring the following vital signs:
 
@@ -81,3 +91,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+ 
