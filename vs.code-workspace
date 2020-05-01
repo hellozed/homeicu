@@ -1,0 +1,10 @@
+// This is a workspace file for Visual Studio Code 
+
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
+}
