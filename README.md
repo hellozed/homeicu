@@ -21,11 +21,12 @@ The hardware and software design documents are shared here and the project websi
 
 Repository Contents
 -------------------
-* **/firmware** - software code for running in the microprocessor.
-* **/Hardware** - design files (.brd, .sch)
-* **/extras**   - includes the datasheet
-* **/gui**      - GUI for iPhone, iPad and Android phone/tablet
+microprocessor.
 * **/docs**     - additional documentation
+* **/extras**   - includes the datasheet
+* **/firmware** - software code for running in the 
+* **/gui**      - GUI for iPhone, iPad and Android phone/tablet
+* **/hardware** - design files (.brd, .sch)
 
 Getting Started:
 ----------------------------------
