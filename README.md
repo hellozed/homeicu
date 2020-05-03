@@ -2,83 +2,106 @@
 
 # HomeICU - low-cost remote vital signs monitor
 
-[Website](http://homeicu.ca/) 
+The hardware and software design documents are shared here and the project website is at [Website](http://homeicu.ca/).
 
+---
 
 HomeICU is an Open-Source COVID19 patient monitor that uses wearable sensors to measure the patient's vital signs and enable doctors do medical diagnosis and treatment remotely over the Internet. 
 
-HomeICU measures the following vital sign parameters in real-time and with high accuracy:
+HomeICU measures the following vital sign parameters:
+
+Phase I:
 
 1. body temperature
-2. blood pressure (by the 3rd party meter)
-3. peripheral capillary oxygen saturation (SpO2/oximetry)
-4. pulse rate
-5. respiration rate
-6. motion occurrence, and intensity.
-7. ECG (Electrocardiography)
+2. oxygen saturation  (SPO₂/pulse oximetry)
+3. heart rate and heart-rate variability (HRV)
+4. respiration rate (based on impedance pneumography)
+5. Electrocardiography (ECG)
+6. motion occurrence and intensity
 
-The hardware and software design documents are shared here and the project website is at http://www.homeicu.ca
+Phase II:
 
-Repository Contents
--------------------
-microprocessor.
+7. blood pressure (by the 3rd party meter)
+8. GPS (by base station)
+
+
+---
+# Repository
+
 * **/docs**     - additional documentation
 * **/extras**   - includes the datasheet
 * **/firmware** - software code for running in the 
 * **/gui**      - GUI for iPhone, iPad and Android phone/tablet
 * **/hardware** - design files (.brd, .sch)
 
-Getting Started:
-----------------------------------
+
+---
+# Hardware
+
+* Microcontroller: ESP32, in WROOM32 module format, with Dual-core Xtensa 32-bit CPU, 4 MB of on-board flash, 520 KB RAM. 
+
+* Wireless Connectivity:
+Wi-Fi and Access Point (AP) mode
+BLE (Bluetooth Low Energy).
+
+* Firmware programming: 
+Arduino IDE and Espressif ESP-IDF.
+
+* Sensors: 
+ECG and respiration: TI ADS1292R
+Pulse oximetry: TI AFE4400
+Temperature sensor: Maxim MAX30205
+
+* Battery:
+Rechargeable 1000 mAh Lithium Polymer (LiPo) battery.
+
+* Electrode and Connector
+Three-electrode cable with ECG "snap connectors" on one end and a stereo connector on the other, and single-use ECG electrodes.
+
+* Probe:
+Finger-clip SpO₂ probe with a Nellcor-compatible DB9 connector
+
+* Qwiic:
+Qwiic connector and Qwiic-based temperature sensor.
+
+* USB:
+On-board battery charging and 
+
+---
+# Software
+
+Processing-based GUI, Android App, iOS devices App, web interface
+
+---
+# Getting Started:
 
 Coming soon.
 
-
-Using the GUI
----------------------------------------------------
-Coming soon.
-
-
-Programming the on-board microcontroller
---------------------------------------------------
+---
+# GUI
 
 Coming soon.
 
-Connecting the ECG Electrodes
-------------------------------
+---
+# Programming the on-board microcontroller
+
+Coming soon.
+
+---
+# Connecting the ECG Electrodes
+
 A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board. 
 
 Coming soon.
 
+---
+# Placing the Electrodes on the body
 
-Placing the Electrodes on the body
----------------------------------
+---
+# License Information
 
+The hardware and software are open-source and licensed under the following licenses:
 
-License Information
-===================
+MIT License(http://opensource.org/licenses/MIT)
 
-This product is open source! Both, our hardware and software are open source and licensed under the following licenses:
-
-Hardware
----------
-
-**All hardware is released under [Creative Commons Share-alike 4.0 International](http://creativecommons.org/licenses/by-sa/4.0/).**
-
-![CC-BY-SA-4.0](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)
-
-Software
---------
-
-**All software is released under the MIT License(http://opensource.org/licenses/MIT).**
-
-Please check [*LICENSE.md*](LICENSE.md) for detailed license descriptions.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
  
