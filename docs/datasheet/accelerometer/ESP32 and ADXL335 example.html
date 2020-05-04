@@ -1,0 +1,832 @@
+<!doctype html >
+<!--[if IE 8]>    <html class="ie8" lang="en"> <![endif]-->
+<!--[if IE 9]>    <html class="ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html lang="en-GB"> <!--<![endif]-->
+<head><!--[if IE 8]><script src="//cdnjs.cloudflare.com/ajax/libs/ie8/0.6.0/ie8.js"></script><![endif]--><link rel="dns-prefetch" href="//s0.wp.com"><link rel="dns-prefetch" href="//secure.gravatar.com"><link rel="dns-prefetch" href="//fonts.googleapis.com"><link rel="dns-prefetch" href="//s.w.org"><link rel="dns-prefetch" href="//v0.wordpress.com"><link rel="dns-prefetch" href="//widgets.wp.com"><link rel="dns-prefetch" href="//0.gravatar.com"><link rel="dns-prefetch" href="//1.gravatar.com"><link rel="dns-prefetch" href="//2.gravatar.com"><link rel="dns-prefetch" href="//i0.wp.com"><link rel="dns-prefetch" href="//i1.wp.com"><link rel="dns-prefetch" href="//i2.wp.com"><script>!function(e,t){function n(){for(var e,n=t.getElementsByTagName("link"),r=0;r<n.length;r++)"preload"===(e=n[r]).rel&&"style"===e.getAttribute("as")&&(!function(e,n,r){function a(){l.addEventListener&&l.removeEventListener("load",a),l.media=r||"all"}var l=t.createElement("link");l.rel="stylesheet",l.href=e,l.media="only x";l.addEventListener&&l.addEventListener("load",a);(function e(){t.body?n.parentNode.insertBefore(l,n):setTimeout(e)})(),function e(){for(var n=t.styleSheets,r=n.length;r--;)if(n[r].href===l.href)return a();setTimeout(e)}()}(e.href,e,e.media),e.rel=null)}function r(){n(),clearInterval(a)}try{if(t.createElement("link").relList.supports("preload"))return}catch(e){}var a=setInterval(n,300);e.addEventListener&&e.addEventListener("load",r),e.attachEvent&&e.attachEvent("onload",r),n()}(window,document);</script><link rel="dns-prefetch" href="//fonts.googleapis.com"><link rel="dns-prefetch" href="//fonts.gstatic.com"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="anonymous"><link rel="preconnect" href="//fonts.gstatic.com" crossorigin="anonymous"><script>!function(e){ress_loadGooglefont=function(e,n){var l,o,i=unescape(e.match(/=([^&]*)/)[1]).split("|"),r=[];for(l=0;l<i.length;l++){var a=i[l].split(":"),s=[a[0].replace(/\+/g," ")],f=(a[1]||"400").split(",");for(o=0;o<f.length;o++)s.push(f[o].replace(/^(regular|normal)/,"400").replace(/^b(old)?/,"700").replace(/italic$/,"i").replace(/^i/,"400i"));r.push(s)}t(e,r,n)};var t=ress_loadFont=function(t,n,l){function o(){var n=e.createElement("link");n.rel="stylesheet",n.href=t,e.head.appendChild(n)}if(l=l||"BES bswy 0",!e.addEventListener)return o();e.addEventListener("DOMContentLoaded",function(){var i,r,a,s,f,p,h,c=0,d=[],u=100,g=e.createElement("iframe");for((i=g.style).position="absolute",i.left="-9999px",e.body.appendChild(g),f='<link rel="stylesheet" href="'+t+'">',a=0;a<n.length;a++)for(s=1;s<n[a].length;s++)f+='<span style="font-size:999px;white-space:nowrap">'+l+"</span><br>";for((r=g.contentWindow.document).open(),r.write(f),r.close(),f=r.getElementsByTagName("span"),a=0;a<n.length;a++)for(p=n[a],s=1;s<p.length;s++)h=p[s].split("i"),d.push(f[c].offsetWidth),(i=f[c++].style).fontFamily='"'+p[0]+'"',i.fontWeight=h[0],h.length>1&&(i.fontStyle="italic");!function e(){for(a=0;a<d.length;a++)if(!1!==d[a]&&f[a].offsetWidth!==d[a]&&(d[a]=!1,0===--c))return setTimeout(function(){g.parentNode.removeChild(g)},1e3),o();--u>0&&setTimeout(e,100)}()})}}(document);ress_loadGooglefont('//fonts.googleapis.com/css?family=Open+Sans%3A300italic%2C400%2C400italic%2C600%2C600italic%2C700%7CRoboto%3A300%2C400%2C400italic%2C500%2C500italic%2C700%2C900');</script><noscript><link rel="stylesheet" href="//fonts.googleapis.com/css?family=Open+Sans%3A300italic%2C400%2C400italic%2C600%2C600italic%2C700%7CRoboto%3A300%2C400%2C400italic%2C500%2C500italic%2C700%2C900"></noscript><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ESP32 and ADXL335 accelerometer example | ESP32 Learning</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="pingback" href="/xmlrpc.php">
+    
+<style>body{visibility:visible!important;margin:0}html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}aside{display:block}a,ins{text-decoration:none}.sf-menu>li>a:after,a{background-color:transparent}a{color:#4db2ec}img{border:0;max-width:100%;width:auto\9;height:auto}input,select{color:inherit;font:inherit;margin:0}select{text-transform:none}h1,h3,h4,input[type=submit]{font-family:'Roboto',sans-serif}input[type=submit]{-webkit-appearance:button;font-size:13px;background-color:#222;border-radius:0;color:#fff;border:0;padding:8px 15px;font-weight:500}input{line-height:normal}*,:after,:before{-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box}.td-main-content-wrap{background-color:#fff}.td-container{width:1068px;margin-right:auto;margin-left:auto}.td-container:after,.td-container:before{display:table;content:'';line-height:0}.td-container:after{clear:both}.td-pb-row{*zoom:1;margin-right:-24px;margin-left:-24px}.td-pb-row:after,.td-pb-row:before{display:table;content:""}.td-pb-row:after{clear:both}.td-pb-row [class*=td-pb-span]{position:relative}.td-ss-main-sidebar{-webkit-backface-visibility:hidden;-webkit-perspective:1000}.td-pb-span4{width:33.33333333%}.td-pb-span8{width:66.66666667%}.td-header-wrap{position:relative;z-index:2000}.td-header-row{*zoom:1;font-family:'Open Sans',arial,sans-serif}.td-header-row:after,.td-header-row:before{display:table;content:""}.td-header-row:after{clear:both}.td-header-row [class*=td-header-sp],.td-pb-row [class*=td-pb-span]{display:block;min-height:1px;float:left;padding-right:24px;padding-left:24px}.td-header-sp-logo img{margin:auto;position:absolute;top:0;bottom:0;left:0;right:0}.td-main-menu-logo{display:none;float:left;margin-right:10px;height:48px}.sf-menu>li>a,.td-main-menu-logo a{line-height:48px}.td-main-menu-logo img{padding:3px 0;position:relative;vertical-align:middle;max-height:48px}.td-visual-hidden{border:0;width:1px;height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute}.td-logo{margin:0;padding:0;line-height:1;font-size:inherit!important}.td-header-gradient:before{content:"";background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAMBAMAAABRpcpkAAAAD1BMVEUAAAAAAAAAAAAAAAAAAABPDueNAAAABXRSTlMGAhQQCyEd++8AAAAUSURBVAjXY1AAQgMgdABCCBAAQQAT6AFRBPHcWgAAAABJRU5ErkJggg==);width:100%;height:12px;position:absolute;bottom:-12px;z-index:1}.td-boxed-layout #td-outer-wrap{z-index:1}.td-header-top-menu-full{position:relative;z-index:9999}.td-banner-wrap-full{position:relative}.td-header-menu-wrap-full{z-index:9998;position:relative}.td-banner-wrap-full,.td-header-menu-wrap-full{background-color:#fff}.td-header-style-1 .td-header-top-menu-full{background-color:#222}.td-header-style-1 .td-header-sp-logo{width:284px;position:relative;height:90px;margin:28px 28px 9px}.td-header-style-1 .td-header-sp-logo img{max-height:90px}.td-header-style-1 .td-header-sp-recs{margin:28px 0 9px}.td-header-style-1 .header-search-wrap .td-icon-search{color:#000}.td-header-main-menu{position:relative;z-index:999;padding-right:48px}.sf-menu,.sf-menu li,.td-mobile-content ul{margin:0;list-style:none}.sf-menu li{float:left;position:relative}.header-search-wrap #td-header-search-button{display:block;position:relative}.header-search-wrap #td-header-search-button-mob{position:relative;display:none}.sf-menu .td-menu-item>a{display:block;position:relative}.sf-menu>li>a{padding:0 14px;font-size:14px;color:#000;font-weight:700;text-transform:uppercase;-webkit-backface-visibility:hidden}.sf-menu>li>a:after{content:'';width:0;height:3px;position:absolute;bottom:0;left:0;right:0;margin:0 auto;-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0)}#td-header-menu{min-height:48px}#td-top-search{position:absolute;right:0;top:50%;margin-top:-24px}#td-header-search{width:235px;height:32px;margin:0;border-right:0;line-height:17px;border-color:#eaeaea!important}.header-search-wrap .td-icon-search{display:inline-block;font-size:19px;height:48px;width:48px;line-height:48px;text-align:center}.header-search-wrap .td-drop-down-search{position:absolute;top:100%;z-index:999;visibility:hidden;opacity:0;right:0;border-radius:0;border:0;width:342px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2);transform:translate3d(0,20px,0);-webkit-transform:translate3d(0,20px,0);-moz-transform:translate3d(0,20px,0);-ms-transform:translate3d(0,20px,0);-o-transform:translate3d(0,20px,0)}.header-search-wrap .td-drop-down-search .btn{position:absolute;height:32px;min-width:67px;line-height:17px;padding:7px 15px 8px;text-shadow:none;vertical-align:top;right:20px;margin:0!important}.header-search-wrap .td-drop-down-search:before{position:absolute;top:-9px;right:19px;display:block;content:'';width:0;height:0;border-style:solid;border-width:0 5.5px 6px;border-color:transparent transparent #4db2ec}.header-search-wrap .td-drop-down-search:after{position:absolute;top:-3px;display:block;content:'';right:0;left:0;margin:0 auto;width:100%;height:3px;background-color:#4db2ec}.header-search-wrap .td-search-form{margin:20px}.td-header-top-menu{color:#fff;font-size:11px}.td-header-top-menu a{color:#fff}.td-header-sp-top-menu{line-height:28px;padding:0!important;z-index:1000;float:left}.menu-top-container{display:inline-block;margin-right:16px}.top-header-menu{list-style:none;margin:0}.top-header-menu li{display:inline-block;position:relative;margin-left:0}.top-header-menu li a{margin-right:16px;line-height:1}.top-header-menu>li{line-height:28px}#td-outer-wrap{overflow:hidden}#td-top-mobile-toggle{display:none}#td-top-mobile-toggle a,.top-header-menu{display:inline-block}#td-top-mobile-toggle i{font-size:27px;width:54px;line-height:54px;height:54px;display:inline-block;padding-top:1px;color:#fff}#td-mobile-nav,.td-menu-background{width:100%;z-index:9999;visibility:hidden}.td-menu-background{background-repeat:no-repeat;background-size:cover;background-position:center top;position:fixed;display:block;height:113%;transform:translate3d(-100%,0,0);-webkit-transform:translate3d(-100%,0,0);-moz-transform:translate3d(-100%,0,0);-ms-transform:translate3d(-100%,0,0);-o-transform:translate3d(-100%,0,0)}.td-menu-background:before,.td-search-background:before{content:'';width:100%;height:100%;position:absolute;top:0;left:0;opacity:.98;background:#313b45;background:-moz-linear-gradient(top,#313b45 0,#3393b8 100%);background:-webkit-gradient(left top,left bottom,color-stop(0%,#313b45),color-stop(100%,#3393b8));background:-webkit-linear-gradient(top,#313b45 0,#3393b8 100%);background:-o-linear-gradient(top,#313b45 0,#3393b8 100%);background:-ms-linear-gradient(top,#313b45 0%,#3393b8 100%);background:linear-gradient(to bottom,#313b45 0,#3393b8 100%)}#td-mobile-nav{padding:0;position:absolute;top:0;transform:translate3d(-99%,0,0);-webkit-transform:translate3d(-99%,0,0);-moz-transform:translate3d(-99%,0,0);-ms-transform:translate3d(-99%,0,0);-o-transform:translate3d(-99%,0,0);left:-1%;font-family:-apple-system,".SFNSText-Regular","San Francisco","Roboto","Segoe UI","Helvetica Neue","Lucida Grande",sans-serif;height:1px;overflow:hidden}#td-mobile-nav .td-menu-socials{padding:0 65px 0 20px;overflow:hidden;height:60px}.td-mobile-close{position:absolute;right:1px;top:0;z-index:1000}.td-mobile-close .td-icon-close-mobile{height:70px;width:70px;line-height:70px;font-size:21px;color:#fff;top:4px;position:relative}.td-mobile-content{padding:20px 20px 0}.td-mobile-container{padding-bottom:20px;position:relative;opacity:1}.td-mobile-content ul{padding:0}.td-mobile-content li{float:none;margin-left:0;-webkit-touch-callout:none}.td-mobile-content li a{display:block;line-height:21px;font-size:21px;color:#fff;margin-left:0;padding:12px 30px 12px 12px;font-weight:700}.td-search-wrap-mob{padding:0;position:absolute;width:100%;height:auto;top:0;text-align:center;z-index:9999;visibility:hidden;color:#fff;font-family:-apple-system,".SFNSText-Regular","San Francisco","Roboto","Segoe UI","Helvetica Neue","Lucida Grande",sans-serif}.td-search-wrap-mob .td-drop-down-search{opacity:0;visibility:hidden;-webkit-backface-visibility:hidden;position:relative}.td-search-wrap-mob #td-header-search-mob{color:#fff;font-weight:700;font-size:26px;height:40px;line-height:36px;border:0;background:0 0;outline:0;margin:8px 0;padding:0;text-align:center}.td-search-wrap-mob .td-search-input{margin:0 5%;position:relative}.td-search-wrap-mob .td-search-input span{opacity:.8;font-size:12px}.td-search-wrap-mob .td-search-input:after,.td-search-wrap-mob .td-search-input:before{content:'';position:absolute;display:block;width:100%;height:1px;background-color:#fff;bottom:0;left:0;opacity:.2}.td-search-wrap-mob .td-search-input:after{opacity:.8;transform:scaleX(0);-webkit-transform:scaleX(0);-moz-transform:scaleX(0);-ms-transform:scaleX(0);-o-transform:scaleX(0)}.td-search-wrap-mob .td-search-form{margin-bottom:30px}.td-search-background{background-repeat:no-repeat;background-size:cover;background-position:center top;position:fixed;display:block;width:100%;height:113%;z-index:9999;transform:translate3d(100%,0,0);-webkit-transform:translate3d(100%,0,0);-moz-transform:translate3d(100%,0,0);-ms-transform:translate3d(100%,0,0);-o-transform:translate3d(100%,0,0);visibility:hidden}.td-search-close{text-align:right;z-index:1000}.td-search-close .td-icon-close-mobile{height:70px;width:70px;line-height:70px;font-size:21px;color:#fff;position:relative;top:4px;right:0}body,p{font-family:Verdana,Geneva,sans-serif;font-size:14px;line-height:21px}p{margin-top:0;margin-bottom:21px}ins{background:#fff}ul{padding:0}ul li{line-height:24px;margin-left:21px}h1,h3,h4{font-weight:400;margin:6px 0}h1,h1>a,h3,h3>a,h4{color:#111}h1{font-size:32px;line-height:40px;margin-top:33px;margin-bottom:23px}.widget li,h3{line-height:30px}h3{font-size:22px;margin-top:27px;margin-bottom:17px}h4{font-size:19px;line-height:29px;margin-top:24px;margin-bottom:14px}input[type=text]{font-size:12px;line-height:21px;color:#444;border:1px solid #e1e1e1;width:100%;max-width:100%;height:34px;padding:3px 9px}.td_module_wrap{position:relative;padding-bottom:35px}.td_module_wrap .entry-title{font-size:21px;line-height:25px;margin:0 0 6px}.td-module-thumb{position:relative;margin-bottom:13px}.td-module-thumb .entry-thumb{display:block}.td-module-meta-info{font-family:'Open Sans',arial,sans-serif;font-size:11px;margin-bottom:7px;line-height:1;min-height:17px}.td-post-author-name,.td-post-date{display:inline-block;position:relative;top:2px}.td-post-author-name{font-weight:700}.td-post-author-name a{color:#000}.td-post-author-name span{color:#ccc;margin:0 2px;font-weight:400}.td-post-date{color:#aaa}.td-excerpt,.td-module-comments{font-family:'Open Sans',arial,sans-serif}.td-module-comments{position:relative;float:right;font-size:10px;font-weight:600;text-align:center;line-height:1}.td-module-comments a{color:#fff;background-color:#000;display:inline-block;min-width:17px;padding:3px 4px 4px 5px;position:relative}.td-module-comments a:after{position:absolute;bottom:-3px;left:0;content:'';width:0;height:0;border-style:solid;border-width:3px 3px 0 0;border-color:#000 transparent transparent}.td-excerpt{font-size:13px;color:#777;margin-top:9px}.td_module_16{padding-bottom:40px}.td_module_16 .td-module-thumb{position:absolute;left:0;top:0}.td_module_16 .item-details{margin-left:174px;min-height:150px}.td_module_16 .entry-title{font-size:22px;line-height:28px;margin-bottom:5px}.block-title{font-family:'Roboto',sans-serif;font-size:14px;line-height:1;margin-top:0;margin-bottom:26px;border-bottom:2px solid #222;border-color:#4db2ec}.block-title span{line-height:17px;display:inline-block;padding:7px 12px 4px;background-color:#222;color:#fff}.block-title>span{background-color:#4db2ec}.td-crumb-container{min-height:35px;margin-bottom:9px;padding-top:21px}.entry-crumbs{font-family:'Open Sans',arial,sans-serif;font-size:12px;color:#c3c3c3;line-height:18px;padding-top:1px;padding-bottom:2px}.entry-crumbs a{color:#c3c3c3}.entry-crumbs .td-bread-sep{font-size:8px;margin:0 5px}.td-main-content-wrap{padding-bottom:40px}.page-nav a,.page-nav span{padding:5px 11px;border:1px solid #e3e3e3;display:inline-block;margin:0 8px 8px 0;min-width:33px;text-align:center;color:#666;line-height:21px;float:left}.page-nav .extend{border:0}.page-nav .pages{float:right;margin:0;border:0;padding:6px 0 6px 6px}[class*=" td-icon-"]:before,[class^=td-icon-]:before{font-family:'newspaper';speak:none;font-style:normal;font-weight:400;font-variant:normal;text-transform:none;line-height:1;text-align:center;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}[class*=td-icon-]{line-height:1;text-align:center;display:inline-block}.td-icon-right:before{content:'\e803'}.td-icon-search:before{content:'\e80a'}.td-icon-mobile:before{content:'\e83e'}.td-icon-close-mobile:before{content:'\e900'}.td-header-rec-wrap{position:relative;min-height:90px}.td-header-sp-recs{padding:0!important;width:728px;position:relative;min-height:0!important}.widget{font-family:'Open Sans',arial,sans-serif;margin-bottom:38px}.widget a{color:#111}.widget ul{list-style:none;box-shadow:none}.widget li{list-style:none;margin-left:12px}.widget select{width:100%;height:30px;margin-bottom:10px;padding:0 5px}.widget .block-title{margin-bottom:13px}.widget_recent_entries{margin-bottom:32px}.widget select,.widget_recent_entries ul{margin-top:13px}.widget_recent_entries li{margin-bottom:8px;padding-bottom:7px;border-bottom:1px dashed #f1f1f1;font-family:'Roboto',sans-serif}.widget_recent_entries li a{display:inline-block;line-height:21px}.td-boxed-layout .td-container-wrap{width:1164px}.td-container-wrap{background-color:#fff;margin-left:auto;margin-right:auto}.td-scroll-up{position:fixed;bottom:4px;right:5px;width:40px;height:40px;background-color:#4db2ec;z-index:9999;transform:translate3d(0,70px,0);-webkit-transform:translate3d(0,70px,0);-moz-transform:translate3d(0,70px,0);-ms-transform:translate3d(0,70px,0);-o-transform:translate3d(0,70px,0)}.wpb_button{display:inline-block;font-family:'Open Sans',arial,sans-serif;font-weight:600;line-height:24px;text-shadow:none;border:0;border-radius:0;margin-bottom:21px}.widget{overflow:hidden}body.td-animation-stack-type0 .td-animation-stack .entry-thumb{opacity:0}.screen-reader-text{border:0;clip:rect(1px,1px,1px,1px);-webkit-clip-path:inset(50%);clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute!important;width:1px;word-wrap:normal!important}@media (min-width:1019px) and (max-width:1140px){.td-pb-row [class*=td-pb-span]{display:block;min-height:1px;float:left}.td-container{width:980px}.td-pb-row{*zoom:1;margin-right:-20px;margin-left:-20px}.td-pb-row:after,.td-pb-row:before{display:table;content:""}.td-pb-row:after{clear:both}.td-header-row [class*=td-header-sp],.td-pb-row [class*=td-pb-span]{padding-right:20px;padding-left:20px}.td-header-style-1 .td-header-sp-logo{width:224px;margin-left:0}.td-header-top-menu{overflow:visible}}@media (min-width:768px) and (max-width:1018px){.td-pb-row [class*=td-pb-span]{display:block;min-height:1px;float:left}.td-container{width:740px}.td-pb-row{*zoom:1;margin-right:-14px;margin-left:-14px}.td-pb-row:after,.td-pb-row:before{display:table;content:""}.td-pb-row:after{clear:both}.td-header-row [class*=td-header-sp],.td-pb-row [class*=td-pb-span]{padding-right:14px;padding-left:14px}.td-header-style-1 .td-header-sp-logo{width:214px;margin:14px 28px 0;max-height:60px}.td-header-style-1 .td-header-sp-logo img{max-height:60px}.td-header-style-1 .td-header-sp-recs{margin:14px 0 0}.sf-menu>li>a{padding:0 9px;font-size:11px}.header-search-wrap .td-icon-search{font-size:15px}.td-crumb-container{padding-top:16px}.td-header-rec-wrap{min-height:60px}.td-header-sp-recs{width:470px}.widget_recent_entries li{margin-bottom:3px;padding-bottom:2px}}@media (max-width:767px){.td-pb-row [class*=td-pb-span]{display:block;min-height:1px;float:left;padding-right:0;padding-left:0}.td-container{width:100%;padding-left:10px;padding-right:10px}.td-pb-row{width:100%;margin-left:0;margin-right:0}.td-pb-row .td-pb-span4,.td-pb-row .td-pb-span8{float:none;width:100%}.td-header-row [class*=td-header-sp]{padding-right:0;padding-left:0}.td-main-menu-logo{display:block;margin-right:0;height:0}.td-main-menu-logo img{margin:auto;bottom:0;top:0;left:0;right:0;position:absolute;padding:0}.td-header-top-menu-full{display:none}.td-header-wrap .td-header-main-menu,.td-header-wrap .td-header-menu-wrap,.td-header-wrap .td-header-menu-wrap-full{background-color:#222!important;height:54px!important}.header-search-wrap .td-icon-search{color:#fff!important}.td-header-style-1 .td-header-sp-logo{display:none}.td-header-style-1 .td-header-sp-recs{margin:0}.td-header-style-1 .header-search-wrap .td-icon-search{color:#fff}.td-header-main-menu{padding-right:64px;padding-left:2px}.header-search-wrap #td-header-search-button,.sf-menu{display:none}#td-top-search{top:0;margin-top:0}#td-header-search{width:91%;font-size:16px}.header-search-wrap #td-header-search-button-mob{display:block}.header-search-wrap .td-icon-search{height:54px;width:54px;line-height:54px;font-size:22px;margin-right:2px}.header-search-wrap .td-drop-down-search{width:100%}.td-header-sp-top-menu{display:none!important}#td-outer-wrap{overflow:auto;margin:auto;width:100%;-webkit-transform-origin:50% 200px 0;-moz-transform-origin:50% 200px 0;-o-transform-origin:50% 200px 0;transform-origin:50% 200px 0}#td-top-mobile-toggle{display:inline-block;position:relative}input[type=text]{font-size:16px}.td_module_16{padding-bottom:26px}.td_module_16 .td-module-thumb{width:80px}.td_module_16 .item-details{margin-left:95px;min-height:80px}.td_module_16 .entry-title{font-weight:500}.page-nav .extend,.page-nav .last,.page-nav .pages,.td_module_16 .td-excerpt{display:none}.td-crumb-container{padding-top:11px}.td-main-content-wrap{padding-bottom:26px}.td-header-rec-wrap{margin-left:auto;margin-right:auto;display:table;min-height:0!important}.td-header-sp-recs{width:100%}.td-scroll-up{display:none}}@media (min-width:1019px) and (max-width:1140px) and (min-width:1019px) and (max-width:1140px){.td-pb-row [class*=td-pb-span]{padding-right:20px;padding-left:20px}}@media (min-width:1019px) and (max-width:1140px) and (min-width:768px) and (max-width:1018px){.td-pb-row [class*=td-pb-span]{padding-right:14px;padding-left:14px}}@media (min-width:1019px) and (max-width:1140px) and (max-width:767px){.td-pb-row [class*=td-pb-span]{padding-right:0;padding-left:0}}@media (min-width:768px) and (max-width:1018px) and (min-width:1019px) and (max-width:1140px){.td-pb-row [class*=td-pb-span]{padding-right:20px;padding-left:20px}}@media (min-width:768px) and (max-width:1018px) and (min-width:768px) and (max-width:1018px){.td-pb-row [class*=td-pb-span]{padding-right:14px;padding-left:14px}}@media (min-width:768px) and (max-width:1018px) and (max-width:767px){.td-pb-row [class*=td-pb-span]{padding-right:0;padding-left:0}}@media (max-width:767px) and (min-width:1019px) and (max-width:1140px){.td-pb-row [class*=td-pb-span]{padding-right:20px;padding-left:20px}}@media (max-width:767px) and (min-width:768px) and (max-width:1018px){.td-pb-row [class*=td-pb-span]{padding-right:14px;padding-left:14px}}@media (max-width:767px) and (max-width:767px){.td-pb-row [class*=td-pb-span]{padding-right:0;padding-left:0}}@media (max-width:1140px){.td-main-menu-logo img{max-width:180px}#td-outer-wrap{overflow:hidden}}@media (max-width:500px){.td_module_16 .entry-title{font-size:17px;line-height:22px}}@media (max-width:1180px){.td-boxed-layout .td-container-wrap{width:100%}}@media print{body,html{background-color:#fff;color:#000;margin:0;padding:0}img{max-width:100%;display:block}h1,h3,h4{page-break-after:avoid}li,ul{page-break-inside:avoid}.td-main-content{width:100%!important}}img.lazy{display:none}</style><script>try{	if (top.location!= self.location) {
+		top.location = self.location.href
+	}}catch(e){console.log(e)}try{!function(e,t,n,o,i,r){function a(){r("scroll",a),r("mouseover",a),r("touchstart",a,{passive:!0}),s()}function s(t){for(o=e.getElementsByTagName("script")[t=0],ress_js=d;n[t];)d(n[t++]);n=[]}function d(t,n){e.getElementById(t)||(n=e.createElement("script"),n.src=n.id=t,n.async=!0,o.parentNode.insertBefore(n,o))}ress_js=n.push.bind(n),i=t.addEventListener,r=t.removeEventListener,i&&"complete"!==e.readyState?(i("load",function(){setTimeout(a,5500)}),i("scroll",a),i("mousemove",a),i("touchstart",a)):s()}(document,window,[])}catch(e){console.log(e)}try{ress_js("https://cdn.pushassist.com/account/assets/psa-esp32learning.js");
+}catch(e){console.log(e)}</script><link rel="icon" type="image/png" href="/wp-content/uploads/2017/11/esp32favicon.png">
+
+<script type="application/ld+json" class="aioseop-schema">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"http://www.esp32learning.com/#organization","url":"http://www.esp32learning.com/","name":"ESP32 Learning","sameAs":[]},{"@type":"WebSite","@id":"http://www.esp32learning.com/#website","url":"http://www.esp32learning.com/","name":"ESP32 Learning","publisher":{"@id":"http://www.esp32learning.com/#organization"}},{"@type":"WebPage","@id":"http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php#webpage","url":"http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php","inLanguage":"en-GB","name":"ESP32 and ADXL335 accelerometer example","isPartOf":{"@id":"http://www.esp32learning.com/#website"},"breadcrumb":{"@id":"http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php#breadcrumblist"},"datePublished":"2018-02-06T11:36:27+00:00","dateModified":"2018-01-06T11:43:10+00:00"},{"@type":"Article","@id":"http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php#article","isPartOf":{"@id":"http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php#webpage"},"author":{"@id":"http://www.esp32learning.com/author/shedboy71#author"},"headline":"ESP32 and ADXL335 accelerometer example","datePublished":"2018-02-06T11:36:27+00:00","dateModified":"2018-01-06T11:43:10+00:00","commentCount":0,"mainEntityOfPage":{"@id":"http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php#webpage"},"publisher":{"@id":"http://www.esp32learning.com/#organization"},"articleSection":"Code, accelerometer, ADXL335, ESP32"},{"@type":"Person","@id":"http://www.esp32learning.com/author/shedboy71#author","name":"shedboy71","sameAs":[],"image":{"@type":"ImageObject","@id":"http://www.esp32learning.com/#personlogo","url":"http://2.gravatar.com/avatar/8848a8b00571f419699fcd99a8654afc?s=96&d=mm&r=g","width":96,"height":96,"caption":"shedboy71"}},{"@type":"BreadcrumbList","@id":"http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php#breadcrumblist","itemListElement":[{"@type":"ListItem","position":1,"item":{"@type":"WebPage","@id":"http://www.esp32learning.com/","url":"http://www.esp32learning.com/","name":"esp32 learning"}},{"@type":"ListItem","position":2,"item":{"@type":"WebPage","@id":"http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php","url":"http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php","name":"ESP32 and ADXL335 accelerometer example"}}]}]}</script>
+<link rel="canonical" href="esp32-and-adxl335-accelerometer-example.php">
+
+
+
+
+
+<link rel="alternate" type="application/rss+xml" title="ESP32 Learning &raquo; Feed" href="/feed">
+<link rel="alternate" type="application/rss+xml" title="ESP32 Learning &raquo; Comments Feed" href="/comments/feed">
+<link rel="alternate" type="application/rss+xml" title="ESP32 Learning &raquo; ESP32 and ADXL335 accelerometer example Comments Feed" href="esp32-and-adxl335-accelerometer-example.php/feed">
+<link rel="preload" as="style" onload="this.rel='stylesheet'" href="/s/40937e.css"><noscript><link rel="stylesheet" href="/s/40937e.css"></noscript>
+	
+
+
+
+
+
+
+
+
+
+
+<script src="/s/c4f602.js"></script>
+<link rel="https://api.w.org/" href="/wp-json/">
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="/wp-includes/wlwmanifest.xml"> 
+<link rel="prev" title="ESP32 and WS2812b RGB led example" href="esp32-and-ws2812b-rgb-led-example.php">
+<link rel="next" title="ESP32 and MAG3110 magnetic sensor example" href="esp32-and-mag3110-magnetic-sensor-example.php">
+<meta name="generator" content="WordPress 5.2.6" />
+<link rel="shortlink" href="https://wp.me/p9n5N3-5A">
+<link rel="alternate" type="application/json+oembed" href="/wp-json/oembed/1.0/embed?url=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php">
+<link rel="alternate" type="text/xml+oembed" href="/wp-json/oembed/1.0/embed?url=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&#038;format=xml">
+
+<script data-cfasync="false">
+window.a2a_config=window.a2a_config||{};a2a_config.callbacks=[];a2a_config.overlays=[];a2a_config.templates={};a2a_localize = {
+	Share: "Share",
+	Save: "Save",
+	Subscribe: "Subscribe",
+	Email: "Email",
+	Bookmark: "Bookmark",
+	ShowAll: "Show All",
+	ShowLess: "Show less",
+	FindServices: "Find service(s)",
+	FindAnyServiceToAddTo: "Instantly find any service to add to",
+	PoweredBy: "Powered by",
+	ShareViaEmail: "Share via email",
+	SubscribeViaEmail: "Subscribe via email",
+	BookmarkInYourBrowser: "Bookmark in your browser",
+	BookmarkInstructions: "Press Ctrl+D or \u2318+D to bookmark this page",
+	AddToYourFavorites: "Add to your favourites",
+	SendFromWebOrProgram: "Send from any email address or email program",
+	EmailProgram: "Email program",
+	More: "More&#8230;",
+	ThanksForSharing: "Thanks for sharing!",
+	ThanksForFollowing: "Thanks for following!"
+};
+
+(function(d,s,a,b){a=d.createElement(s);b=d.getElementsByTagName(s)[0];a.async=1;a.src="https://static.addtoany.com/menu/page.js";b.parentNode.insertBefore(a,b);})(document,"script");
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--[if lt IE 9]><script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+    
+
+<style>.si_captcha_small{width:175px;height:45px;padding-top:10px;padding-bottom:10px}.si_captcha_large{width:250px;height:60px;padding-top:10px;padding-bottom:10px}img#si_image_com{border-style:none;margin:0;padding-right:5px;float:left}img#si_image_reg{border-style:none;margin:0;padding-right:5px;float:left}img#si_image_log{border-style:none;margin:0;padding-right:5px;float:left}img#si_image_side_login{border-style:none;margin:0;padding-right:5px;float:left}img#si_image_checkout{border-style:none;margin:0;padding-right:5px;float:left}img#si_image_jetpack{border-style:none;margin:0;padding-right:5px;float:left}img#si_image_bbpress_topic{border-style:none;margin:0;padding-right:5px;float:left}.si_captcha_refresh{border-style:none;margin:0;vertical-align:bottom}div#si_captcha_input{display:block;padding-top:15px;padding-bottom:5px}label#si_captcha_code_label{margin:0}input#si_captcha_code_input{width:65px}p#si_captcha_code_p{clear:left;padding-top:10px}.si-captcha-jetpack-error{color:#DC3232}.yarpp-related{margin:1em 0}.yarpp-related a{text-decoration:none;font-weight:bold}.yarpp-related .yarpp-thumbnail-title{text-align:left;font-weight:bold;font-size:96%;text-decoration:none}.yarpp-related h3{font-weight:bold;padding:0 0 5px 0;font-size:125%;text-transform:capitalize;margin:0}.yarpp-related .yarpp-promote{clear:both;background:url(//api.engage.bidsystem.com/adk_mini_logo.png) no-repeat;float:right;text-indent:-1000px;cursor:pointer;color:#666;font-size:11px;height:17px;width:78px}.cpp .de1,.cpp .de2{font:normal normal 1em/1.2em monospace;margin:0;padding:0;background:none;vertical-align:top}.cpp{font-family:monospace}.cpp .imp{font-weight:bold;color:red}.cpp li,.cpp .li1{font-weight:normal;vertical-align:top}.cpp .ln{width:1px;text-align:right;margin:0;padding:0 2px;vertical-align:top}.cpp .li2{font-weight:bold;vertical-align:top}.cpp .kw1{color:#0000ff}.cpp .kw2{color:#0000ff}.cpp .kw3{color:#0000dd}.cpp .kw4{color:#0000ff}.cpp .co1{color:#666666}.cpp .co2{color:#339900}.cpp .coMULTI{color:#ff0000;font-style:italic}.cpp .es0{color:#000099;font-weight:bold}.cpp .es1{color:#000099;font-weight:bold}.cpp .es2{color:#660099;font-weight:bold}.cpp .es3{color:#660099;font-weight:bold}.cpp .es4{color:#660099;font-weight:bold}.cpp .es5{color:#006699;font-weight:bold}.cpp .br0{color:#008000}.cpp .sy0{color:#008000}.cpp .sy1{color:#000080}.cpp .sy2{color:#000040}.cpp .sy3{color:#000040}.cpp .sy4{color:#008080}.cpp .st0{color:#FF0000}.cpp .nu0{color:#0000dd}.cpp .nu6{color:#208080}.cpp .nu8{color:#208080}.cpp .nu12{color:#208080}.cpp .nu16{color:#800080}.cpp .nu17{color:#800080}.cpp .nu18{color:#800080}.cpp .nu19{color:#800080}.cpp .me1{color:#007788}.cpp .me2{color:#007788}.cpp .ln-xtra,.cpp li.ln-xtra,.cpp div.ln-xtra{background-color:#ffc}.cpp span.xtra{display:block}img.lazy,iframe.lazy{display:none}</style>
+
+
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="ESP32 and ADXL335 accelerometer example" />
+<meta property="og:url" content="http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php" />
+<meta property="og:description" content="The ADXL335 is a small, thin, low power, complete 3-axis accelerometer with signal conditioned voltage outputs. The product measures acceleration with a minimum full-scale range of ±3 g. It can mea…" />
+<meta property="article:published_time" content="2018-02-06T11:36:27+00:00" />
+<meta property="article:modified_time" content="2018-01-06T11:43:10+00:00" />
+<meta property="og:site_name" content="ESP32 Learning" />
+<meta property="og:image" content="http://www.esp32learning.com/wp-content/uploads/2018/01/esp32-and-ADXL335_bb.png" />
+<meta property="og:image:width" content="579" />
+<meta property="og:image:height" content="675" />
+<meta property="og:image:alt" content="esp32 and ADXL335" />
+<meta property="og:locale" content="en_GB" />
+<meta name="twitter:text:title" content="ESP32 and ADXL335 accelerometer example" />
+<meta name="twitter:card" content="summary" />
+
+
+
+
+
+
+
+
+
+<script src="/s/8e55ea.js"></script><script type="application/ld+json">
+                        {
+                            "@context": "http://schema.org",
+                            "@type": "BreadcrumbList",
+                            "itemListElement": [{
+                            "@type": "ListItem",
+                            "position": 1,
+                                "item": {
+                                "@type": "WebSite",
+                                "@id": "http://www.esp32learning.com/",
+                                "name": "Home"                                               
+                            }
+                        },{
+                            "@type": "ListItem",
+                            "position": 2,
+                                "item": {
+                                "@type": "WebPage",
+                                "@id": "http://www.esp32learning.com/category/code",
+                                "name": "Code"
+                            }
+                        },{
+                            "@type": "ListItem",
+                            "position": 3,
+                                "item": {
+                                "@type": "WebPage",
+                                "@id": "http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php",
+                                "name": "ESP32 and ADXL335 accelerometer example"                                
+                            }
+                        }    ]
+                        }
+                       </script></head>
+
+<body class="post-template-default single single-post postid-346 single-format-standard esp32-and-adxl335-accelerometer-example global-block-template-1 td-animation-stack-type0 td-boxed-layout" itemscope="itemscope" itemtype="http://schema.org/WebPage">
+
+        <div class="td-scroll-up"><i class="td-icon-menu-up"></i></div>
+    
+    <div class="td-menu-background"></div>
+<div id="td-mobile-nav">
+    <div class="td-mobile-container">
+        
+        <div class="td-menu-socials-wrap">
+            
+            <div class="td-menu-socials">
+                            </div>
+            
+            <div class="td-mobile-close">
+                <a href="#"><i class="td-icon-close-mobile"></i></a>
+            </div>
+        </div>
+
+        
+        
+        
+        <div class="td-mobile-content">
+            <div class="menu-topmenu-container"><ul id="menu-topmenu" class="td-mobile-main-menu"><li id="menu-item-73" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-first menu-item-73"><a href="http://www.esp32learning.com/category/code">Code</a></li>
+<li id="menu-item-36" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-36"><a href="http://www.esp32learning.com/category/information">Information</a></li>
+<li id="menu-item-37" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-37"><a href="http://www.esp32learning.com/category/hardware">Hardware</a></li>
+<li id="menu-item-35" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35"><a href="http://www.esp32learning.com/category/tutorials">Tutorials</a></li>
+</ul></div>        </div>
+    </div>
+
+    
+    </div>    <div class="td-search-background"></div>
+<div class="td-search-wrap-mob">
+	<div class="td-drop-down-search" aria-labelledby="td-header-search-button">
+		<form method="get" class="td-search-form" action="http://www.esp32learning.com/">
+			
+			<div class="td-search-close">
+				<a href="#"><i class="td-icon-close-mobile"></i></a>
+			</div>
+			<div role="search" class="td-search-input">
+				<span>Search</span>
+				<input id="td-header-search-mob" type="text" value="" name="s" autocomplete="off" />
+			</div>
+		</form>
+		<div id="td-aj-search-mob"></div>
+	</div>
+</div>    
+    
+    <div id="td-outer-wrap" class="td-theme-wrap">
+    
+        
+<div class="td-header-wrap td-header-style-1">
+
+    <div class="td-header-top-menu-full td-container-wrap ">
+        <div class="td-container td-header-row td-header-top-menu">
+            
+    <div class="top-bar-style-1">
+        
+<div class="td-header-sp-top-menu">
+
+
+	<div class="menu-top-container"><ul id="menu-headermenu" class="top-header-menu"><li id="menu-item-566" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-first td-menu-item td-normal-menu menu-item-566"><a href="http://www.esp32learning.com/donations">Support Us</a></li>
+</ul></div></div>
+            </div>
+
+
+        </div>
+    </div>
+
+    <div class="td-banner-wrap-full td-logo-wrap-full td-container-wrap ">
+        <div class="td-container td-header-row td-header-header">
+            <div class="td-header-sp-logo">
+                        <a class="td-main-logo" href="http://www.esp32learning.com/">
+            <img class="td-retina-data" data-retina="http://www.esp32learning.com/wp-content/uploads/2017/11/logo544.png" src="/wp-content/uploads/2017/11/logo272.png" alt="esp32learning logo" title="esp32learning - ESP32 resources">
+            <span class="td-visual-hidden">ESP32 Learning</span>
+        </a>
+                </div>
+            <div class="td-header-sp-recs">
+                <div class="td-header-rec-wrap">
+    
+  
+
+<script async>ress_js("//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");</script><div class="td-g-rec td-g-rec-id-header td_uid_1_5eae56fd448db_rand td_block_template_1 ">
+<script type="text/javascript">
+var td_screen_width = window.innerWidth;
+
+                    if ( td_screen_width >= 1140 ) {
+                        /* large monitors */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="3315008331"></ins>');
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+            
+	                    if ( td_screen_width >= 1019  && td_screen_width < 1140 ) {
+	                        /* landscape tablets */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:468px;height:60px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="3315008331"></ins>');
+	                        (adsbygoogle = window.adsbygoogle || []).push({});
+	                    }
+	                
+                    if ( td_screen_width >= 768  && td_screen_width < 1019 ) {
+                        /* portrait tablets */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:468px;height:60px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="3315008331"></ins>');
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                </script>
+</div>
+
+  
+
+
+</div>            </div>
+        </div>
+    </div>
+
+    <div class="td-header-menu-wrap-full td-container-wrap ">
+        <div class="td-header-menu-wrap td-header-gradient">
+            <div class="td-container td-header-row td-header-main-menu">
+                <div id="td-header-menu" role="navigation">
+    <div id="td-top-mobile-toggle"><a href="#"><i class="td-icon-font td-icon-mobile"></i></a></div>
+    <div class="td-main-menu-logo td-logo-in-header">
+                <a class="td-main-logo" href="http://www.esp32learning.com/">
+            <img class="td-retina-data" data-retina="http://www.esp32learning.com/wp-content/uploads/2017/11/logo544.png" src="/wp-content/uploads/2017/11/logo272.png" alt="esp32learning logo" title="esp32learning - ESP32 resources">
+        </a>
+        </div>
+    <div class="menu-topmenu-container"><ul id="menu-topmenu-1" class="sf-menu"><li class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-first td-menu-item td-normal-menu menu-item-73"><a href="http://www.esp32learning.com/category/code">Code</a></li>
+<li class="menu-item menu-item-type-taxonomy menu-item-object-category td-menu-item td-normal-menu menu-item-36"><a href="http://www.esp32learning.com/category/information">Information</a></li>
+<li class="menu-item menu-item-type-taxonomy menu-item-object-category td-menu-item td-normal-menu menu-item-37"><a href="http://www.esp32learning.com/category/hardware">Hardware</a></li>
+<li class="menu-item menu-item-type-taxonomy menu-item-object-category td-menu-item td-normal-menu menu-item-35"><a href="http://www.esp32learning.com/category/tutorials">Tutorials</a></li>
+</ul></div></div>
+
+
+<div class="td-search-wrapper">
+    <div id="td-top-search">
+        
+        <div class="header-search-wrap">
+            <div class="dropdown header-search">
+                <a id="td-header-search-button" href="#" role="button" class="dropdown-toggle " data-toggle="dropdown"><i class="td-icon-search"></i></a>
+                <a id="td-header-search-button-mob" href="#" role="button" class="dropdown-toggle " data-toggle="dropdown"><i class="td-icon-search"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="header-search-wrap">
+	<div class="dropdown header-search">
+		<div class="td-drop-down-search" aria-labelledby="td-header-search-button">
+			<form method="get" class="td-search-form" action="http://www.esp32learning.com/">
+				<div role="search" class="td-head-form-search-wrap">
+					<input id="td-header-search" type="text" value="" name="s" autocomplete="off" /><input class="wpb_button wpb_btn-inverse btn" type="submit" id="td-header-search-top" value="Search" />
+				</div>
+			</form>
+			<div id="td-aj-search"></div>
+		</div>
+	</div>
+</div>            </div>
+        </div>
+    </div>
+
+</div><div class="td-main-content-wrap td-container-wrap">
+
+    <div class="td-container td-post-template-default ">
+        <div class="td-crumb-container"><div class="entry-crumbs"><span><a title="" class="entry-crumb" href="http://www.esp32learning.com/">Home</a></span> <i class="td-icon-right td-bread-sep"></i> <span><a title="View all posts in Code" class="entry-crumb" href="http://www.esp32learning.com/category/code">Code</a></span> <i class="td-icon-right td-bread-sep td-bred-no-url-last"></i> <span class="td-bred-no-url-last">ESP32 and ADXL335 accelerometer example</span></div></div>
+
+        <div class="td-pb-row">
+                                    <div class="td-pb-span8 td-main-content" role="main">
+                            <div class="td-ss-main-content">
+                                
+    <article id="post-346" class="post-346 post type-post status-publish format-standard hentry category-code tag-accelerometer tag-adxl335 tag-esp32" itemscope itemtype="http://schema.org/Article">
+        <div class="td-post-header">
+
+            <ul class="td-category"><li class="entry-category"><a  href="http://www.esp32learning.com/category/code">Code</a></li></ul>
+            <header class="td-post-title">
+                <h1 class="entry-title">ESP32 and ADXL335 accelerometer example</h1>
+
+                
+
+                <div class="td-module-meta-info">
+                                                                                                </div>
+
+            </header>
+
+        </div>
+
+        
+
+        <div class="td-post-content">
+
+        
+        
+  
+
+<script async>ress_js("//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");</script><div class="td-g-rec td-g-rec-id-content_top td_uid_2_5eae56fd498bb_rand td_block_template_1 ">
+<script type="text/javascript">
+var td_screen_width = window.innerWidth;
+
+                    if ( td_screen_width >= 1140 ) {
+                        /* large monitors */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:468px;height:60px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="6852044420"></ins>');
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+            
+	                    if ( td_screen_width >= 1019  && td_screen_width < 1140 ) {
+	                        /* landscape tablets */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:468px;height:60px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="6852044420"></ins>');
+	                        (adsbygoogle = window.adsbygoogle || []).push({});
+	                    }
+	                
+                    if ( td_screen_width >= 768  && td_screen_width < 1019 ) {
+                        /* portrait tablets */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:468px;height:60px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="6852044420"></ins>');
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                
+                    if ( td_screen_width < 768 ) {
+                        /* Phones */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="6852044420"></ins>');
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                </script>
+</div>
+
+  
+
+<p>The ADXL335 is a small, thin, low power, complete 3-axis accelerometer with signal conditioned voltage outputs. The product measures acceleration with a minimum full-scale range of ±3 g. It can measure the static acceleration of gravity in tiltsensing applications, as well as dynamic acceleration resulting from motion, shock, or vibration.</p>
+<p>The user selects the bandwidth of the accelerometer using the CX, CY, and CZ capacitors at the XOUT, YOUT, and ZOUT pins. Bandwidths can be selected to suit the application, with a range of 0.5 Hz to 1600 Hz for X and Y axes, and a range of 0.5 Hz to 550 Hz for the Z axis.</p>
+<p>Here is a typical module that makes it easy to work with the ADXL335</p>
+<p>&nbsp;</p>
+<p><strong>Features:</strong></p>
+<p>Name: ADXL335 module (triaxial accelerometer analog output)<br />
+Model: GY-61<br />
+Power supply :3-5v<br />
+Analog X, Y, Z three-axis output</p>
+<p><strong>Schematic</strong></p>
+<p>The following layout shows how to wire the ADXL335 module up to an ESP32 (LOLIN32)</p>
+<figure id="attachment_347" aria-describedby="caption-attachment-347" style="width: 579px" class="wp-caption alignnone"><img data-attachment-id="347" data-permalink="http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php/attachment/esp32-and-adxl335_bb" data-orig-file="https://i0.wp.com/www.esp32learning.com/wp-content/uploads/2018/01/esp32-and-ADXL335_bb.png?fit=579%2C675" data-orig-size="579,675" data-comments-opened="1" data-image-meta="{&quot;aperture&quot;:&quot;0&quot;,&quot;credit&quot;:&quot;&quot;,&quot;camera&quot;:&quot;&quot;,&quot;caption&quot;:&quot;&quot;,&quot;created_timestamp&quot;:&quot;0&quot;,&quot;copyright&quot;:&quot;&quot;,&quot;focal_length&quot;:&quot;0&quot;,&quot;iso&quot;:&quot;0&quot;,&quot;shutter_speed&quot;:&quot;0&quot;,&quot;title&quot;:&quot;&quot;,&quot;orientation&quot;:&quot;0&quot;}" data-image-title="esp32 and ADXL335" data-image-description="&lt;p&gt;esp32 and ADXL335&lt;/p&gt;
+" data-medium-file="https://i0.wp.com/www.esp32learning.com/wp-content/uploads/2018/01/esp32-and-ADXL335_bb.png?fit=257%2C300" data-large-file="https://i0.wp.com/www.esp32learning.com/wp-content/uploads/2018/01/esp32-and-ADXL335_bb.png?fit=579%2C675" class="size-full wp-image-347" src="https://i0.wp.com/www.esp32learning.com/wp-content/uploads/2018/01/esp32-and-ADXL335_bb.png?resize=579%2C675" alt="esp32 and ADXL335" width="579" height="675" srcset="https://i0.wp.com/www.esp32learning.com/wp-content/uploads/2018/01/esp32-and-ADXL335_bb.png?w=579 579w,https://i0.wp.com/www.esp32learning.com/wp-content/uploads/2018/01/esp32-and-ADXL335_bb.png?resize=257%2C300 257w,https://i0.wp.com/www.esp32learning.com/wp-content/uploads/2018/01/esp32-and-ADXL335_bb.png?resize=360%2C420 360w" sizes="(max-width: 579px) 100vw, 579px" data-recalc-dims="1"><figcaption id="caption-attachment-347" class="wp-caption-text">esp32 and ADXL335</figcaption></figure>
+<p>&nbsp;</p>
+<p><strong>Code</strong></p>
+<pre class="brush: cpp; auto-links: false;">
+const int xpin = A0; // x-axis of the accelerometer
+const int ypin = A3; // y-axis
+const int zpin = A4; // z-axis
+
+void setup()
+{
+Serial.begin(9600);
+}
+
+void loop()
+{
+int x = analogRead(xpin); //read from xpin
+delay(1); //
+int y = analogRead(ypin); //read from ypin
+delay(1);
+int z = analogRead(zpin); //read from zpin
+
+float zero_G = 512.0; //ADC is 0~1023 the zero g output equal to Vs/2
+float scale = 102.3; //ADXL335330 Sensitivity is 330mv/g
+//330 * 1024/3.3/1000
+Serial.print(((float)x - 331.5)/65*9.8); //print x value on serial monitor
+Serial.print("\t");
+Serial.print(((float)y - 329.5)/68.5*9.8); //print y value on serial monitor
+Serial.print("\t");
+Serial.print(((float)z - 340)/68*9.8); //print z value on serial monitor
+Serial.print("\n");
+delay(1000); //wait for 1 second
+}
+
+</pre>
+<p><strong>Output</strong></p>
+<p>Open the serial monitor and you should see something like this</p>
+<p>281.56 190.49 227.99<br />
+282.16 188.63 227.56<br />
+241.91 172.47 268.92<br />
+285.33 230.55 247.74<br />
+234.97 260.45 197.73<br />
+209.04 263.74 249.76<br />
+214.62 150.43 242.41<br />
+322.57 165.74 211.56<br />
+264.98 170.75 222.09<br />
+260.76 168.17 216.32</p>
+<p>&nbsp;</p>
+<p><strong>Links</strong></p>
+<p><a href="http://www.analog.com/media/en/technical-documentation/data-sheets/ADXL335.pdf" target="_blank" rel="noopener">http://www.analog.com/media/en/technical-documentation/data-sheets/ADXL335.pdf</a></p>
+<p>The sensor costs under $2</p>
+<p><a href="http://s.click.aliexpress.com/e/qFqv37Q" target="_parent"> GY-61 ADXL335 Module Triaxial Acceleration Gravity Angle Sensor</a></p>
+<div class="addtoany_share_save_container addtoany_content addtoany_content_bottom"><div class="a2a_kit a2a_kit_size_32 addtoany_list" data-a2a-url="http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php" data-a2a-title="ESP32 and ADXL335 accelerometer example"><a class="a2a_button_facebook" href="https://www.addtoany.com/add_to/facebook?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="Facebook" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_twitter" href="https://www.addtoany.com/add_to/twitter?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="Twitter" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_pinterest" href="https://www.addtoany.com/add_to/pinterest?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="Pinterest" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_tumblr" href="https://www.addtoany.com/add_to/tumblr?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="Tumblr" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_reddit" href="https://www.addtoany.com/add_to/reddit?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="Reddit" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_linkedin" href="https://www.addtoany.com/add_to/linkedin?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="LinkedIn" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_digg" href="https://www.addtoany.com/add_to/digg?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="Digg" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_pocket" href="https://www.addtoany.com/add_to/pocket?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="Pocket" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_sina_weibo" href="https://www.addtoany.com/add_to/sina_weibo?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="Sina Weibo" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_wordpress" href="https://www.addtoany.com/add_to/wordpress?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="WordPress" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_blogger" href="https://www.addtoany.com/add_to/blogger?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="Blogger" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_sms" href="https://www.addtoany.com/add_to/sms?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="SMS" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_blinklist" href="https://www.addtoany.com/add_to/blinklist?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="Blinklist" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_whatsapp" href="https://www.addtoany.com/add_to/whatsapp?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example" title="WhatsApp" rel="nofollow noopener" target="_blank"></a><a class="a2a_dd addtoany_share_save addtoany_share" href="https://www.addtoany.com/share"></a></div></div><div class='yarpp-related'>
+<h3>Related posts:</h3><ol>
+<li><a href="http://www.esp32learning.com/code/esp32-and-mma8451-accelerometer-example.php" rel="bookmark" title="ESP32 and MMA8451 accelerometer example">ESP32 and MMA8451 accelerometer example </a></li>
+<li><a href="http://www.esp32learning.com/code/esp32-and-adxl345-sensor-example.php" rel="bookmark" title="ESP32 and ADXL345 sensor example">ESP32 and ADXL345 sensor example </a></li>
+<li><a href="http://www.esp32learning.com/code/esp32-and-mma7361-accelerometer-example.php" rel="bookmark" title="ESP32 and MMA7361 accelerometer example">ESP32 and MMA7361 accelerometer example </a></li>
+<li><a href="http://www.esp32learning.com/code/esp32-and-bmi160-sensor-example.php" rel="bookmark" title="ESP32 and BMI160 sensor example">ESP32 and BMI160 sensor example </a></li>
+</ol>
+</div>
+
+  
+
+<script async>ress_js("//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");</script><div class="td-g-rec td-g-rec-id-content_bottom td_uid_3_5eae56fd4994c_rand td_block_template_1 ">
+<script type="text/javascript">
+var td_screen_width = window.innerWidth;
+
+                    if ( td_screen_width >= 1140 ) {
+                        /* large monitors */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:468px;height:60px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="8375269888"></ins>');
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+            
+	                    if ( td_screen_width >= 1019  && td_screen_width < 1140 ) {
+	                        /* landscape tablets */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:468px;height:60px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="8375269888"></ins>');
+	                        (adsbygoogle = window.adsbygoogle || []).push({});
+	                    }
+	                
+                    if ( td_screen_width >= 768  && td_screen_width < 1019 ) {
+                        /* portrait tablets */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:468px;height:60px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="8375269888"></ins>');
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                
+                    if ( td_screen_width < 768 ) {
+                        /* Phones */
+                        document.write('<ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-3520634452456567" data-ad-slot="8375269888"></ins>');
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                </script>
+</div>
+
+  
+
+        </div>
+
+
+        <footer>
+                        
+            <div class="td-post-source-tags">
+                                <ul class="td-tags td-post-small-box clearfix"><li><span>TAGS</span></li><li><a href="http://www.esp32learning.com/tag/accelerometer">accelerometer</a></li><li><a href="http://www.esp32learning.com/tag/adxl335">ADXL335</a></li><li><a href="http://www.esp32learning.com/tag/esp32">ESP32</a></li></ul>            </div>
+
+            <div class="td-post-sharing td-post-sharing-bottom td-with-like"><span class="td-post-share-title">SHARE</span>
+            <div class="td-default-sharing">
+	            <a class="td-social-sharing-buttons td-social-facebook" href="https://www.facebook.com/sharer.php?u=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php" onclick="window.open(this.href, 'mywin','left=50,top=50,width=600,height=350,toolbar=0'); return false;"><i class="td-icon-facebook"></i><div class="td-social-but-text">Facebook</div></a>
+	            <a class="td-social-sharing-buttons td-social-twitter" href="https://twitter.com/intent/tweet?text=ESP32+and+ADXL335+accelerometer+example&url=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&via=ESP32+Learning"><i class="td-icon-twitter"></i><div class="td-social-but-text">Twitter</div></a>
+	            <a class="td-social-sharing-buttons td-social-google" href="https://plus.google.com/share?url=http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php" onclick="window.open(this.href, 'mywin','left=50,top=50,width=600,height=350,toolbar=0'); return false;"><i class="td-icon-googleplus"></i></a>
+	            <a class="td-social-sharing-buttons td-social-pinterest" href="https://pinterest.com/pin/create/button/?url=http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php&amp;media=&description=ESP32+and+ADXL335+accelerometer+example" onclick="window.open(this.href, 'mywin','left=50,top=50,width=600,height=350,toolbar=0'); return false;"><i class="td-icon-pinterest"></i></a>
+	            <a class="td-social-sharing-buttons td-social-whatsapp" href="whatsapp://send?text=ESP32+and+ADXL335+accelerometer+example%20-%20http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php" ><i class="td-icon-whatsapp"></i></a>
+            </div><div class="td-classic-sharing"><ul><li class="td-classic-facebook"><iframe frameBorder="0" src="about:blank" style="border:none; overflow:hidden; width:105px; height:21px; background-color:transparent;" class="lazy" data-src="http://www.facebook.com/plugins/like.php?href=http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php&amp;layout=button_count&amp;show_faces=false&amp;width=105&amp;action=like&amp;colorscheme=light&amp;height=21"><noscript><iframe frameBorder="0" src="http://www.facebook.com/plugins/like.php?href=http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php&amp;layout=button_count&amp;show_faces=false&amp;width=105&amp;action=like&amp;colorscheme=light&amp;height=21" style="border:none; overflow:hidden; width:105px; height:21px; background-color:transparent;"></noscript></iframe></li><li class="td-classic-twitter"><a href="https://twitter.com/share" class="twitter-share-button" data-url="http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php" data-text="ESP32 and ADXL335 accelerometer example" data-via="" data-lang="en">tweet</a> <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script></li></ul></div></div>            <div class="td-block-row td-post-next-prev"><div class="td-block-span6 td-post-prev-post"><div class="td-post-next-prev-content"><span>Previous article</span><a href="http://www.esp32learning.com/code/esp32-and-ws2812b-rgb-led-example.php">ESP32 and WS2812b RGB led example</a></div></div><div class="td-next-prev-separator"></div><div class="td-block-span6 td-post-next-post"><div class="td-post-next-prev-content"><span>Next article</span><a href="http://www.esp32learning.com/code/esp32-and-mag3110-magnetic-sensor-example.php">ESP32 and MAG3110 magnetic sensor example</a></div></div></div>            <div class="td-author-name vcard author" style="display: none"><span class="fn"><a href="http://www.esp32learning.com/author/shedboy71">shedboy71</a></span></div>	        <span style="display: none;" itemprop="author" itemscope itemtype="https://schema.org/Person"><meta itemprop="name" content="shedboy71"></span><meta itemprop="datePublished" content="2018-02-06T11:36:27+00:00"><meta itemprop="dateModified" content="2018-01-06T11:43:10+01:00"><meta itemscope itemprop="mainEntityOfPage" itemType="https://schema.org/WebPage" itemid="http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php"/><span style="display: none;" itemprop="publisher" itemscope itemtype="https://schema.org/Organization"><span style="display: none;" itemprop="logo" itemscope itemtype="https://schema.org/ImageObject"><meta itemprop="url" content="http://www.esp32learning.com/wp-content/uploads/2017/11/logo272.png"></span><meta itemprop="name" content="ESP32 Learning"></span><meta itemprop="headline " content="ESP32 and ADXL335 accelerometer example"><span style="display: none;" itemprop="image" itemscope itemtype="https://schema.org/ImageObject"><meta itemprop="url" content="http://www.esp32learning.com/wp-content/themes/Newspaper/images/no-thumb/td_meta_replacement.png"><meta itemprop="width" content="1068"><meta itemprop="height" content="580"></span>        </footer>
+
+    </article> 
+
+    <div class="td_block_wrap td_block_related_posts td_uid_4_5eae56fd4a1ae_rand td_with_ajax_pagination td-pb-border-top td_block_template_1"  data-td-block-uid="td_uid_4_5eae56fd4a1ae" ><script>var block_td_uid_4_5eae56fd4a1ae = new tdBlock();
+block_td_uid_4_5eae56fd4a1ae.id = "td_uid_4_5eae56fd4a1ae";
+block_td_uid_4_5eae56fd4a1ae.atts = '{"limit":3,"sort":"","post_ids":"","tag_slug":"","autors_id":"","installed_post_types":"","category_id":"","category_ids":"","custom_title":"","custom_url":"","show_child_cat":"","sub_cat_ajax":"","ajax_pagination":"next_prev","header_color":"","header_text_color":"","ajax_pagination_infinite_stop":"","td_column_number":3,"td_ajax_preloading":"","td_ajax_filter_type":"td_custom_related","td_ajax_filter_ids":"","td_filter_default_txt":"All","color_preset":"","border_top":"","class":"td_uid_4_5eae56fd4a1ae_rand","el_class":"","offset":"","css":"","tdc_css":"","tdc_css_class":"td_uid_4_5eae56fd4a1ae_rand","tdc_css_class_style":"td_uid_4_5eae56fd4a1ae_rand_style","live_filter":"cur_post_same_categories","live_filter_cur_post_id":346,"live_filter_cur_post_author":"1","block_template_id":""}';
+block_td_uid_4_5eae56fd4a1ae.td_column_number = "3";
+block_td_uid_4_5eae56fd4a1ae.block_type = "td_block_related_posts";
+block_td_uid_4_5eae56fd4a1ae.post_count = "3";
+block_td_uid_4_5eae56fd4a1ae.found_posts = "142";
+block_td_uid_4_5eae56fd4a1ae.header_color = "";
+block_td_uid_4_5eae56fd4a1ae.ajax_pagination_infinite_stop = "";
+block_td_uid_4_5eae56fd4a1ae.max_num_pages = "48";
+tdBlocksArray.push(block_td_uid_4_5eae56fd4a1ae);
+</script><h4 class="td-related-title td-block-title"><a id="td_uid_5_5eae56fd4bbd0" class="td-related-left td-cur-simple-item" data-td_filter_value="" data-td_block_id="td_uid_4_5eae56fd4a1ae" href="#">RELATED ARTICLES</a><a id="td_uid_6_5eae56fd4bc10" class="td-related-right" data-td_filter_value="td_related_more_from_author" data-td_block_id="td_uid_4_5eae56fd4a1ae" href="#">MORE FROM AUTHOR</a></h4><div id=td_uid_4_5eae56fd4a1ae class="td_block_inner">
+
+	<div class="td-related-row">
+
+	<div class="td-related-span4">
+
+        <div class="td_module_related_posts td-animation-stack td_mod_related_posts">
+            <div class="td-module-image">
+                <div class="td-module-thumb"><a href="http://www.esp32learning.com/code/bmm150-digital-geomagnetic-sensor-and-esp32-example.php" rel="bookmark" title="BMM150 digital geomagnetic sensor and ESP32 example"><img width="218" height="150" class="entry-thumb lazy" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" data-src="http://www.esp32learning.com/wp-content/themes/Newspaper/images/no-thumb/td_218x150.png"><noscript><img width="218" height="150" class="entry-thumb" src="http://www.esp32learning.com/wp-content/themes/Newspaper/images/no-thumb/td_218x150.png" alt=""></noscript></a></div>                            </div>
+            <div class="item-details">
+                <h3 class="entry-title td-module-title"><a href="http://www.esp32learning.com/code/bmm150-digital-geomagnetic-sensor-and-esp32-example.php" rel="bookmark" title="BMM150 digital geomagnetic sensor and ESP32 example">BMM150 digital geomagnetic sensor and ESP32 example</a></h3>            </div>
+        </div>
+        
+	</div> 
+
+	<div class="td-related-span4">
+
+        <div class="td_module_related_posts td-animation-stack td_mod_related_posts">
+            <div class="td-module-image">
+                <div class="td-module-thumb"><a href="http://www.esp32learning.com/code/lis3mdl-magnetic-field-sensor-connected-to-a-wemos-lolin-esp32-module.php" rel="bookmark" title="LIS3MDL magnetic field sensor connected to a Wemos Lolin ESP32 module"><img width="218" height="150" class="entry-thumb lazy" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" data-src="http://www.esp32learning.com/wp-content/themes/Newspaper/images/no-thumb/td_218x150.png"><noscript><img width="218" height="150" class="entry-thumb" src="http://www.esp32learning.com/wp-content/themes/Newspaper/images/no-thumb/td_218x150.png" alt=""></noscript></a></div>                            </div>
+            <div class="item-details">
+                <h3 class="entry-title td-module-title"><a href="http://www.esp32learning.com/code/lis3mdl-magnetic-field-sensor-connected-to-a-wemos-lolin-esp32-module.php" rel="bookmark" title="LIS3MDL magnetic field sensor connected to a Wemos Lolin ESP32 module">LIS3MDL magnetic field sensor connected to a Wemos Lolin ESP32 module</a></h3>            </div>
+        </div>
+        
+	</div> 
+
+	<div class="td-related-span4">
+
+        <div class="td_module_related_posts td-animation-stack td_mod_related_posts">
+            <div class="td-module-image">
+                <div class="td-module-thumb"><a href="http://www.esp32learning.com/code/lps22hb-absolute-pressure-sensor-and-esp32-example.php" rel="bookmark" title="LPS22HB absolute pressure sensor and ESP32 example"><img width="218" height="150" class="entry-thumb lazy" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" data-src="http://www.esp32learning.com/wp-content/themes/Newspaper/images/no-thumb/td_218x150.png"><noscript><img width="218" height="150" class="entry-thumb" src="http://www.esp32learning.com/wp-content/themes/Newspaper/images/no-thumb/td_218x150.png" alt=""></noscript></a></div>                            </div>
+            <div class="item-details">
+                <h3 class="entry-title td-module-title"><a href="http://www.esp32learning.com/code/lps22hb-absolute-pressure-sensor-and-esp32-example.php" rel="bookmark" title="LPS22HB absolute pressure sensor and ESP32 example">LPS22HB absolute pressure sensor and ESP32 example</a></h3>            </div>
+        </div>
+        
+	</div> </div></div><div class="td-next-prev-wrap"><a href="#" class="td-ajax-prev-page ajax-page-disabled" id="prev-page-td_uid_4_5eae56fd4a1ae" data-td_block_id="td_uid_4_5eae56fd4a1ae"><i class="td-icon-font td-icon-menu-left"></i></a><a href="#"  class="td-ajax-next-page" id="next-page-td_uid_4_5eae56fd4a1ae" data-td_block_id="td_uid_4_5eae56fd4a1ae"><i class="td-icon-font td-icon-menu-right"></i></a></div></div> 
+	<div class="comments" id="comments">
+        	<div id="respond" class="comment-respond">
+		<h3 id="reply-title" class="comment-reply-title">LEAVE A REPLY <small><a rel="nofollow" id="cancel-comment-reply-link" href="/code/esp32-and-adxl335-accelerometer-example.php#respond" style="display:none;">Cancel reply</a></small></h3><p class="must-log-in td-login-comment"><a class="td-login-modal-js" data-effect="mpf-td-login-effect" href="http://www.esp32learning.com/wp-login.php?redirect_to=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php">Log in to leave a comment </a></p>	</div>
+	    </div> 
+                            </div>
+                        </div>
+                        <div class="td-pb-span4 td-main-sidebar" role="complementary">
+                            <div class="td-ss-main-sidebar">
+                                <aside class="td_block_template_1 widget widget_categories"><h4 class="block-title"><span>Categories</span></h4><form action="http://www.esp32learning.com" method="get"><label class="screen-reader-text" for="cat">Categories</label><select  name='cat' id='cat' class='postform' >
+	<option value='-1'>Select Category</option>
+	<option class="level-0" value="14">Code</option>
+	<option class="level-0" value="3">Ebooks</option>
+	<option class="level-0" value="4">Hardware</option>
+	<option class="level-0" value="12">Information</option>
+	<option class="level-0" value="160">Micropython</option>
+	<option class="level-0" value="5">Tutorials</option>
+	<option class="level-0" value="174">webduino</option>
+</select>
+</form>
+<script type="text/javascript">
+/* <![CDATA[ */
+(function() {
+	var dropdown = document.getElementById( "cat" );
+	function onCatChange() {
+		if ( dropdown.options[ dropdown.selectedIndex ].value > 0 ) {
+			dropdown.parentNode.submit();
+		}
+	}
+	dropdown.onchange = onCatChange;
+})();
+/* ]]> */
+</script>
+
+			</aside><aside class="td_block_template_1 widget widget_text">			<div class="textwidget"><p><script async>ress_js("//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");</script><br />
+<br />
+<ins class="adsbygoogle" style="display: inline-block; width: 300px; height: 600px;" data-ad-client="ca-pub-3520634452456567" data-ad-slot="4248630848"></ins><br />
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script></p>
+</div>
+		</aside>		<aside class="td_block_template_1 widget widget_recent_entries">		<h4 class="block-title"><span>Latest</span></h4>		<ul>
+											<li>
+					<a href="http://www.esp32learning.com/code/bmm150-digital-geomagnetic-sensor-and-esp32-example.php">BMM150 digital geomagnetic sensor and ESP32 example</a>
+									</li>
+											<li>
+					<a href="http://www.esp32learning.com/code/lis3mdl-magnetic-field-sensor-connected-to-a-wemos-lolin-esp32-module.php">LIS3MDL magnetic field sensor connected to a Wemos Lolin ESP32 module</a>
+									</li>
+											<li>
+					<a href="http://www.esp32learning.com/code/lps22hb-absolute-pressure-sensor-and-esp32-example.php">LPS22HB absolute pressure sensor and ESP32 example</a>
+									</li>
+											<li>
+					<a href="http://www.esp32learning.com/code/lps25h-piezoresistive-pressure-sensor-and-esp32-example.php">LPS25H piezoresistive pressure sensor and ESP32 example</a>
+									</li>
+											<li>
+					<a href="http://www.esp32learning.com/code/bh1745nuc-luminance-and-colour-sensor-and-wemos-lolin32-example.php">BH1745NUC Luminance and Colour Sensor and Wemos Lolin32 example</a>
+									</li>
+											<li>
+					<a href="http://www.esp32learning.com/code/an-esp32-and-bma400-acceleration-sensor-example.php">An ESP32 and BMA400 acceleration sensor example</a>
+									</li>
+											<li>
+					<a href="http://www.esp32learning.com/hardware/another-esp32-board-the-bpiuno32.php">Another ESP32 board &#8211; the BPI:UNO32</a>
+									</li>
+					</ul>
+		</aside><aside class="td_block_template_1 widget adrotate_widgets"><h4 class="block-title"><span>Products</span></h4><div class="g g-3"><div class="g-col b-3 a-19"><a href="https://s.click.aliexpress.com/e/_dY70we3" target="_parent"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="lazy" data-src="https://ae01.alicdn.com/kf/H7b665644c4ad4bd9bc7b98b4cd302278b/M5Stack-IIoT-Dual-Switch-Kit-with-font-b-ESP32-b-font-Core-Wireless-Control-IoT-Node.jpg_350x350.jpg"><noscript><img src="https://ae01.alicdn.com/kf/H7b665644c4ad4bd9bc7b98b4cd302278b/M5Stack-IIoT-Dual-Switch-Kit-with-font-b-ESP32-b-font-Core-Wireless-Control-IoT-Node.jpg_350x350.jpg"></noscript><span style="display:block;">M5Stack IIoT Dual-Switch Kit with ESP32</span></a></div></div><div class="g g-3"><div class="g-col b-3 a-22"><a href="https://s.click.aliexpress.com/e/_dUs7wBz" target="_parent"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="lazy" data-src="https://ae01.alicdn.com/kf/HTB1V5KTeBCw3KVjSZFlq6AJkFXab/-font-b-ESP32-b-font-LyraT-development-board-with-Wi-Fi-Bluetooth-audio-speech-recognition.jpg_350x350.jpg"><noscript><img src="https://ae01.alicdn.com/kf/HTB1V5KTeBCw3KVjSZFlq6AJkFXab/-font-b-ESP32-b-font-LyraT-development-board-with-Wi-Fi-Bluetooth-audio-speech-recognition.jpg_350x350.jpg"></noscript><span style="display:block;">ESP32-LyraT development board</span></a></div></div></aside><aside class="td_block_template_1 widget widget_a2a_follow_widget"><h4 class="block-title"><span>Follow Us</span></h4><div class="a2a_kit a2a_kit_size_32 a2a_follow addtoany_list" data-a2a-url="http://www.esp32learning.com/feed" data-a2a-title="ESP32 Learning"><a class="a2a_button_twitter" href="https://twitter.com/micromikemck" title="Twitter" rel="noopener" target="_blank"></a><a class="a2a_button_github" href="https://github.com/getelectronics" title="GitHub" rel="noopener" target="_blank"></a><a class="a2a_button_youtube" href="http://www.youtube.com/channel/UCYR5UGB3CAuuBQ-X9RLawoA" title="YouTube" rel="noopener" target="_blank"></a><a class="a2a_button_feed" href="http://www.esp32learning.com/feed" title="RSS Feed" rel="noopener" target="_blank"></a></div></aside>                            </div>
+                        </div>
+                            </div> 
+    </div> 
+</div> 
+
+
+
+
+
+
+
+<div class="td-footer-wrapper td-container-wrap td-footer-template-9 ">
+    <div class="td-container">
+
+	    <div class="td-pb-row">
+		    <div class="td-pb-span12">
+                		    </div>
+	    </div>
+
+        <div class="td-pb-row">
+
+            <div class="td-pb-span4">
+                <aside class="td_block_template_1 widget widget_a2a_share_save_widget"><div class="a2a_kit a2a_kit_size_32 addtoany_list"><a class="a2a_button_facebook" href="https://www.addtoany.com/add_to/facebook?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="Facebook" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_twitter" href="https://www.addtoany.com/add_to/twitter?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="Twitter" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_pinterest" href="https://www.addtoany.com/add_to/pinterest?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="Pinterest" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_tumblr" href="https://www.addtoany.com/add_to/tumblr?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="Tumblr" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_reddit" href="https://www.addtoany.com/add_to/reddit?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="Reddit" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_linkedin" href="https://www.addtoany.com/add_to/linkedin?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="LinkedIn" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_digg" href="https://www.addtoany.com/add_to/digg?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="Digg" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_pocket" href="https://www.addtoany.com/add_to/pocket?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="Pocket" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_sina_weibo" href="https://www.addtoany.com/add_to/sina_weibo?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="Sina Weibo" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_wordpress" href="https://www.addtoany.com/add_to/wordpress?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="WordPress" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_blogger" href="https://www.addtoany.com/add_to/blogger?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="Blogger" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_sms" href="https://www.addtoany.com/add_to/sms?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="SMS" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_blinklist" href="https://www.addtoany.com/add_to/blinklist?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="Blinklist" rel="nofollow noopener" target="_blank"></a><a class="a2a_button_whatsapp" href="https://www.addtoany.com/add_to/whatsapp?linkurl=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php&amp;linkname=ESP32%20and%20ADXL335%20accelerometer%20example%20%20ESP32%20Learning" title="WhatsApp" rel="nofollow noopener" target="_blank"></a><a class="a2a_dd addtoany_share_save addtoany_share" href="https://www.addtoany.com/share"></a></div></aside>            </div>
+
+            <div class="td-pb-span4">
+                <aside class="td_block_template_1 widget widget_blog_subscription jetpack_subscription_widget"><h4 class="block-title"><span>Subscribe via Email</span></h4>
+            <form action="#" method="post" accept-charset="utf-8" id="subscribe-blog-blog_subscription-2">
+				                    <div id="subscribe-text"><p>Enter your email address to subscribe and receive notifications of new posts by email.</p>
+</div>                    <p id="subscribe-email">
+                        <label id="jetpack-subscribe-label"
+                               class="screen-reader-text"
+                               for="subscribe-field-blog_subscription-2">
+							Email Address                        </label>
+                        <input type="email" name="email" required="required" class="required"
+                               value=""
+                               id="subscribe-field-blog_subscription-2"
+                               placeholder="Email Address"/>
+                    </p>
+
+                    <p id="subscribe-submit">
+                        <input type="hidden" name="action" value="subscribe"/>
+                        <input type="hidden" name="source" value="http://www.esp32learning.com/code/esp32-and-adxl335-accelerometer-example.php"/>
+                        <input type="hidden" name="sub-type" value="widget"/>
+                        <input type="hidden" name="redirect_fragment" value="blog_subscription-2"/>
+						                        <button type="submit"
+	                        		                    	                        name="jetpack_subscriptions_widget"
+	                    >
+	                        Subscribe                        </button>
+                    </p>
+				            </form>
+		
+</aside>            </div>
+
+            <div class="td-pb-span4">
+                <aside class="td_block_template_1 widget ctc"><h4 class="block-title"><span>Tags</span></h4><div class="ctc"><a href="http://www.esp32learning.com/tag/accelerometer" class="ctc-tag tag-link-27" title="8 topics" rel="tag" style="font-size: 15.538461538462pt;">accelerometer</a>
+<a href="http://www.esp32learning.com/tag/am2320" class="ctc-tag tag-link-114" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">AM2320</a>
+<a href="http://www.esp32learning.com/tag/b4r" class="ctc-tag tag-link-87" title="3 topics" rel="tag" style="font-size: 10.153846153846pt;">B4R</a>
+<a href="http://www.esp32learning.com/tag/bme280" class="ctc-tag tag-link-109" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">bme280</a>
+<a href="http://www.esp32learning.com/tag/bmp180" class="ctc-tag tag-link-19" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">BMP180</a>
+<a href="http://www.esp32learning.com/tag/bmp280" class="ctc-tag tag-link-112" title="4 topics" rel="tag" style="font-size: 11.230769230769pt;">BMP280</a>
+<a href="http://www.esp32learning.com/tag/bpibit" class="ctc-tag tag-link-177" title="6 topics" rel="tag" style="font-size: 13.384615384615pt;">bpi:bit</a>
+<a href="http://www.esp32learning.com/tag/dht11" class="ctc-tag tag-link-35" title="4 topics" rel="tag" style="font-size: 11.230769230769pt;">dht11</a>
+<a href="http://www.esp32learning.com/tag/ds18b20" class="ctc-tag tag-link-50" title="3 topics" rel="tag" style="font-size: 10.153846153846pt;">DS18B20</a>
+<a href="http://www.esp32learning.com/tag/envirobit" class="ctc-tag tag-link-182" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">enviro:bit</a>
+<a href="http://www.esp32learning.com/tag/hdc1008" class="ctc-tag tag-link-15" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">HDC1008</a>
+<a href="http://www.esp32learning.com/tag/humidity" class="ctc-tag tag-link-37" title="4 topics" rel="tag" style="font-size: 11.230769230769pt;">humidity</a>
+<a href="http://www.esp32learning.com/tag/humidity-sensor" class="ctc-tag tag-link-36" title="4 topics" rel="tag" style="font-size: 11.230769230769pt;">humidity sensor</a>
+<a href="http://www.esp32learning.com/tag/ldr" class="ctc-tag tag-link-73" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">LDR</a>
+<a href="http://www.esp32learning.com/tag/light-sensor" class="ctc-tag tag-link-41" title="3 topics" rel="tag" style="font-size: 10.153846153846pt;">light sensor</a>
+<a href="http://www.esp32learning.com/tag/lolin32" class="ctc-tag tag-link-42" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">LOLIN32</a>
+<a href="http://www.esp32learning.com/tag/mcp9808" class="ctc-tag tag-link-17" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">MCP9808</a>
+<a href="http://www.esp32learning.com/tag/mh-et-live-esp32-mini-kit" class="ctc-tag tag-link-101" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">MH ET LIVE ESP32 MINI KIT</a>
+<a href="http://www.esp32learning.com/tag/micropython" class="ctc-tag tag-link-9" title="7 topics" rel="tag" style="font-size: 14.461538461538pt;">Micropython</a>
+<a href="http://www.esp32learning.com/tag/mqtt" class="ctc-tag tag-link-124" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">MQTT</a>
+<a href="http://www.esp32learning.com/tag/pressure-sensor" class="ctc-tag tag-link-129" title="3 topics" rel="tag" style="font-size: 10.153846153846pt;">pressure sensor</a>
+<a href="http://www.esp32learning.com/tag/rgb-led" class="ctc-tag tag-link-72" title="3 topics" rel="tag" style="font-size: 10.153846153846pt;">RGB led</a>
+<a href="http://www.esp32learning.com/tag/si7021" class="ctc-tag tag-link-56" title="4 topics" rel="tag" style="font-size: 11.230769230769pt;">Si7021</a>
+<a href="http://www.esp32learning.com/tag/temperature" class="ctc-tag tag-link-20" title="6 topics" rel="tag" style="font-size: 13.384615384615pt;">temperature</a>
+<a href="http://www.esp32learning.com/tag/temperature-sensor" class="ctc-tag tag-link-51" title="14 topics" rel="tag" style="font-size: 22pt;">temperature sensor</a>
+<a href="http://www.esp32learning.com/tag/thingspeak" class="ctc-tag tag-link-142" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">thingspeak</a>
+<a href="http://www.esp32learning.com/tag/webduino" class="ctc-tag tag-link-176" title="2 topics" rel="tag" style="font-size: 9.0769230769231pt;">webduino</a>
+<a href="http://www.esp32learning.com/tag/web-server" class="ctc-tag tag-link-8" title="1 topics" rel="tag" style="font-size: 8pt;">Web server</a>
+<a href="http://www.esp32learning.com/tag/ws2812b" class="ctc-tag tag-link-102" title="3 topics" rel="tag" style="font-size: 10.153846153846pt;">WS2812B</a></div></aside>            </div>
+
+        </div>
+    </div>
+</div>
+
+
+</div>
+
+	<div style="display:none">
+	</div>
+
+
+    
+
+    <script src="/s/fbc030.js"></script>
+
+<script type="text/javascript">SyntaxHighlighter.all();</script>
+
+
+
+<script type="text/javascript">var impression_object = {"ajax_url":"http:\/\/www.esp32learning.com\/wp-admin\/admin-ajax.php"};</script>
+
+<script type="text/javascript">var click_object = {"ajax_url":"http:\/\/www.esp32learning.com\/wp-admin\/admin-ajax.php"};</script>
+
+<script src="/s/e61567.js"></script>
+<script type="text/javascript" src="https://secure.gravatar.com/js/gprofiles.js?ver=2020Mayaa"></script>
+<script type="text/javascript">var WPGroHo = {"my_hash":""};</script>
+<script src="/s/537a72.js"></script>
+
+
+
+
+
+<script type="text/javascript">var jetpackCarouselStrings = {"widths":[370,700,1000,1200,1400,2000],"is_logged_in":"","lang":"en","ajaxurl":"http:\/\/www.esp32learning.com\/wp-admin\/admin-ajax.php","nonce":"2cce3c5958","display_exif":"1","display_geo":"1","single_image_gallery":"1","single_image_gallery_media_file":"","background_color":"black","comment":"Comment","post_comment":"Post Comment","write_comment":"Write a Comment...","loading_comments":"Loading Comments...","download_original":"View full size <span class=\"photo-size\">{0}<span class=\"photo-size-times\">\u00d7<\/span>{1}<\/span>","no_comment_text":"Please be sure to submit some text with your comment.","no_comment_email":"Please provide an email address to comment.","no_comment_author":"Please provide your name to comment.","comment_post_error":"Sorry, but there was an error posting your comment. Please try again later.","comment_approved":"Your comment was approved.","comment_unapproved":"Your comment is in moderation.","camera":"Camera","aperture":"Aperture","shutter_speed":"Shutter Speed","focal_length":"Focal Length","copyright":"Copyright","comment_registration":"1","require_name_email":"1","login_url":"http:\/\/www.esp32learning.com\/wp-login.php?redirect_to=http%3A%2F%2Fwww.esp32learning.com%2Fcode%2Fesp32-and-adxl335-accelerometer-example.php","blog_id":"1","meta_data":["camera","aperture","shutter_speed","focal_length","copyright"],"local_comments_commenting_as":"<p id=\"jp-carousel-commenting-as\">You must be <a href=\"#\" class=\"jp-carousel-comment-login\">logged in<\/a> to post a comment.<\/p>"};</script>
+<script src="/s/aa44f4.js"></script>
+
+
+
+<script>
+    
+
+
+            
+
+	            // if the theme has tdBackstr support, it means this already uses it
+                if ( 'undefined' !== typeof window.tdBackstr ) {
+
+                    (function(){
+                        // the site background td-backstretch jquery object is dynamically added in DOM, and after any translation effects are applied over td-backstretch
+                        var wrapper_image_jquery_obj = jQuery( '<div class=\'backstretch\'></div>' );
+                        var image_jquery_obj = jQuery( '<img class=\'td-backstretch not-parallax\' src=\'http://www.esp32learning.com/wp-content/uploads/2017/11/esp-wroom-32-esp32-wifi-bt-ble-mcu-module-er-wcw32110w.jpg\'>' );
+
+                        wrapper_image_jquery_obj.append( image_jquery_obj );
+
+                        jQuery( 'body' ).prepend( wrapper_image_jquery_obj );
+
+                        var td_backstr_item = new tdBackstr.item();
+
+                        td_backstr_item.wrapper_image_jquery_obj = wrapper_image_jquery_obj;
+                        td_backstr_item.image_jquery_obj = image_jquery_obj;
+
+	                    tdBackstr.add_item( td_backstr_item );
+
+                    })();
+                }
+
+            
+            
+
+	
+
+		(function(){
+			var html_jquery_obj = jQuery('html');
+
+			if (html_jquery_obj.length && (html_jquery_obj.is('.ie8') || html_jquery_obj.is('.ie9'))) {
+
+				var path = 'http://www.esp32learning.com/wp-content/themes/Newspaper/style.css';
+
+				jQuery.get(path, function(data) {
+
+					var str_split_separator = '#td_css_split_separator';
+					var arr_splits = data.split(str_split_separator);
+					var arr_length = arr_splits.length;
+
+					if (arr_length > 1) {
+
+						var dir_path = 'http://www.esp32learning.com/wp-content/themes/Newspaper';
+						var splited_css = '';
+
+						for (var i = 0; i < arr_length; i++) {
+							if (i > 0) {
+								arr_splits[i] = str_split_separator + ' ' + arr_splits[i];
+							}
+							//jQuery('head').append('<style>' + arr_splits[i] + '</style>');
+
+							var formated_str = arr_splits[i].replace(/\surl\(\'(?!data\:)/gi, function regex_function(str) {
+								return ' url(\'' + dir_path + '/' + str.replace(/url\(\'/gi, '').replace(/^\s+|\s+$/gm,'');
+							});
+
+							splited_css += "<style>" + formated_str + "</style>";
+						}
+
+						var td_theme_css = jQuery('link#td-theme-css');
+
+						if (td_theme_css.length) {
+							td_theme_css.after(splited_css);
+						}
+					}
+				});
+			}
+		})();
+
+	
+	
+</script>
+
+
+<script type="text/javascript">
+jQuery(document).ready(function(){
+if(jQuery.fn.gslider) {
+	jQuery('.g-2').gslider({ groupid: 2, speed: 15000 });
+}
+});
+</script>
+
+
+<script type="text/javascript" async="async" defer="defer">ress_js("https://stats.wp.com/e-202018.js");</script>
+<script type="text/javascript">
+	_stq = window._stq || [];
+	_stq.push([ 'view', {v:'ext',j:'1:8.0',blog:'138490829',post:'346',tz:'1',srv:'www.esp32learning.com'} ]);
+	_stq.push([ 'clickTrackerInit', '138490829', '346' ]);
+</script>
+
+<script src="/s/65a683.js" async defer></script></body>
+</html>

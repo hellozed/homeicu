@@ -51,6 +51,7 @@ Arduino IDE and Espressif ESP-IDF.
 ECG and respiration: TI ADS1292R
 Pulse oximetry: TI AFE4400
 Temperature sensor: Maxim MAX30205
+Accelerometer: ADXL345
 
 * Battery:
 Rechargeable 1000 mAh Lithium Polymer (LiPo) battery.
