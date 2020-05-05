@@ -51,7 +51,7 @@ Arduino IDE and Espressif ESP-IDF.
 ECG and respiration: TI ADS1292R
 Pulse oximetry: TI AFE4400
 Temperature sensor: Maxim MAX30205
-Accelerometer: ADXL345
+Accelerometer: MMA8452Q
 
 * Battery:
 Rechargeable 1000 mAh Lithium Polymer (LiPo) battery.
@@ -66,7 +66,10 @@ Finger-clip SpO₂ probe with a Nellcor-compatible DB9 connector
 Qwiic connector and Qwiic-based temperature sensor.
 
 * USB:
-On-board battery charging and 
+On-board battery charging
+
+* Power Supply
+Isolated, medical-grade (5 V, 2.5 A) USB wall power adapter (100-240 VAC) with snap-on plugs for the following regions: US, EU, CA
 
 ---
 # Software
@@ -94,6 +97,10 @@ Coming soon.
 A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board. 
 
 Coming soon.
+---
+# Medical Approval
+
+The goal of HomeICU is to have functions of a medical-grade patient monitoring system. So far, HomeICU does NOT have any certifications (FDA, CE, etc.) and is NOT officially approved for medical or diagnostic use. It is your responsibility to ensure your safety when using the device. Furthermore, you MUST NOT power the device from a non-isolated power source for your safety.
 
 ---
 # Placing the Electrodes on the body
