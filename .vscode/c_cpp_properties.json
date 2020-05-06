@@ -6,7 +6,8 @@
                 "/Users/a123/Documents/Arduino/hardware/espressif/esp32/**",
                 "${workspaceFolder}/**",
                 "/Users/a123/Documents/Arduino/**",
-                "/Users/a123/Documents/Arduino/hardware/espressif/esp32/libraries/WiFi/src"
+                "/Users/a123/Documents/Arduino/hardware/espressif/esp32/libraries/WiFi/src",
+                "/Users/a123/Documents/Arduino/hardware/espressif/esp32/libraries/SPI/src"
             ],
             "defines": [],
             "macFrameworkPath": [
