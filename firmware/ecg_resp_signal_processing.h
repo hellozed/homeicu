@@ -1,5 +1,5 @@
-#ifndef Protocentral_ecg_resp_signal_processing_h
-#define Protocentral_ecg_resp_signal_processing_h
+#ifndef ecg_resp_signal_processing_h
+#define ecg_resp_signal_processing_h
 #include "Arduino.h"
 
 #define TEMPERATURE          0

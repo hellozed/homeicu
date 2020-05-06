@@ -12,8 +12,8 @@
 //
 //   For information on how to use, visit https://github.com/Protocentral/AFE4490_Oximeter
 /////////////////////////////////////////////////////////////////////////////////////////
-#include "Protocentral_AFE4490_Oximeter.h"
-#include "Protocentral_spo2_algorithm.h"
+#include "AFE4490_Oximeter.h"
+#include "spo2_algorithm.h"
 
 static  int32_t an_x[ BUFFER_SIZE];
 static  int32_t an_y[ BUFFER_SIZE];

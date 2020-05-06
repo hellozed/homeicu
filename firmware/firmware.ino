@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 //   Arduino Library for Healthypi-v4
 //   
-//   Copyright (c) 2019 ProtoCentral
+//   Copyright (c) 2019 HomeICU
 //   Heartrate and respiration computation based on original code from Texas Instruments
 //
 //   This software is licensed under the MIT License(http://opensource.org/licenses/MIT).
@@ -24,15 +24,17 @@
 #include <WiFiClient.h>
 #include "SPIFFS.h"
 #include <FS.h>      //Include File System Headers
-#include "Protocentral_ADS1292r.h"
-#include "Protocentral_ecg_resp_signal_processing.h"
-#include "Protocentral_AFE4490_Oximeter.h"
-#include "Protocentral_MAX30205.h"
-#include "Protocentral_spo2_algorithm.h"
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+
+// HomeICU project code
+#include "ADS1292r.h"
+#include "ecg_resp_signal_processing.h"
+#include "AFE4490_Oximeter.h"
+#include "MAX30205.h"
+#include "spo2_algorithm.h"
 
 #define Heartrate_SERVICE_UUID (uint16_t(0x180D))
 #define Heartrate_CHARACTERISTIC_UUID (uint16_t(0x2A37))
