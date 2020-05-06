@@ -1,3 +1,5 @@
 # let git exclude everything beloow
 
 firmware/*.bin
+homeicu.s#* 
+homeicu.b#*

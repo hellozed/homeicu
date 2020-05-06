@@ -14926,18 +14926,18 @@ I2C Address: 0x1C</text>
 <instance part="+3V7" gate="G$1" x="151.13" y="180.34" smashed="yes">
 <attribute name="VALUE" x="148.59" y="175.26" size="1.778" layer="96" rot="R90"/>
 </instance>
-<instance part="S1" gate="G$1" x="106.68" y="72.39" smashed="yes">
-<attribute name="NAME" x="105.94" y="81.118" size="1.778" layer="95"/>
-<attribute name="VALUE" x="102.87" y="58.42" size="1.778" layer="96" rot="R90"/>
-<attribute name="OC_NEWARK" x="106.68" y="72.39" size="1.778" layer="96" display="off"/>
-<attribute name="MF" x="106.68" y="72.39" size="1.778" layer="96" display="off"/>
-<attribute name="MPN" x="106.68" y="72.39" size="1.778" layer="96" display="off"/>
+<instance part="S1" gate="G$1" x="99.06" y="72.39" smashed="yes">
+<attribute name="NAME" x="98.32" y="81.118" size="1.778" layer="95"/>
+<attribute name="VALUE" x="95.25" y="58.42" size="1.778" layer="96" rot="R90"/>
+<attribute name="OC_NEWARK" x="99.06" y="72.39" size="1.778" layer="96" display="off"/>
+<attribute name="MF" x="99.06" y="72.39" size="1.778" layer="96" display="off"/>
+<attribute name="MPN" x="99.06" y="72.39" size="1.778" layer="96" display="off"/>
 </instance>
-<instance part="U$18" gate="VBAT" x="115.57" y="83.82" smashed="yes">
-<attribute name="VALUE" x="115.57" y="88.9" size="1.778" layer="96"/>
+<instance part="U$18" gate="VBAT" x="107.95" y="83.82" smashed="yes">
+<attribute name="VALUE" x="107.95" y="88.9" size="1.778" layer="96"/>
 </instance>
-<instance part="GND9" gate="1" x="115.57" y="57.15" smashed="yes">
-<attribute name="VALUE" x="113.03" y="54.61" size="1.778" layer="96"/>
+<instance part="GND9" gate="1" x="107.95" y="57.15" smashed="yes">
+<attribute name="VALUE" x="105.41" y="54.61" size="1.778" layer="96"/>
 </instance>
 <instance part="J1" gate="G$1" x="365.76" y="53.34" smashed="yes" rot="MR0">
 <attribute name="VALUE" x="372.11" y="64.77" size="1.778" layer="96" font="vector" rot="MR270" align="top-left"/>
@@ -15229,8 +15229,8 @@ I2C Address: 0x1C</text>
 </segment>
 <segment>
 <pinref part="S1" gate="G$1" pin="3"/>
-<wire x1="111.76" y1="72.39" x2="115.57" y2="72.39" width="0.1524" layer="91"/>
-<wire x1="115.57" y1="72.39" x2="115.57" y2="59.69" width="0.1524" layer="91"/>
+<wire x1="104.14" y1="72.39" x2="107.95" y2="72.39" width="0.1524" layer="91"/>
+<wire x1="107.95" y1="72.39" x2="107.95" y2="59.69" width="0.1524" layer="91"/>
 <pinref part="GND9" gate="1" pin="GND"/>
 </segment>
 <segment>
@@ -15676,8 +15676,8 @@ I2C Address: 0x1C</text>
 <segment>
 <pinref part="S1" gate="G$1" pin="1"/>
 <pinref part="U$18" gate="VBAT" pin="VBAT"/>
-<wire x1="111.76" y1="77.47" x2="115.57" y2="77.47" width="0.1524" layer="91"/>
-<wire x1="115.57" y1="77.47" x2="115.57" y2="81.28" width="0.1524" layer="91"/>
+<wire x1="104.14" y1="77.47" x2="107.95" y2="77.47" width="0.1524" layer="91"/>
+<wire x1="107.95" y1="77.47" x2="107.95" y2="81.28" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$4" class="0">
@@ -15841,8 +15841,8 @@ I2C Address: 0x1C</text>
 </segment>
 <segment>
 <pinref part="S1" gate="G$1" pin="2"/>
-<wire x1="101.6" y1="74.93" x2="95.25" y2="74.93" width="0.1524" layer="91"/>
-<label x="95.25" y="74.93" size="1.778" layer="95"/>
+<wire x1="93.98" y1="74.93" x2="87.63" y2="74.93" width="0.1524" layer="91"/>
+<label x="87.63" y="74.93" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="N$23" class="0">
