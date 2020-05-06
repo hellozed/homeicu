@@ -1,0 +1,3 @@
+# let git exclude everything beloow
+
+firmware/*.bin
