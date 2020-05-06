@@ -19,5 +19,4 @@
   The package is different, but all in I2C
 
 
-
 ---
