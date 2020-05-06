@@ -17,7 +17,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 #include "Arduino.h"
-#include "Protocentral_ADS1292r.h"
+#include "ADS1292r.h"
 #include <SPI.h>
 
 volatile byte SPI_RX_Buff[15];

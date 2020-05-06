@@ -1,5 +1,5 @@
-#ifndef Protocentral_spo2_algorithm_h
-#define Protocentral_spo2_algorithm_h
+#ifndef spo2_algorithm_h
+#define spo2_algorithm_h
 
 #define SF_spo2          25    //sampling frequency
 #define BUFFER_SIZE  (SF_spo2*4)

@@ -17,7 +17,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 #include "Arduino.h"
 #include <Wire.h>
-#include "Protocentral_MAX30205.h"
+#include "MAX30205.h"
 
 float MAX30205::getTemperature(void)
 {

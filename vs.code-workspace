@@ -6,5 +6,7 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+	},
+	"arduino.ignoreBoards": []
 }

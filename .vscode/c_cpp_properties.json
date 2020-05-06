@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "/Users/a123/Documents/Arduino/hardware/espressif/esp32/**",
+                "${workspaceFolder}/**",
+                "/Users/a123/Documents/Arduino/**",
+                "/Users/a123/Documents/Arduino/hardware/espressif/esp32/libraries/WiFi/src"
+            ],
+            "defines": [],
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64",
+            "forcedInclude": []
+        }
+    ],
+    "version": 4
+}

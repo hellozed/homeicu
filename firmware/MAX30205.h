@@ -15,8 +15,8 @@
 //
 //   For information on how to use, visit https://github.com/protocentral/ProtoCentral_MAX30205
 /////////////////////////////////////////////////////////////////////////////////////////
-#ifndef Protocentral_MAX30205_h
-#define Protocentral_MAX30205_h
+#ifndef MAX30205_h
+#define MAX30205_h
 
 #define MAX30205_ADDRESS        0x48  // 8bit address converted to 7bit
 
