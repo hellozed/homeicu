@@ -14511,25 +14511,18 @@ With SMBus™- and I2C-Compatible Interface</description>
 <attribute name="OC_NEWARK" value="unknown"/>
 </part>
 <part name="GND14" library="supply1" deviceset="GND" device=""/>
-<part name="SW2" library="microbuilder" deviceset="SWITCH_TACT_SMT" device="4.6X2.8" value="KMR2">
+<part name="SW1" library="microbuilder" deviceset="SWITCH_TACT_SMT" device="4.6X2.8" value="KMR2">
 <attribute name="MF" value=""/>
 <attribute name="MPN" value=""/>
 <attribute name="OC_NEWARK" value="unknown"/>
 </part>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
-<part name="S2" library="SparkFun" deviceset="SWITCH-DPDT" device="SMD">
-<attribute name="MF" value=""/>
-<attribute name="MPN" value=""/>
-<attribute name="OC_NEWARK" value="unknown"/>
-</part>
-<part name="GND13" library="supply1" deviceset="GND" device=""/>
-<part name="+3V13" library="supply1" deviceset="+3V3" device=""/>
 <part name="P1" library="circuitects" deviceset="MICRO-B" device="">
 <attribute name="MF" value=""/>
 <attribute name="MPN" value=""/>
 <attribute name="OC_NEWARK" value="unknown"/>
 </part>
-<part name="POWER1" library="led" deviceset="LED" device="CHIPLED_0603" value="BLUE">
+<part name="LED1" library="led" deviceset="LED" device="CHIPLED_0603" value="BLUE">
 <attribute name="MF" value=""/>
 <attribute name="MPN" value=""/>
 <attribute name="OC_NEWARK" value="unknown"/>
@@ -14540,7 +14533,7 @@ With SMBus™- and I2C-Compatible Interface</description>
 <attribute name="OC_NEWARK" value="unknown"/>
 </part>
 <part name="GND42" library="PowerTags" deviceset="GND" device=""/>
-<part name="POWER2" library="led" deviceset="LED" device="CHIPLED_0603" value="GREEN">
+<part name="LED2" library="led" deviceset="LED" device="CHIPLED_0603" value="GREEN">
 <attribute name="MF" value=""/>
 <attribute name="MPN" value=""/>
 <attribute name="OC_NEWARK" value="unknown"/>
@@ -14610,6 +14603,8 @@ GPIO0 determines boot mode</text>
 If RTS is HIGH, toggling DTR from LOW to HIGH resets to bootloader.</text>
 <text x="231.14" y="10.16" size="1.778" layer="97">Accelerometer
 I2C Address: 0x1C</text>
+<text x="251.46" y="154.94" size="1.778" layer="97" font="vector" align="top-center">Mode Switch</text>
+<text x="274.32" y="187.96" size="1.778" layer="97" font="vector" align="top-center">Mode Switch</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0" smashed="yes">
@@ -14999,7 +14994,7 @@ I2C Address: 0x1C</text>
 <instance part="GND14" gate="1" x="207.01" y="106.68" smashed="yes">
 <attribute name="VALUE" x="204.47" y="104.14" size="1.778" layer="96"/>
 </instance>
-<instance part="SW2" gate="G$1" x="274.32" y="195.58" smashed="yes">
+<instance part="SW1" gate="G$1" x="274.32" y="195.58" smashed="yes">
 <attribute name="NAME" x="271.78" y="201.93" size="1.27" layer="95"/>
 <attribute name="VALUE" x="271.78" y="190.5" size="1.27" layer="96"/>
 <attribute name="OC_NEWARK" x="274.32" y="195.58" size="1.778" layer="96" display="off"/>
@@ -15009,19 +15004,6 @@ I2C Address: 0x1C</text>
 <instance part="GND4" gate="1" x="284.48" y="185.42" smashed="yes">
 <attribute name="VALUE" x="281.94" y="182.88" size="1.778" layer="96"/>
 </instance>
-<instance part="S2" gate="G$1" x="260.35" y="184.15" smashed="yes">
-<attribute name="NAME" x="259.61" y="192.878" size="1.778" layer="95"/>
-<attribute name="VALUE" x="256.54" y="170.18" size="1.778" layer="96" rot="R90"/>
-<attribute name="OC_NEWARK" x="260.35" y="184.15" size="1.778" layer="96" display="off"/>
-<attribute name="MF" x="260.35" y="184.15" size="1.778" layer="96" display="off"/>
-<attribute name="MPN" x="260.35" y="184.15" size="1.778" layer="96" display="off"/>
-</instance>
-<instance part="GND13" gate="1" x="270.51" y="171.45" smashed="yes">
-<attribute name="VALUE" x="267.97" y="168.91" size="1.778" layer="96"/>
-</instance>
-<instance part="+3V13" gate="G$1" x="266.7" y="204.47" smashed="yes">
-<attribute name="VALUE" x="264.16" y="199.39" size="1.778" layer="96" rot="R90"/>
-</instance>
 <instance part="P1" gate="G$1" x="255.27" y="134.62" smashed="yes" rot="MR0">
 <attribute name="NAME" x="260.096" y="142.748" size="1.778" layer="95" rot="MR0"/>
 <attribute name="VALUE" x="260.35" y="119.634" size="1.778" layer="96" rot="MR0"/>
@@ -15029,7 +15011,7 @@ I2C Address: 0x1C</text>
 <attribute name="MF" x="255.27" y="134.62" size="1.778" layer="96" display="off"/>
 <attribute name="MPN" x="255.27" y="134.62" size="1.778" layer="96" display="off"/>
 </instance>
-<instance part="POWER1" gate="G$1" x="138.43" y="179.07" smashed="yes">
+<instance part="LED1" gate="G$1" x="138.43" y="179.07" smashed="yes">
 <attribute name="NAME" x="141.986" y="174.498" size="1.778" layer="95" rot="R90"/>
 <attribute name="VALUE" x="144.145" y="174.498" size="1.778" layer="96" rot="R90"/>
 <attribute name="OC_NEWARK" x="138.43" y="179.07" size="1.778" layer="96" display="off"/>
@@ -15046,7 +15028,7 @@ I2C Address: 0x1C</text>
 <instance part="GND42" gate="1" x="138.43" y="152.4" smashed="yes">
 <attribute name="VALUE" x="135.89" y="149.86" size="1.778" layer="96"/>
 </instance>
-<instance part="POWER2" gate="G$1" x="193.04" y="165.1" smashed="yes" rot="R180">
+<instance part="LED2" gate="G$1" x="193.04" y="165.1" smashed="yes" rot="R180">
 <attribute name="NAME" x="189.484" y="169.672" size="1.778" layer="95" rot="R270"/>
 <attribute name="VALUE" x="187.325" y="169.672" size="1.778" layer="96" rot="R270"/>
 <attribute name="OC_NEWARK" x="193.04" y="165.1" size="1.778" layer="96" display="off"/>
@@ -15252,16 +15234,10 @@ I2C Address: 0x1C</text>
 <pinref part="GND14" gate="1" pin="GND"/>
 </segment>
 <segment>
-<pinref part="SW2" gate="G$1" pin="S"/>
+<pinref part="SW1" gate="G$1" pin="S"/>
 <wire x1="279.4" y1="195.58" x2="284.48" y2="195.58" width="0.1524" layer="91"/>
 <wire x1="284.48" y1="195.58" x2="284.48" y2="187.96" width="0.1524" layer="91"/>
 <pinref part="GND4" gate="1" pin="GND"/>
-</segment>
-<segment>
-<pinref part="S2" gate="G$1" pin="3"/>
-<wire x1="265.43" y1="184.15" x2="270.51" y2="184.15" width="0.1524" layer="91"/>
-<wire x1="270.51" y1="184.15" x2="270.51" y2="173.99" width="0.1524" layer="91"/>
-<pinref part="GND13" gate="1" pin="GND"/>
 </segment>
 <segment>
 <pinref part="R5" gate="G$1" pin="1"/>
@@ -15363,12 +15339,6 @@ I2C Address: 0x1C</text>
 <pinref part="R34" gate="G$1" pin="2"/>
 <wire x1="246.38" y1="212.09" x2="246.38" y2="218.44" width="0.1524" layer="91"/>
 <pinref part="+3V6" gate="G$1" pin="+3V3"/>
-</segment>
-<segment>
-<pinref part="S2" gate="G$1" pin="1"/>
-<wire x1="265.43" y1="189.23" x2="266.7" y2="189.23" width="0.1524" layer="91"/>
-<wire x1="266.7" y1="189.23" x2="266.7" y2="201.93" width="0.1524" layer="91"/>
-<pinref part="+3V13" gate="G$1" pin="+3V3"/>
 </segment>
 <segment>
 <pinref part="R6" gate="G$1" pin="1"/>
@@ -15854,21 +15824,13 @@ I2C Address: 0x1C</text>
 <wire x1="246.38" y1="195.58" x2="246.38" y2="201.93" width="0.1524" layer="91"/>
 <junction x="246.38" y="195.58"/>
 <wire x1="246.38" y1="195.58" x2="269.24" y2="195.58" width="0.1524" layer="91"/>
-<pinref part="SW2" gate="G$1" pin="P"/>
-</segment>
-</net>
-<net name="N$35" class="0">
-<segment>
-<pinref part="U2" gate="G$1" pin="IO16"/>
-<wire x1="208.28" y1="190.5" x2="255.27" y2="190.5" width="0.1524" layer="91"/>
-<pinref part="S2" gate="G$1" pin="2"/>
-<wire x1="255.27" y1="190.5" x2="255.27" y2="186.69" width="0.1524" layer="91"/>
+<pinref part="SW1" gate="G$1" pin="P"/>
 </segment>
 </net>
 <net name="N$39" class="0">
 <segment>
 <pinref part="U2" gate="G$1" pin="IO12"/>
-<pinref part="POWER1" gate="G$1" pin="A"/>
+<pinref part="LED1" gate="G$1" pin="A"/>
 <wire x1="160.02" y1="185.42" x2="138.43" y2="185.42" width="0.1524" layer="91"/>
 <wire x1="138.43" y1="185.42" x2="138.43" y2="181.61" width="0.1524" layer="91"/>
 </segment>
@@ -15877,19 +15839,19 @@ I2C Address: 0x1C</text>
 <segment>
 <pinref part="U2" gate="G$1" pin="IO15"/>
 <wire x1="193.04" y1="175.26" x2="193.04" y2="170.18" width="0.1524" layer="91"/>
-<pinref part="POWER2" gate="G$1" pin="C"/>
+<pinref part="LED2" gate="G$1" pin="C"/>
 </segment>
 </net>
 <net name="N$46" class="0">
 <segment>
-<pinref part="POWER1" gate="G$1" pin="C"/>
+<pinref part="LED1" gate="G$1" pin="C"/>
 <pinref part="R5" gate="G$1" pin="2"/>
 <wire x1="138.43" y1="167.64" x2="138.43" y2="173.99" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$44" class="0">
 <segment>
-<pinref part="POWER2" gate="G$1" pin="A"/>
+<pinref part="LED2" gate="G$1" pin="A"/>
 <pinref part="R6" gate="G$1" pin="2"/>
 </segment>
 </net>

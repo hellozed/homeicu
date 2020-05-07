@@ -3,11 +3,8 @@
         {
             "name": "Mac",
             "includePath": [
-                "/Users/a123/Documents/Arduino/hardware/espressif/esp32/**",
                 "${workspaceFolder}/**",
-                "/Users/a123/Documents/Arduino/**",
-                "/Users/a123/Documents/Arduino/hardware/espressif/esp32/libraries/WiFi/src",
-                "/Users/a123/Documents/Arduino/hardware/espressif/esp32/libraries/SPI/src"
+                "/Users/a123/Documents/Arduino/**"
             ],
             "defines": [],
             "macFrameworkPath": [
@@ -18,7 +15,7 @@
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64",
-            "forcedInclude": []
+            "forcedInclude": ["${workspaceFolder}/firmware/vscode-fake.h"]
         }
     ],
     "version": 4

@@ -7,6 +7,15 @@
 		}
 	],
 	"settings": {
+		"files.associations": {
+			"chrono": "cpp",
+			"cmath": "cpp",
+			"cstdlib": "cpp",
+			"random": "cpp",
+			"*.tcc": "cpp",
+			"ratio": "cpp",
+			"cinttypes": "cpp"
+		}
 	},
 	"arduino.ignoreBoards": []
 }

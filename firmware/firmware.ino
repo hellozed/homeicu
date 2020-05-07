@@ -1,10 +1,27 @@
-/*
-//////////////////////////////////////////////////////////////////////////////////////////
-//   Copyright (c) 2019 HomeICU
-//   Heartrate and respiration computation based on original code from Texas Instruments
-//   Requires g4p_control graphing library for processing. 
-//   Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
+/* 
+   Heartrate and respiration computation based on original code from Texas Instruments
+   Requires g4p_control graphing library for processing. 
+   Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
 */
+
+/*---------------------------------------------------------------------------------
+
+New code without testing on the real hardware
+
+---------------------------------------------------------------------------------*/
+
+
+// undefine stdlib's abs if encountered
+#ifdef abs
+#undef abs
+#endif
+#define abs(x) ((x)>0?(x):-(x))
+
+
+/*---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------*/
+
 #include <SPI.h>
 #include <Wire.h>
 #include <WiFi.h>
@@ -19,44 +36,48 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
-// HomeICU project code
+// HomeICU driver code
 #include "ADS1292r.h"
 #include "ecg_resp_signal_processing.h"
 #include "AFE4490_Oximeter.h"
 #include "MAX30205.h"
 #include "spo2_algorithm.h"
+/*---------------------------------------------------------------------------------
 
-#define Heartrate_SERVICE_UUID (uint16_t(0x180D))
+---------------------------------------------------------------------------------*/
+
+#define Heartrate_SERVICE_UUID        (uint16_t(0x180D))
 #define Heartrate_CHARACTERISTIC_UUID (uint16_t(0x2A37))
-#define sp02_SERVICE_UUID (uint16_t(0x1822)) 
-#define sp02_CHARACTERISTIC_UUID (uint16_t(0x2A5E))
-#define DATASTREAM_SERVICE_UUID (uint16_t(0x1122)) 
+#define sp02_SERVICE_UUID             (uint16_t(0x1822)) 
+#define sp02_CHARACTERISTIC_UUID      (uint16_t(0x2A5E))
+#define DATASTREAM_SERVICE_UUID       (uint16_t(0x1122)) 
 #define DATASTREAM_CHARACTERISTIC_UUID (uint16_t(0x1424))
-#define TEMP_SERVICE_UUID (uint16_t(0x1809)) 
-#define TEMP_CHARACTERISTIC_UUID (uint16_t(0x2a6e))
-#define BATTERY_SERVICE_UUID (uint16_t(0x180F)) 
-#define BATTERY_CHARACTERISTIC_UUID (uint16_t(0x2a19))
-#define HRV_SERVICE_UUID "cd5c7491-4448-7db8-ae4c-d1da8cba36d0"
-#define HRV_CHARACTERISTIC_UUID "01bfa86f-970f-8d96-d44d-9023c47faddc"
-#define HIST_CHARACTERISTIC_UUID "01bf1525-970f-8d96-d44d-9023c47faddc"
+#define TEMP_SERVICE_UUID             (uint16_t(0x1809)) 
+#define TEMP_CHARACTERISTIC_UUID      (uint16_t(0x2a6e))
+#define BATTERY_SERVICE_UUID          (uint16_t(0x180F)) 
+#define BATTERY_CHARACTERISTIC_UUID   (uint16_t(0x2a19))
+#define HRV_SERVICE_UUID              "cd5c7491-4448-7db8-ae4c-d1da8cba36d0"
+#define HRV_CHARACTERISTIC_UUID       "01bfa86f-970f-8d96-d44d-9023c47faddc"
+#define HIST_CHARACTERISTIC_UUID      "01bf1525-970f-8d96-d44d-9023c47faddc"
 
-#define BLE_MODE                0X01
-#define WEBSERVER_MODE          0X02
-#define V3_MODE                 0X03
-#define CES_CMDIF_PKT_START_1   0x0A
-#define CES_CMDIF_PKT_START_2   0xFA
-#define CES_CMDIF_DATA_LEN_LSB   20
-#define CES_CMDIF_DATA_LEN_MSB    0
-#define CES_CMDIF_TYPE_DATA     0x02
-#define CES_CMDIF_PKT_STOP_1    0x00
-#define CES_CMDIF_PKT_STOP_2    0x0B
-#define PUSH_BUTTON              17
-#define SLIDE_SWITCH             16
-#define MAX30205_READ_INTERVAL 10000
-#define LINELEN                 34 
-#define HISTGRM_DATA_SIZE      12*4
-#define HISTGRM_CALC_TH         10
-#define MAX                     20
+#define BLE_MODE                      0X01
+#define WEBSERVER_MODE                0X02
+#define CES_CMDIF_PKT_START_1         0x0A
+#define CES_CMDIF_PKT_START_2         0xFA
+#define CES_CMDIF_DATA_LEN_LSB        20
+#define CES_CMDIF_DATA_LEN_MSB        0
+#define CES_CMDIF_TYPE_DATA           0x02
+#define CES_CMDIF_PKT_STOP_1          0x00
+#define CES_CMDIF_PKT_STOP_2          0x0B
+#define MAX30205_READ_INTERVAL        10000
+#define LINELEN                       34 
+#define HISTGRM_DATA_SIZE             12*4
+#define HISTGRM_CALC_TH               10
+#define MAX                           20
+
+/*---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------*/
 
 unsigned int array[MAX];
 
@@ -126,22 +147,22 @@ int16_t res_wave_sample,resp_filterout;
 
 uint32_t hr_histgrm[HISTGRM_DATA_SIZE];
 
-bool deviceConnected = false;
+bool deviceConnected    = false;
 bool oldDeviceConnected = false;
-bool temp_data_ready = false;
-bool spo2_calc_done = false;
-bool ecg_buf_ready = false;
-bool resp_buf_ready = false;
-bool ppg_buf_ready = false;
-bool hrv_ready_flag = false;
-bool mode_write_flag = false;
-bool slide_switch_flag = false;
-bool processing_intrpt = false;
-bool credential_success_flag = false;
-bool STA_mode_indication = false;
-bool bat_data_ready = false;
-bool leadoff_detected = true;
-bool startup_flag = true;
+bool temp_data_ready    = false;
+bool spo2_calc_done     = false;
+bool ecg_buf_ready      = false;
+bool resp_buf_ready     = false;
+bool ppg_buf_ready      = false;
+bool hrv_ready_flag     = false;
+bool mode_write_flag    = false;
+bool slide_switch_flag  = false;
+bool processing_intrpt  = false;
+bool success_flag       = false;
+bool STA_mode_indication= false;
+bool bat_data_ready     = false;
+bool leadoff_detected   = true;
+bool startup_flag       = true;
 
 char DataPacket[30];
 char ssid[32];
@@ -157,13 +178,22 @@ String strValue = "";
 static int bat_prev=100;
 static uint8_t bat_percent = 100;
 
-const int ADS1292_DRDY_PIN = 26;
-const int ADS1292_CS_PIN = 13;
+// PIN numbers are defined as ESP-WROOM-32 IO port number
+const int ADS1292_DRDY_PIN  = 26;
+const int ADS1292_CS_PIN    = 13;
 const int ADS1292_START_PIN = 14;
-const int ADS1292_PWDN_PIN = 27;
-const int AFE4490_CS_PIN = 21; 
-const int AFE4490_DRDY_PIN = 39; 
-const int AFE4490_PWDN_PIN = 4; 
+const int ADS1292_PWDN_PIN  = 27;
+
+const int PUSH_BUTTON_PIN   = 17;
+
+const int AFE4490_CS_PIN    = 21; 
+const int AFE4490_DRDY_PIN  = 39; 
+const int AFE4490_PWDN_PIN  = 4;
+
+const int LED1_PIN          = 12;
+const int LED2_PIN          = 15;
+const int SENSOR_VP_PIN     = 36;   //GPIO36, ADC1_CH0
+
 const int freq = 5000;
 const int ledChannel = 0;
 const int resolution = 8;
@@ -280,12 +310,12 @@ void response()
     Serial.println(ssid_to_connect);
     Serial.print("Password: ");
     Serial.println(password_to_connect);
-    credential_success_flag = true;
+    success_flag = true;
   } 
   else 
   {
     server.send(400, "text/html", "<html><body><h1>HTTP Error 400</h1><p>Bad request. Please enter a value.</p></body></html>");
-    credential_success_flag = false;
+    success_flag = false;
   }
   
 }
@@ -590,7 +620,7 @@ void HealthyPiV4_BLE_Init()
 
 void read_battery_value()
 {
-  static int adc_val = analogRead(A0);
+  static int adc_val = analogRead(SENSOR_VP_PIN);
   battery += adc_val;
   
   if(bat_count == 9)
@@ -847,9 +877,9 @@ void ble_advertising()
 
   while((deviceConnected==false)&&(slide_switch_flag==false)&&(mode_write_flag==false))
   {
-    digitalWrite(A13, LOW);   // turn the LED on (HIGH is the voltage level)
+    digitalWrite(LED2_PIN, LOW);   // turn the LED on (HIGH is the voltage level)
     delay(100);                       // wait for a 100ms
-    digitalWrite(A13, HIGH);    // turn the LED off by making the voltage LOW
+    digitalWrite(LED2_PIN, HIGH);    // turn the LED off by making the voltage LOW
     delay(3000);
   }
 
@@ -857,7 +887,7 @@ void ble_advertising()
 
 void V3_mode_indication()
 {
-  digitalWrite(A13, HIGH);
+  digitalWrite(LED2_PIN, HIGH);
 
   for(int dutyCycle = 0; dutyCycle <= 254; dutyCycle=dutyCycle+3)
   {   
@@ -877,9 +907,9 @@ void V3_mode_indication()
 
 void restart_indication()
 {
-  digitalWrite(A13, LOW);
+  digitalWrite(LED2_PIN, LOW);
   delay(2500);
-  digitalWrite(A13, HIGH);
+  digitalWrite(LED2_PIN, HIGH);
   delay(2500);
 }
 
@@ -907,9 +937,9 @@ void soft_AP_mode_indication()
 
   for(int i=0; i<=5 ;i++)
   {
-    digitalWrite(A15,HIGH);
+    digitalWrite(LED1_PIN,HIGH);
     delay(50);
-    digitalWrite(A15,LOW);
+    digitalWrite(LED1_PIN,LOW);
     delay(2000); 
   }
 
@@ -920,13 +950,13 @@ void OTA_update_indication()
 
   for (int i =0;i<5;i++)
   {
-    digitalWrite(A13,HIGH);
-    digitalWrite(A15,HIGH);
+    digitalWrite(LED2_PIN,HIGH);
+    digitalWrite(LED1_PIN,HIGH);
     delay(25);
-    digitalWrite(A15,LOW);
-    digitalWrite(A13,LOW);
+    digitalWrite(LED1_PIN,LOW);
+    digitalWrite(LED2_PIN,LOW);
     delay(25);
-    digitalWrite(A13,HIGH);
+    digitalWrite(LED2_PIN,HIGH);
   }
 
 }
@@ -1250,27 +1280,32 @@ void HealthyPiV4_Webserver_Init()
   Serial.println("HTTP server started");
 }
 
+/*---------------------------------------------------------------------------------
+The setup() function is called when a sketch starts. Use it to initialize variables, 
+pin modes, start using libraries, etc. The setup() function will only run once, 
+after each powerup or reset of the  board.
+---------------------------------------------------------------------------------*/
 void setup()
 {
   delay(2000);
-  Serial.begin(115200);  // Baudrate for serial communication
-  Serial.println("Setting up Healthy pI V4...");
+
+  // Setup serial port U0UXD for programming and reset/boot
+  Serial.begin  (115200);   // Baudrate for serial communication
+  Serial.println("Setting up HomeICU...");
   
   // initalize the  data ready and chip select pins:
-  pinMode(ADS1292_DRDY_PIN, INPUT);  
-  pinMode(ADS1292_CS_PIN, OUTPUT);    
-  pinMode(ADS1292_START_PIN, OUTPUT);
-  pinMode(ADS1292_PWDN_PIN, OUTPUT);  
-  pinMode (A15, OUTPUT);
-  pinMode (A13, OUTPUT);
-  pinMode (AFE4490_PWDN_PIN,OUTPUT);
-  pinMode (AFE4490_CS_PIN,OUTPUT);//Slave Select
-  pinMode (AFE4490_DRDY_PIN,INPUT);// data ready 
-  //set up mode selection pins
-  pinMode(SLIDE_SWITCH, OUTPUT);
-  pinMode(PUSH_BUTTON, INPUT);
-  int buttonState = digitalRead(SLIDE_SWITCH);
-  Serial.println(buttonState);
+  // Pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
+  pinMode(ADS1292_DRDY_PIN,   INPUT);  
+  pinMode(ADS1292_CS_PIN,     OUTPUT);    
+  pinMode(ADS1292_START_PIN,  OUTPUT);
+  pinMode(ADS1292_PWDN_PIN,   OUTPUT);  
+  pinMode(LED1_PIN,           OUTPUT); 
+  pinMode(LED2_PIN,           OUTPUT); 
+  pinMode(AFE4490_PWDN_PIN,   OUTPUT);
+  pinMode(AFE4490_CS_PIN,     OUTPUT);//Slave Select
+  pinMode(AFE4490_DRDY_PIN,   INPUT);// data ready 
+
+  pinMode(PUSH_BUTTON_PIN,    INPUT);
 
   if(!SPIFFS.begin())
   {
@@ -1286,41 +1321,24 @@ void setup()
   {
     delLine(SPIFFS,"/web_mode.txt",1,5);
 
-    if(buttonState)
-    {
-      restart_indication();
-      Healthypi_Mode = V3_MODE;
-    }
-    else
-    {
-      restart_indication();
-      Healthypi_Mode = BLE_MODE;
-    }
+    restart_indication();
+    Healthypi_Mode = BLE_MODE;
 
   }
   
-  pinMode(PUSH_BUTTON, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON), push_button_intr_handler, FALLING);
-  pinMode(SLIDE_SWITCH, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(SLIDE_SWITCH), slideswitch_intr_handler,CHANGE);
+  pinMode(PUSH_BUTTON_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON_PIN), push_button_intr_handler, FALLING);
   
+
   if(Healthypi_Mode == WEBSERVER_MODE)
   {
     ledcSetup(ledChannel, freq, resolution);
-    ledcAttachPin(A13, ledChannel);
+    ledcAttachPin(LED2_PIN, ledChannel);
     Serial.println("Starts in webserver mode");
     webserver_mode_indication();
-    ledcDetachPin(A13);
+    ledcDetachPin(LED2_PIN);
     HealthyPiV4_Webserver_Init();
 
-  }
-  else if(Healthypi_Mode == V3_MODE)
-  { 
-    ledcSetup(ledChannel, freq, resolution);
-    ledcAttachPin(A15, ledChannel);  
-    V3_mode_indication();
-    Serial.println("Starts in v3 mode");
-    ledcDetachPin(A15);
   }
   else
   {
@@ -1344,6 +1362,11 @@ void setup()
   tempSensor.begin();
   Serial.println("Initialization is complete");
 }
+/*---------------------------------------------------------------------------------
+After creating a setup() function, which initializes and sets the initial values, 
+the loop() function does precisely what its name suggests, and loops consecutively, 
+allowing your program to change and respond. Use it to actively control the board.
+---------------------------------------------------------------------------------*/
 
 void loop()
 {
@@ -1471,10 +1494,6 @@ void loop()
     {
       handle_ble_stack();
     }
-    else if(Healthypi_Mode == V3_MODE)
-    {
-      send_data_serial_port();
-    }
 
   }
 
@@ -1497,13 +1516,13 @@ void loop()
     ESP.restart();
   }
  
-  if (credential_success_flag)
+  if (success_flag)
   {
     detachInterrupt(ADS1292_DRDY_PIN);
     writeFile(SPIFFS,"/ssid_list.txt",ssid_to_connect.c_str());
     writeFile(SPIFFS,"/pass_list.txt",password_to_connect.c_str());
     writeFile(SPIFFS,"/mode_status.txt","datawritten");
-    credential_success_flag = false;
+    success_flag = false;
     const char u = 0x0a;
     writeFile(SPIFFS,"/web_mode.txt",&u);
     restart_indication();
