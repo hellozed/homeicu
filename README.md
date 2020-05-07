@@ -1,5 +1,7 @@
 ![HomeICU](http://homeicu.ca/wp-content/uploads/2020/04/cropped-homeicu.png)
 
+> Attention: HomeICU project is in the developing stage and all the code and design shared here are working draft and have not been formally released yet. Please do NOT use the current project on the real human body until it receives government approval in your country.
+
 # HomeICU - low-cost remote vital signs monitor
 
 The hardware and software design documents are shared here and the project website is at [Website](http://homeicu.ca/).
@@ -35,7 +37,7 @@ Phase II:
 * **/gui**      - GUI for iPhone, iPad and Android phone/tablet
 * **/hardware** - design files (.brd, .sch)
 
-* **../homeicu-build** - directory for building binary file, no need backup.
+* **../homeicu-build** - directory for building binary file, no backup needed.
    
 
 ---
@@ -85,16 +87,6 @@ Processing-based GUI, Android App, iOS devices App, web interface
 Coming soon.
 
 ---
-# GUI
-
-Coming soon.
-
----
-# Programming the on-board microcontroller
-
-Coming soon.
-
----
 # Connecting the ECG Electrodes
 
 A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board. 
@@ -106,13 +98,28 @@ Coming soon.
 The goal of HomeICU is to have functions of a medical-grade patient monitoring system. So far, HomeICU does NOT have any certifications (FDA, CE, etc.) and is NOT officially approved for medical or diagnostic use. It is your responsibility to ensure your safety when using the device. Furthermore, you MUST NOT power the device from a non-isolated power source for your safety.
 
 ---
-# Placing the Electrodes on the body
-
----
-# License Information
+# License
 
 The hardware and software are open-source and licensed under the following licenses:
 
 MIT License(http://opensource.org/licenses/MIT)
+
+---
+# Credits
+This application uses many Open Source components. You can find the source code of their open source projects along with license information below. We acknowledge and are grateful to these developers for their contributions to open source.
+
+
+## Project: [Arduino Library for Healthypi-v4](https://github.com/Protocentral/protocentral_healthypi_v4) 
+
+Copyright (c) 2019 ProtoCentral.
+
+License: [MIT](http://opensource.org/licenses/MIT)
+
+## Project: [SparkFun](https://www.sparkfun.com)
+
+Copyright (c), SparkFun.
+
+License: Beerware: If you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us a round! 
+
 
  
