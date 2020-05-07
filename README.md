@@ -4,7 +4,6 @@
 
 The hardware and software design documents are shared here and the project website is at [Website](http://homeicu.ca/).
 
-v2
 ---
 
 HomeICU is an Open-Source COVID19 patient monitor that uses wearable sensors to measure the patient's vital signs and enable doctors do medical diagnosis and treatment remotely over the Internet. 
@@ -27,6 +26,7 @@ Phase II:
 
 
 ---
+
 # Repository
 
 * **/docs**     - additional documentation
@@ -35,6 +35,8 @@ Phase II:
 * **/gui**      - GUI for iPhone, iPad and Android phone/tablet
 * **/hardware** - design files (.brd, .sch)
 
+* **../homeicu-build** - directory for building binary file, no need backup.
+   
 
 ---
 # Hardware
