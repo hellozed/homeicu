@@ -3,3 +3,5 @@
 firmware/*.bin
 homeicu.s#* 
 homeicu.b#*
+usb-2-uart.s#*
+usb-2-uart.b#*

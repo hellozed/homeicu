@@ -5,10 +5,11 @@
 */
 
 /*---------------------------------------------------------------------------------
-
-New code without testing on the real hardware
-
+ wifi for OTA Update
 ---------------------------------------------------------------------------------*/
+
+const char* wifi_ssid = "...";
+const char* wifi_password = ".....";
 
 
 // undefine stdlib's abs if encountered
@@ -19,22 +20,19 @@ New code without testing on the real hardware
 
 
 /*---------------------------------------------------------------------------------
-
+ Library Headers
 ---------------------------------------------------------------------------------*/
-
 #include <SPI.h>
 #include <Wire.h>
-#include <WiFi.h>
-#include <WebServer.h>
 #include <ESPmDNS.h>
 #include <Update.h>
-#include <WiFiClient.h>
 #include "SPIFFS.h"
 #include <FS.h>      //Include File System Headers
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include <ArduinoOTA.h>
 
 // HomeICU driver code
 #include "ADS1292r.h"
@@ -45,7 +43,6 @@ New code without testing on the real hardware
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
-
 #define Heartrate_SERVICE_UUID        (uint16_t(0x180D))
 #define Heartrate_CHARACTERISTIC_UUID (uint16_t(0x2A37))
 #define sp02_SERVICE_UUID             (uint16_t(0x1822)) 
@@ -100,7 +97,6 @@ int number_of_samples = 0;
 int battery=0;
 int bat_count=0;
 int bt_rem = 0;
-int wifi_count;
 int flag=0;
 
 float sdnn;
@@ -112,10 +108,7 @@ float per_pnn;
 float pnn_f=0;
 float tri =0;
 float temp;
-
-void HealthyPiV4_Webserver_Init();
-void send_data_serial_port(void);
-
+ 
 volatile uint8_t global_HeartRate = 0;
 volatile uint8_t global_HeartRate_prev = 0;
 volatile uint8_t global_RespirationRate=0;
@@ -129,7 +122,7 @@ volatile unsigned int RR;
 uint8_t ecg_data_buff[20];
 uint8_t resp_data_buff[2];
 uint8_t ppg_data_buff[20];
-uint8_t Healthypi_Mode = WEBSERVER_MODE;
+uint8_t Work_Mode = BLE_MODE;
 uint8_t lead_flag = 0x04;
 uint8_t data_len = 20;
 uint8_t heartbeat,sp02,respirationrate;
@@ -156,7 +149,6 @@ bool resp_buf_ready     = false;
 bool ppg_buf_ready      = false;
 bool hrv_ready_flag     = false;
 bool mode_write_flag    = false;
-bool slide_switch_flag  = false;
 bool processing_intrpt  = false;
 bool success_flag       = false;
 bool STA_mode_indication= false;
@@ -170,7 +162,6 @@ char password[64];
 char modestatus[32];
 char tmp_ecgbuf[1200];
 
-String ssid_to_connect;
 String password_to_connect;
 String tmp_ecgbu;
 String strValue = "";
@@ -197,19 +188,18 @@ const int SENSOR_VP_PIN     = 36;   //GPIO36, ADC1_CH0
 const int freq = 5000;
 const int ledChannel = 0;
 const int resolution = 8;
-const char* host = "Healthypi_v4";
-const char* host_password = "Open@1234";
+
 const char DataPacketHeader[] = {CES_CMDIF_PKT_START_1, CES_CMDIF_PKT_START_2, CES_CMDIF_DATA_LEN_LSB, CES_CMDIF_DATA_LEN_MSB, CES_CMDIF_TYPE_DATA};
 const char DataPacketFooter[] = {CES_CMDIF_PKT_STOP_1, CES_CMDIF_PKT_STOP_2};
 
-BLEServer* pServer = NULL;
-BLECharacteristic* Heartrate_Characteristic = NULL;
-BLECharacteristic* sp02_Characteristic = NULL;
-BLECharacteristic* datastream_Characteristic = NULL;
-BLECharacteristic* battery_Characteristic = NULL;
-BLECharacteristic* temperature_Characteristic = NULL;
-BLECharacteristic* hist_Characteristic = NULL;
-BLECharacteristic* hrv_Characteristic = NULL;
+BLEServer         *pServer                    = NULL;
+BLECharacteristic *Heartrate_Characteristic   = NULL;
+BLECharacteristic *sp02_Characteristic        = NULL;
+BLECharacteristic *datastream_Characteristic  = NULL;
+BLECharacteristic *battery_Characteristic     = NULL;
+BLECharacteristic *temperature_Characteristic = NULL;
+BLECharacteristic *hist_Characteristic        = NULL;
+BLECharacteristic *hrv_Characteristic         = NULL;
 
 ads1292r ADS1292R;   // define class ads1292r
 ads1292r_processing ECG_RESPIRATION_ALGORITHM; // define class ecg_algorithm
@@ -256,111 +246,18 @@ class MyCallbackHandler: public BLECharacteristicCallbacks
 
   }
 };
+ 
+ 
 
-String processor(const String& var)
-{
 
-  if(var == "heartrate")
-  {
-    return String(global_HeartRate);
-  }
-
-  return String();
-}
-
-WebServer server(80);
-
-void handleWebRequests()
-{
-  if(loadFromSpiffs(server.uri())) return;
-
-  String message = "File Not Detected\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET)?"GET":"POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-
-  for (uint8_t i=0; i<server.args(); i++)
-  {
-    message += " NAME:"+server.argName(i) + "\n VALUE:" + server.arg(i) + "\n";
-  }
-
-  server.send(404, "text/plain", message);
-  Serial.println(message);
-}
-
-void webpage() 
-{    
-  server.sendHeader ("Location","/set_network_credentials.html",true);
-  server.send(303,"text/plane","");
-} 
-
-void response()
-{
-
-  if(server.hasArg("SSID") && server.hasArg("Password") && (server.arg("Password").length()>7))
-  { 
-    ssid_to_connect = server.arg("SSID");
-    password_to_connect = server.arg("Password");
-    server.send(200, "text/html", "<html><body><h3>Successfully Changed the Network Credentials. It is restarting.<br></h3><h3>After restart connect to the changed network. In case if it is not connected in 60sec it will go to the softAp mode.<br><br>Enter healthypi.local/ in the address bar. If it is not connecting, use the IP address of the connected network which is printed in the serial moniter<br><br></h3></body></html>");
-    Serial.print("SSID: ");
-    Serial.println(ssid_to_connect);
-    Serial.print("Password: ");
-    Serial.println(password_to_connect);
-    success_flag = true;
-  } 
-  else 
-  {
-    server.send(400, "text/html", "<html><body><h1>HTTP Error 400</h1><p>Bad request. Please enter a value.</p></body></html>");
-    success_flag = false;
-  }
-  
-}
-
-void handleRoot() 
-{
-  server.sendHeader("Location", "/main.html",true);   //Redirect to our html web page
-  server.send(303, "text/plane","");
-}
-
-void handleheartrate() 
-{
-  int ln = tmp_ecgbu.length();
-  server.setContentLength(ln);
-  index_cnt = 0;
-  number_of_samples = 0;
-  server.send(200, "text/html", tmp_ecgbu);
-}
-
-void handletemperature() 
-{
-  char sensor_data[20]; 
-  sprintf(sensor_data, "%d,%d,%d,%d", global_HeartRate, global_RespirationRate, afe44xx_raw_data.spo2, temperature);
-  server.send(200, "text/html", sensor_data); //Send ADC value only to client ajax request
-}
 
 void push_button_intr_handler()
 {
 
-  if(Healthypi_Mode != WEBSERVER_MODE)
+  if(Work_Mode != WEBSERVER_MODE)
   {
     detachInterrupt(ADS1292_DRDY_PIN);
     mode_write_flag = true;
-  }
-
-}
-
-void slideswitch_intr_handler()
-{ 
-
-  if(!processing_intrpt)
-  {
-    processing_intrpt = true;
-    detachInterrupt(ADS1292_DRDY_PIN);
-    slide_switch_flag = true;
   }
 
 }
@@ -423,7 +320,7 @@ bool readFile(fs::FS &fs, const char * path)
  
   if(rd_config == 0x0f)
   {
-    Healthypi_Mode = WEBSERVER_MODE;
+    Work_Mode = WEBSERVER_MODE;
     delLine(SPIFFS,"/v4_mode.txt",1,5);
   }
   else
@@ -454,17 +351,17 @@ bool fileread(fs::FS &fs, const char * path)
  
   if(md_config == 0x0a)
   {
-    Healthypi_Mode = WEBSERVER_MODE;
+    Work_Mode = WEBSERVER_MODE;
     delLine(SPIFFS,"/web_mode.txt",1,5);
   }
   else if(md_config == 0x0b)
   {
-    Healthypi_Mode = WEBSERVER_MODE;
+    Work_Mode = WEBSERVER_MODE;
     delLine(SPIFFS,"/web_mode.txt",1,5);
   }
   else if(md_config == 0x0c)
   {
-    Healthypi_Mode = WEBSERVER_MODE;
+    Work_Mode = WEBSERVER_MODE;
     delLine(SPIFFS,"/web_mode.txt",1,5);
   }
   else
@@ -525,7 +422,7 @@ void readFile(fs::FS &fs, const char * path, int* data_count, char* file_data)
   Serial.println("file closed");
 }
 
-void HealthyPiV4_BLE_Init()
+void BLE_Init()
 {
   BLEDevice::init("Healthypi v4"); // Create the BLE Device
   pServer = BLEDevice::createServer();   // Create the BLE Server
@@ -875,32 +772,12 @@ float rmssd_ff(unsigned int array[])
 void ble_advertising()
 {
 
-  while((deviceConnected==false)&&(slide_switch_flag==false)&&(mode_write_flag==false))
+  while((deviceConnected==false)&&(mode_write_flag==false))
   {
     digitalWrite(LED2_PIN, LOW);   // turn the LED on (HIGH is the voltage level)
     delay(100);                       // wait for a 100ms
     digitalWrite(LED2_PIN, HIGH);    // turn the LED off by making the voltage LOW
     delay(3000);
-  }
-
-}
-
-void V3_mode_indication()
-{
-  digitalWrite(LED2_PIN, HIGH);
-
-  for(int dutyCycle = 0; dutyCycle <= 254; dutyCycle=dutyCycle+3)
-  {   
-    // changing the LED brightness with PWM
-    ledcWrite(ledChannel, dutyCycle);
-    delay(25);
-  }
-   // decrease the LED brightness
-  for(int dutyCycle = 254; dutyCycle >= 0; dutyCycle=dutyCycle-3)
-  {
-    // changing the LED brightness with PWM
-    ledcWrite(ledChannel, dutyCycle);   
-    delay(25);
   }
 
 }
@@ -912,74 +789,8 @@ void restart_indication()
   digitalWrite(LED2_PIN, HIGH);
   delay(2500);
 }
-
-void webserver_mode_indication()
-{
-  // decrease the LED brightness
-  for(int dutyCycle = 254; dutyCycle >= 0; dutyCycle=dutyCycle-3)
-  {
-    // changing the LED brightness with PWM
-    ledcWrite(ledChannel, dutyCycle);   
-    delay(25);
-  }
-
-  for(int dutyCycle = 0; dutyCycle <= 254; dutyCycle=dutyCycle+3)
-  {   
-    // changing the LED brightness with PWM
-    ledcWrite(ledChannel, dutyCycle);
-    delay(25);
-  }
-
-}
-
-void soft_AP_mode_indication()
-{
-
-  for(int i=0; i<=5 ;i++)
-  {
-    digitalWrite(LED1_PIN,HIGH);
-    delay(50);
-    digitalWrite(LED1_PIN,LOW);
-    delay(2000); 
-  }
-
-}
-
-void OTA_update_indication()
-{
-
-  for (int i =0;i<5;i++)
-  {
-    digitalWrite(LED2_PIN,HIGH);
-    digitalWrite(LED1_PIN,HIGH);
-    delay(25);
-    digitalWrite(LED1_PIN,LOW);
-    digitalWrite(LED2_PIN,LOW);
-    delay(25);
-    digitalWrite(LED2_PIN,HIGH);
-  }
-
-}
-
-void send_data_serial_port(void)
-{
-
-  for (int i = 0; i < 5; i++)
-  {
-   Serial.write(DataPacketHeader[i]);     // transmit the data over USB
-  }
-  
-  for (int i = 0; i < 20; i++)
-  {
-    Serial.write(DataPacket[i]);     // transmit the data over USB
-  }
-  
-  for (int i = 0; i < 2; i++)
-  {
-    Serial.write(DataPacketFooter[i]);     // transmit the data over USB
-  } 
-
-}
+ 
+ 
 
 void handle_ble_stack()
 {
@@ -1077,209 +888,72 @@ void handle_ble_stack()
   } 
 
 }
+ 
+// https://lastminuteengineers.com/esp32-ota-updates-arduino-ide/
 
-bool loadFromSpiffs(String path)
+
+
+void setupBasicOTA() 
 {
-  String dataType = "text/plain";
-  if(path.endsWith("/")) path += "index.htm";
-  if(path.endsWith(".src")) path = path.substring(0, path.lastIndexOf("."));
-  else if(path.endsWith(".html")) dataType = "text/html";
-  else if(path.endsWith(".htm")) dataType = "text/html";
-  else if(path.endsWith(".css")) dataType = "text/css";
-  else if(path.endsWith(".js")) dataType = "application/javascript";
-  else if(path.endsWith(".png")) dataType = "image/png";
-  else if(path.endsWith(".gif")) dataType = "image/gif";
-  else if(path.endsWith(".jpg")) dataType = "image/jpeg";
-  else if(path.endsWith(".ico")) dataType = "image/x-icon";
-  else if(path.endsWith(".xml")) dataType = "text/xml";
-  else if(path.endsWith(".pdf")) dataType = "application/pdf";
-  else if(path.endsWith(".zip")) dataType = "application/zip";
-  File dataFile = SPIFFS.open(path.c_str(), "r");
- 
-  if (server.hasArg("download")) dataType = "application/octet-stream";
+  Serial.begin(115200);
+  Serial.println("Booting");
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(wifi_ssid, wifi_password);
   
-  if (server.streamFile(dataFile, dataType) != dataFile.size()) 
+  while (WiFi.waitForConnectResult() != WL_CONNECTED) 
   {
+    Serial.println("Connection Failed! Rebooting...");
+    delay(5000);
+    ESP.restart();
   }
- 
-  dataFile.close();
-  return true;
+
+  // Port defaults to 3232
+  // ArduinoOTA.setPort(3232);
+
+  // Hostname defaults to esp3232-[MAC]
+  // ArduinoOTA.setHostname("myesp32");
+
+  // No authentication by default
+  // ArduinoOTA.setPassword("admin");
+
+  // Password can be set with it's md5 value as well
+  // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+  // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
+
+  ArduinoOTA.onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_SPIFFS
+      {
+        type = "filesystem";
+        SPIFFS.end();
+      }
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+      Serial.println("Start updating " + type);
+    })
+    .onEnd([]() {
+      Serial.println("\nEnd");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    });
+
+  ArduinoOTA.begin();
+
+  Serial.println("Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
 }
-
-void HealthyPiV4_Webserver_Init()
-{ 
-  
-  if((!SPIFFS.exists("/mode_status.txt")))
-  {
-    
-    if (!SPIFFS.exists("/mode_status.txt"))
-    {
-      Serial.print("Creating "); 
-      Serial.println("/mode_status.txt");
-      File file = SPIFFS.open("/mode_status.txt", "w");
-      file.close();
-    }
-    
-    Serial.println("Enter Soft AP Mode");
-    soft_AP_mode_indication();
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(host);
-    IPAddress myIP = WiFi.softAPIP();
-    Serial.println(myIP);
-    delay(1000); 
-  }
-  else
-  {
-    Serial.println("Required files does exist");
-    readFile(SPIFFS,"/mode_status.txt",&status_size,modestatus); 
-    Serial.println();
-    readFile(SPIFFS,"/ssid_list.txt",&ssid_size,ssid); 
-    Serial.println();
-    readFile(SPIFFS,"/pass_list.txt",&pass_size,password);   
-    Serial.println();
-  
-    if ((status_size == 0))
-    {
-      Serial.println("Enter Soft AP Mode");
-      WiFi.mode(WIFI_AP);
-      WiFi.softAP(host);
-      IPAddress myIP = WiFi.softAPIP();
-      Serial.println(myIP);
-      soft_AP_mode_indication();
-      delay(1000);
-    }
-    else
-    {  
-      Serial.printf("Connecting to the network ");
-
-      for (byte k=0;k<32;k=k+1)
-      {
-        Serial.print(ssid[k]); 
-      }
-
-      Serial.printf("\nWi-Fi mode set to WIFI_STA %s\n", WiFi.mode(WIFI_STA) ? "Success" : "Failed!"); 
-      WiFi.begin(ssid,password);
-
-      while ((WiFi.status() != WL_CONNECTED)) 
-      {
-        delay(1000);
-        Serial.print(".");
-        wifi_count++;
-
-        if(wifi_count==61)
-        {
-          wifi_count=0;
-          Serial.println(" ");
-          Serial.println("connection failed");
-          deleteFile(SPIFFS,"/mode_status.txt");
-          delay(1000);
-          const char w = 0x0c;
-          writeFile(SPIFFS,"/web_mode.txt",&w);
-          restart_indication();
-          ESP.restart();  
-        }
-
-      }
-      
-      Serial.println("");
-      Serial.println("WiFi connected.");
-      Serial.println("IP address: ");
-      Serial.println(WiFi.localIP());
-      STA_mode_indication = true;
-    }
-
-  }
- 
-  if (MDNS.begin("HealthyPi")) 
-  {
-    Serial.println("MDNS responder started");
-  } 
-  
-  server.on("/",handleRoot);
-  server.on("/readheartrate", handleheartrate);
-  server.on("/readtemperature", handletemperature);
-  server.on("/root",HTTP_GET, webpage);
-  server.on("/data",HTTP_POST,response);
-  server.onNotFound(handleWebRequests);
- 
-  server.on("/network_change", HTTP_GET, []()
-  {
-    server.sendHeader("Connection", "close");
-    server.sendHeader("Location", "/set_network_credentials.html", true);  //Redirect to our html web page
-    server.send(303, "text/plane", "");
-  });
-  
-  server.on("/OTA_login", HTTP_GET, []()
-  {
-    detachInterrupt(ADS1292_DRDY_PIN);
-    server.sendHeader("Connection", "close");
-    server.sendHeader("Location", "/ota_login.html", true);  //Redirect to our html web page
-    server.send(303, "text/plane", "");
-  });
-
-  server.on("/serverIndex", HTTP_GET, []()
-  {
-    server.sendHeader("Connection", "close");
-    server.sendHeader("Location", "/ota_upload.html", true);  //Redirect to our html web page
-    server.send(303, "text/plane", "");
-  });
-  
-  server.on("/update", HTTP_POST, []()
-  {
-    OTA_update_indication();
-    server.sendHeader("Connection", "close");
-    server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
-    restart_indication();
-    ESP.restart();  }, []()
-    {
-    //OTA_update_indication();
-    HTTPUpload& upload = server.upload();
-   
-    if (upload.status == UPLOAD_FILE_START)
-    {
-      Serial.printf("Update: %s\n", upload.filename.c_str());
-    
-      if (!Update.begin(UPDATE_SIZE_UNKNOWN))
-      { //start with max available size
-        Update.printError(Serial);
-        Serial.println("unknown");
-      }
-
-    } 
-    else if (upload.status == UPLOAD_FILE_WRITE)
-    {
-      //flashing firmware to ESP
-      if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
-      {
-        Update.printError(Serial);
-        Serial.println("size mismatch");
-      }
-
-    }
-    else if (upload.status == UPLOAD_FILE_END)
-    {
-      
-      if (Update.end(true))
-      { //true to set the size to the current progress
-        Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-      }
-      else
-      {
-        Update.printError(Serial);
-        Serial.println("fail");
-      }
-
-    }
-    else
-    {
-      Serial.println("Aborted");
-    }
-
-  });
-  server.begin();
-  Serial.println("HTTP server started");
-}
-
 /*---------------------------------------------------------------------------------
 The setup() function is called when a sketch starts. Use it to initialize variables, 
 pin modes, start using libraries, etc. The setup() function will only run once, 
@@ -1289,10 +963,14 @@ void setup()
 {
   delay(2000);
 
+  // Make sure serial port on first
   // Setup serial port U0UXD for programming and reset/boot
   Serial.begin  (115200);   // Baudrate for serial communication
-  Serial.println("Setting up HomeICU...");
+  Serial.println("HomeICU is starting...");
   
+  setupBasicOTA();
+  Serial.println("Basic OTA: On");
+
   // initalize the  data ready and chip select pins:
   // Pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
   pinMode(ADS1292_DRDY_PIN,   INPUT);  
@@ -1305,72 +983,62 @@ void setup()
   pinMode(AFE4490_CS_PIN,     OUTPUT);//Slave Select
   pinMode(AFE4490_DRDY_PIN,   INPUT);// data ready 
 
-  pinMode(PUSH_BUTTON_PIN,    INPUT);
+  pinMode(PUSH_BUTTON_PIN,    INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON_PIN), push_button_intr_handler, FALLING);
+  
+  Serial.println("SPIFFS initialization ...");
 
+  // initialize SPI file system
   if(!SPIFFS.begin())
   {
-    Serial.println("An Error has occurred while mounting SPIFFS");
+    Serial.println("Error!");
     return;
   }
   else
-  {
-    Serial.println("SPIFFS initialization completed");
-  }
-
-  if((!readFile(SPIFFS, "/v4_mode.txt"))&&(!fileread(SPIFFS, "/web_mode.txt")))
-  {
-    delLine(SPIFFS,"/web_mode.txt",1,5);
-
-    restart_indication();
-    Healthypi_Mode = BLE_MODE;
-
-  }
+    Serial.println("OK!");
   
-  pinMode(PUSH_BUTTON_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON_PIN), push_button_intr_handler, FALLING);
   
+  restart_indication();
+  Work_Mode = BLE_MODE;
+  Serial.println("Starts in bluetooth mode");
+  BLE_Init();
+  
+  /*
+  ???
+  need move Wire out?
+  do the SPI config first, and then call .begin()?
 
-  if(Healthypi_Mode == WEBSERVER_MODE)
-  {
-    ledcSetup(ledChannel, freq, resolution);
-    ledcAttachPin(LED2_PIN, ledChannel);
-    Serial.println("Starts in webserver mode");
-    webserver_mode_indication();
-    ledcDetachPin(LED2_PIN);
-    HealthyPiV4_Webserver_Init();
-
-  }
-  else
-  {
-    Serial.println("Starts in ble mode");
-    HealthyPiV4_BLE_Init();
-  }
+  */
 
   SPI.begin();
   Wire.begin(25,22);
   SPI.setClockDivider (SPI_CLOCK_DIV16);
-  SPI.setBitOrder (MSBFIRST);
-  SPI.setDataMode (SPI_MODE0);
-  delay(10);
+  SPI.setBitOrder     (MSBFIRST);
+  SPI.setDataMode     (SPI_MODE0);
+  delay(10);  //delay 10ms
   afe4490.afe44xxInit (AFE4490_CS_PIN,AFE4490_PWDN_PIN);
   delay(10); 
   SPI.setDataMode (SPI_MODE1);          //Set SPI mode as 1
   delay(10);
+ 
   ADS1292R.ads1292_Init(ADS1292_CS_PIN,ADS1292_PWDN_PIN,ADS1292_START_PIN);  //initalize ADS1292 slave
   delay(10); 
   attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING ); // Digital2 is attached to Data ready pin of AFE is interrupt0 in ARduino
+ 
   tempSensor.begin();
   Serial.println("Initialization is complete");
 }
 /*---------------------------------------------------------------------------------
 After creating a setup() function, which initializes and sets the initial values, 
-the loop() function does precisely what its name suggests, and loops consecutively, 
-allowing your program to change and respond. Use it to actively control the board.
+the loop() function loops consecutively, allowing your program to change and respond.
 ---------------------------------------------------------------------------------*/
-
 void loop()
 {
-  boolean ret = ADS1292R.getAds1292r_Data_if_Available(ADS1292_DRDY_PIN,ADS1292_CS_PIN,&ads1292r_raw_data);
+  boolean ret;
+
+  ArduinoOTA.handle();        // This is for "On The Air" update function 
+
+  ret = ADS1292R.getAds1292r_Data_if_Available(ADS1292_DRDY_PIN,ADS1292_CS_PIN,&ads1292r_raw_data);
 
   if (ret == true)
   {  
@@ -1380,20 +1048,25 @@ void loop()
     if (!((ads1292r_raw_data.status_reg & 0x1f) == 0))
     {
       leadoff_detected  = true; 
-      lead_flag = 0x04;
-      ecg_filterout = 0;
-      resp_filterout = 0;      
-      DataPacket[14] = 0;
-      DataPacket[16] = 0;
+      lead_flag         = 0x04;
+      ecg_filterout     = 0;
+      resp_filterout    = 0;      
+      DataPacket[14]    = 0;
+      DataPacket[16]    = 0;
     }  
     else
     {
       leadoff_detected  = false;
       lead_flag = 0x06;
-      ECG_RESPIRATION_ALGORITHM.Filter_CurrentECG_sample(&ecg_wave_sample, &ecg_filterout);   // filter out the line noise @40Hz cutoff 161 order
-      ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate(ecg_filterout,&global_HeartRate,&npeakflag); // calculate
-      ECG_RESPIRATION_ALGORITHM.Filter_CurrentRESP_sample(res_wave_sample, &resp_filterout);
-      ECG_RESPIRATION_ALGORITHM.Calculate_RespRate(resp_filterout,&global_RespirationRate);   
+
+      // filter out the line noise @40Hz cutoff 161 order
+      ECG_RESPIRATION_ALGORITHM.Filter_CurrentECG_sample  (&ecg_wave_sample, &ecg_filterout);   
+      
+      ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate       (ecg_filterout,&global_HeartRate,&npeakflag); // calculate
+      
+      ECG_RESPIRATION_ALGORITHM.Filter_CurrentRESP_sample (res_wave_sample, &resp_filterout);
+      
+      ECG_RESPIRATION_ALGORITHM.Calculate_RespRate        (resp_filterout,&global_RespirationRate);   
    
       if(npeakflag == 1)
       {
@@ -1402,7 +1075,7 @@ void loop()
         npeakflag = 0;
       }
    
-      if(Healthypi_Mode == BLE_MODE)
+      if(Work_Mode == BLE_MODE)
       {
         ecg_data_buff[ecg_stream_cnt++] = (uint8_t)ecg_wave_sample;//ecg_filterout;
         ecg_data_buff[ecg_stream_cnt++] = (ecg_wave_sample>>8);//(ecg_filterout>>8);
@@ -1413,22 +1086,6 @@ void loop()
           ecg_stream_cnt = 0;
        }
        
-      }
-      else if(Healthypi_Mode == WEBSERVER_MODE)
-      {
-        
-        if(index_cnt< 1200)
-        {  
-          static uint8_t ec = 0;
-          tmp_ecgbu += String(ecg_wave_sample);
-          tmp_ecgbu += String(",");
-          number_of_samples++;
-        }
-        else
-        {
-          // Do Nothing
-        }
-
       }
    
       DataPacket[14] = global_RespirationRate;
@@ -1490,7 +1147,7 @@ void loop()
       read_battery_value();
     }
   
-    if(Healthypi_Mode == BLE_MODE)
+    if(Work_Mode == BLE_MODE)
     {
       handle_ble_stack();
     }
@@ -1508,19 +1165,10 @@ void loop()
     ESP.restart();
   }
  
-  if(slide_switch_flag)
-  {
-    slide_switch_flag = false;
-    Serial.println("changing the mode..\n retsrts in 3 sec");
-    delay(3000);
-    ESP.restart();
-  }
  
   if (success_flag)
   {
     detachInterrupt(ADS1292_DRDY_PIN);
-    writeFile(SPIFFS,"/ssid_list.txt",ssid_to_connect.c_str());
-    writeFile(SPIFFS,"/pass_list.txt",password_to_connect.c_str());
     writeFile(SPIFFS,"/mode_status.txt","datawritten");
     success_flag = false;
     const char u = 0x0a;
@@ -1541,6 +1189,6 @@ void loop()
 
     STA_mode_indication = false;
   }
- 
-  server.handleClient();
+
 }
+

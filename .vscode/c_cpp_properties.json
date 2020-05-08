@@ -4,7 +4,8 @@
             "name": "Mac",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/Users/a123/Documents/Arduino/**"
+                "/Users/a123/Documents/Arduino/**",
+                "/Users/a123/Documents/Arduino/hardware/espressif/esp32/**"
             ],
             "defines": [],
             "macFrameworkPath": [
@@ -15,7 +16,9 @@
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64",
-            "forcedInclude": ["${workspaceFolder}/firmware/vscode-fake.h"]
+            "forcedInclude": [
+                "${workspaceFolder}/firmware/vscode-fake.h"
+            ]
         }
     ],
     "version": 4
