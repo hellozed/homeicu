@@ -36,6 +36,7 @@ Phase II:
 * **/firmware** - software code for running in the 
 * **/gui**      - GUI for iPhone, iPad and Android phone/tablet
 * **/hardware** - design files (.brd, .sch)
+* **/toools**   - tools for developing the project
 
 * **../homeicu-build** - directory for building binary file, no backup needed.
    

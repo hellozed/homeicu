@@ -890,7 +890,7 @@ void handle_ble_stack()
 }
  
 // https://lastminuteengineers.com/esp32-ota-updates-arduino-ide/
-
+CTS / RTS
 
 
 void setupBasicOTA() 
