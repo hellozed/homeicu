@@ -84,7 +84,8 @@ Processing-based GUI, Android App, iOS devices App, web interface
 ---
 # Getting Started:
 
-Coming soon.
+## Program binary file into ESP32 board
+SparkFun FT231X Breakout board bridges USB to UART for Arduino. This board brings out the DTR pin as opposed to the RTS pin of the FTDI cable. The DTR pin allows an Arduino target to auto-reset when a new Sketch is downloaded. This is a really nice feature to have and allows a sketch to be downloaded without having to hit the reset button. 
 
 ---
 # Connecting the ECG Electrodes
