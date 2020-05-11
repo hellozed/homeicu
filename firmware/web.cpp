@@ -8,7 +8,7 @@
 #include <SPIFFS.h>
 #include <FS.h>      //Include File System Headers
 #include <ArduinoOTA.h>
-#include "web_OTA.h"
+#include "web.h"
 /*---------------------------------------------------------------------------------
   WiFi router configuration
 ---------------------------------------------------------------------------------*/

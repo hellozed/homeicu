@@ -121,7 +121,7 @@ License: [MIT](http://opensource.org/licenses/MIT)
 
 Copyright (c), SparkFun.
 
-License: Beerware: If you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us a round! 
+License: [MIT](http://opensource.org/licenses/MIT), Beerware: If you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us a round! 
 
 
  

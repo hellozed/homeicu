@@ -49,7 +49,7 @@ class MAX30205
    float temperature = 0;      // Last temperature
    void  shutdown(void);   // Instructs device to power-save
    void  printRegisters(void); // Dumps contents of registers for debug
-   void  begin(void);
+   bool  begin(void);
    float getTemperature(void);
 
   private:

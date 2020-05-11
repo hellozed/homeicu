@@ -15,7 +15,7 @@
 //
 //   For information on how to use, visit https://github.com/protocentral/ProtoCentral_MAX30205
 /////////////////////////////////////////////////////////////////////////////////////////
-#include "Arduino.h"
+#include <Arduino.h>
 #include <Wire.h>
 #include "MAX30205.h"
 
@@ -34,11 +34,12 @@ void MAX30205::shutdown(void)
   I2CwriteByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION, reg | 0x80);
 }
 
-void MAX30205::begin(void)
+bool MAX30205::begin(void)
 {
   I2CwriteByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION, 0x00); //mode config
   I2CwriteByte(MAX30205_ADDRESS, MAX30205_THYST , 		 0x00); // set threshold
   I2CwriteByte(MAX30205_ADDRESS, MAX30205_TOS, 			 0x00); //
+  return true;
 }
 
 void MAX30205::printRegisters(void)

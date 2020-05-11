@@ -5,19 +5,11 @@
 */
 
 
-// undefine stdlib's abs if encountered
-#ifdef abs
-#undef abs
-#endif
-#define abs(x) ((x)>0?(x):-(x))
-
-
 /*---------------------------------------------------------------------------------
  Library Headers
 ---------------------------------------------------------------------------------*/
 #include <SPI.h>
 #include <Wire.h>         //I2C library
-//#include <ESPmDNS.h>
 #include <Update.h>
 #include <SPIFFS.h>       //ESP file system
 #include <FS.h>           //File System Headers
@@ -31,9 +23,22 @@
 #include "ADS1292r.h"
 #include "ecg_resp_signal_processing.h"
 #include "AFE4490_Oximeter.h"
-#include "MAX30205.h"
 #include "spo2_algorithm.h"
 #include "web.h"
+
+/*---------------------------------------------------------------------------------
+ temperature sensor: make sure ONLY turn on one of them
+---------------------------------------------------------------------------------*/
+//#define TEMP_SENSOR_MAX30325
+#define TEMP_SENSOR_TMP117
+
+#ifdef TEMP_SENSOR_MAX30325
+#include "MAX30205.h"
+#endif
+
+#ifdef TEMP_SENSOR_TMP117
+#include "TMP117.h"
+#endif 
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
@@ -58,7 +63,7 @@
 #define CES_CMDIF_TYPE_DATA           0x02
 #define CES_CMDIF_PKT_STOP_1          0x00
 #define CES_CMDIF_PKT_STOP_2          0x0B
-#define MAX30205_READ_INTERVAL        10000
+#define TEMPERATURE_READ_INTERVAL     10000
 #define LINELEN                       34 
 #define HISTGRM_DATA_SIZE             12*4
 #define HISTGRM_CALC_TH               10
@@ -94,7 +99,6 @@ float rmssd_f;
 float per_pnn;
 float pnn_f=0;
 float tri =0;
-float temp;
  
 volatile uint8_t global_HeartRate = 0;
 volatile uint8_t global_HeartRate_prev = 0;
@@ -146,7 +150,7 @@ char DataPacket[30];
 String strValue = "";
 
 static int bat_prev=100;
-static uint8_t bat_percent = 100;
+static uint8_t battery_percent = 100;
 /*---------------------------------------------------------------------------------
   PIN numbers are defined as ESP-WROOM-32 IO port number
 ---------------------------------------------------------------------------------*/
@@ -186,10 +190,17 @@ BLECharacteristic *hrv_Characteristic         = NULL;
 ads1292r        ADS1292R;   // define class ads1292r
 ads1292r_processing ECG_RESPIRATION_ALGORITHM; // define class ecg_algorithm
 AFE4490         afe4490;
-MAX30205        tempSensor;
 spo2_algorithm  spo2;
 ads1292r_data   ads1292r_raw_data;
 afe44xx_data    afe44xx_raw_data;
+
+#ifdef TEMP_SENSOR_MAX30325
+MAX30205        tempSensor;
+#endif
+
+#ifdef TEMP_SENSOR_TMP117
+TMP117          tempSensor; // Initalize sensor
+#endif
 
 class MyServerCallbacks: public BLEServerCallbacks 
 {
@@ -222,13 +233,10 @@ class MyCallbackHandler: public BLECharacteristicCallbacks
         Serial.print(String(value[i]));
         strValue += value[i];
       }
-
       Serial.println();
     }
-
   }
 };
- 
  
 void push_button_intr_handler()
 {
@@ -335,16 +343,12 @@ void read_battery_value()
   if(bat_count == 9)
   {         
     battery = (battery/10);
-    battery=((battery*2)-400);
+    battery=  ((battery*2)-400);
     
     if (battery > 4100)
-    {
       battery = 4100;
-    }
     else if(battery < 3600 )
-    {
       battery = 3600;
-    }
 
     if (startup_flag == true)
     {
@@ -369,7 +373,8 @@ void read_battery_value()
       battery=30;
     else if((battery/100)<=36)
       battery = 20;
-    bat_percent = (uint8_t) battery;
+
+    battery_percent = (uint8_t) battery;
     bat_count=0;
     battery=0;
     bat_data_ready = true;
@@ -531,12 +536,15 @@ float sdnn_ff(unsigned int array[])
 float pnn_ff(unsigned int array[])
 { 
   unsigned int pnn50[MAX];
+  long l;
+
   count = 0;
   sqsum = 0;
 
   for(int i=0;i<(MAX-2);i++)
   {
-    pnn50[i]= abs(array[i+1] - array[i]);
+    l = array[i+1] - array[i];       //array[] is unsigned integer 0-65535, l = -65535 ~ +65535
+    pnn50[i]= abs(l);                //abs() return 0~65535
     sqsum = sqsum + (pnn50[i]*pnn50[i]);
 
     if(pnn50[i]>50)
@@ -552,11 +560,14 @@ float pnn_ff(unsigned int array[])
 float rmssd_ff(unsigned int array[])
 {
   unsigned int pnn50[MAX];
+  long l;
+
   sqsum = 0;
 
   for(int i=0;i<(MAX-2);i++)
   {
-    pnn50[i]= abs(array[i+1] - array[i]);
+    l = array[i+1] - array[i];       //array[] is unsigned integer 0-65535, l = -65535 ~ +65535
+    pnn50[i]= abs(l);                //abs() return 0~65535
     sqsum = sqsum + (pnn50[i]*pnn50[i]);
   }
 
@@ -653,7 +664,7 @@ void handle_ble_stack()
  
   if(bat_data_ready)
   {
-    battery_Characteristic->setValue((uint8_t *)&bat_percent, 1);
+    battery_Characteristic->setValue((uint8_t *)&battery_percent, 1);
     battery_Characteristic->notify();
     bat_data_ready = false;
   }
@@ -739,8 +750,12 @@ void setup()
   delay(10); 
   // Digital2 is attached to Data ready pin of AFE is interrupt0 in ARduino
   attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING ); 
- 
-  tempSensor.begin();
+  
+  if (tempSensor.begin()) 
+    Serial.println("Temperature sensor began.");
+  else
+    Serial.println("Temperature sensor failed.");
+
   Serial.println("Initialization is complete!");
 }
 /*---------------------------------------------------------------------------------
@@ -776,11 +791,8 @@ void loop()
 
       // filter out the line noise @40Hz cutoff 161 order
       ECG_RESPIRATION_ALGORITHM.Filter_CurrentECG_sample  (&ecg_wave_sample, &ecg_filterout);   
-      
       ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate       (ecg_filterout,&global_HeartRate,&npeakflag); // calculate
-      
       ECG_RESPIRATION_ALGORITHM.Filter_CurrentRESP_sample (res_wave_sample, &resp_filterout);
-      
       ECG_RESPIRATION_ALGORITHM.Calculate_RespRate        (resp_filterout,&global_RespirationRate);   
    
       if(npeakflag == 1)
@@ -846,15 +858,35 @@ void loop()
 
     SPI.setDataMode (SPI_MODE1);
    
-    if ((time_count++ * (1000/SAMPLING_RATE)) > MAX30205_READ_INTERVAL)
+    if ((time_count++ * (1000/SAMPLING_RATE)) > TEMPERATURE_READ_INTERVAL)
     {      
+      float temp;
+      #ifdef TEMP_SENSOR_MAX30325
       temp = tempSensor.getTemperature()*100; // read temperature for every 100ms
-      temperature =  (uint16_t) temp;
+      temperature =  (uint16_t) temp;         // °C 
+      #endif
+
+      #ifdef TEMP_SENSOR_TMP117
+        // Data Ready is a flag for the conversion modes - in continous conversion the dataReady flag should always be high
+      if (tempSensor.dataReady()) // Function to make sure that there is data ready to be printed, only prints temperature values when data is ready
+      {
+        float tempC = tempSensor.readTempC();
+        float tempF = tempSensor.readTempF();
+        // Print temperature in °C and °F
+        Serial.println(); // Create a white space for easier viewing
+        Serial.print("Temperature in Celsius: ");
+        Serial.println(tempC);
+        Serial.print("Temperature in Fahrenheit: ");
+        Serial.println(tempF);
+        temperature = tempC;
+      }
+      #endif 
+
       time_count = 0;
       DataPacket[12] = (uint8_t) temperature; 
       DataPacket[13] = (uint8_t) (temperature >> 8);
       temp_data_ready = true;
-      //reading the battery with same interval as temp sensor
+      //reading the battery with same interval as temperature sensor
       read_battery_value();
     }
   
