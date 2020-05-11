@@ -4,13 +4,6 @@
    Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
 */
 
-/*---------------------------------------------------------------------------------
- wifi for OTA Update
----------------------------------------------------------------------------------*/
-
-const char* wifi_ssid = "...";
-const char* wifi_password = ".....";
-
 
 // undefine stdlib's abs if encountered
 #ifdef abs
@@ -23,16 +16,16 @@ const char* wifi_password = ".....";
  Library Headers
 ---------------------------------------------------------------------------------*/
 #include <SPI.h>
-#include <Wire.h>
-#include <ESPmDNS.h>
+#include <Wire.h>         //I2C library
+//#include <ESPmDNS.h>
 #include <Update.h>
-#include "SPIFFS.h"
-#include <FS.h>      //Include File System Headers
-#include <BLEDevice.h>
+#include <SPIFFS.h>       //ESP file system
+#include <FS.h>           //File System Headers
+#include <BLEDevice.h>    //bluetooth low energy
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include <ArduinoOTA.h>
+#include <ArduinoOTA.h>   //on-the-air update
 
 // HomeICU driver code
 #include "ADS1292r.h"
@@ -40,6 +33,7 @@ const char* wifi_password = ".....";
 #include "AFE4490_Oximeter.h"
 #include "MAX30205.h"
 #include "spo2_algorithm.h"
+#include "web.h"
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
@@ -57,8 +51,6 @@ const char* wifi_password = ".....";
 #define HRV_CHARACTERISTIC_UUID       "01bfa86f-970f-8d96-d44d-9023c47faddc"
 #define HIST_CHARACTERISTIC_UUID      "01bf1525-970f-8d96-d44d-9023c47faddc"
 
-#define BLE_MODE                      0X01
-#define WEBSERVER_MODE                0X02
 #define CES_CMDIF_PKT_START_1         0x0A
 #define CES_CMDIF_PKT_START_2         0xFA
 #define CES_CMDIF_DATA_LEN_LSB        20
@@ -71,13 +63,10 @@ const char* wifi_password = ".....";
 #define HISTGRM_DATA_SIZE             12*4
 #define HISTGRM_CALC_TH               10
 #define MAX                           20
-
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
-
 unsigned int array[MAX];
-
 int rear = -1;
 int sqsum;
 int hist[] = {0};
@@ -88,9 +77,7 @@ int max_f=0;
 int max_t=0;
 int min_t=0;
 int index_cnt = 0;
-int pass_size; 
 int data_count;
-int ssid_size;
 int status_size;
 int temperature;
 int number_of_samples = 0;
@@ -116,17 +103,16 @@ volatile uint8_t global_RespirationRate_prev = 0;
 volatile uint8_t npeakflag = 0;
 volatile long time_count=0;
 volatile long hist_time_count=0;
-volatile bool histgrm_ready_flag = false;
+volatile bool histogram_ready_flag = false;
 volatile unsigned int RR;
 
 uint8_t ecg_data_buff[20];
 uint8_t resp_data_buff[2];
 uint8_t ppg_data_buff[20];
-uint8_t Work_Mode = BLE_MODE;
 uint8_t lead_flag = 0x04;
 uint8_t data_len = 20;
 uint8_t heartbeat,sp02,respirationrate;
-uint8_t histgrm_percent_bin[HISTGRM_DATA_SIZE/4];
+uint8_t histogram_percent_bin[HISTGRM_DATA_SIZE/4];
 uint8_t hr_percent_count = 0;
 uint8_t hrv_array[20];
 
@@ -138,7 +124,7 @@ uint16_t ppg_wave_ir;
 int16_t ecg_wave_sample,ecg_filterout;
 int16_t res_wave_sample,resp_filterout;
 
-uint32_t hr_histgrm[HISTGRM_DATA_SIZE];
+uint32_t heart_rate_histogram[HISTGRM_DATA_SIZE];
 
 bool deviceConnected    = false;
 bool oldDeviceConnected = false;
@@ -148,7 +134,6 @@ bool ecg_buf_ready      = false;
 bool resp_buf_ready     = false;
 bool ppg_buf_ready      = false;
 bool hrv_ready_flag     = false;
-bool mode_write_flag    = false;
 bool processing_intrpt  = false;
 bool success_flag       = false;
 bool STA_mode_indication= false;
@@ -157,30 +142,22 @@ bool leadoff_detected   = true;
 bool startup_flag       = true;
 
 char DataPacket[30];
-char ssid[32];
-char password[64];
-char modestatus[32];
-char tmp_ecgbuf[1200];
 
-String password_to_connect;
-String tmp_ecgbu;
 String strValue = "";
 
 static int bat_prev=100;
 static uint8_t bat_percent = 100;
-
-// PIN numbers are defined as ESP-WROOM-32 IO port number
+/*---------------------------------------------------------------------------------
+  PIN numbers are defined as ESP-WROOM-32 IO port number
+---------------------------------------------------------------------------------*/
 const int ADS1292_DRDY_PIN  = 26;
 const int ADS1292_CS_PIN    = 13;
 const int ADS1292_START_PIN = 14;
 const int ADS1292_PWDN_PIN  = 27;
-
 const int PUSH_BUTTON_PIN   = 17;
-
 const int AFE4490_CS_PIN    = 21; 
 const int AFE4490_DRDY_PIN  = 39; 
 const int AFE4490_PWDN_PIN  = 4;
-
 const int LED1_PIN          = 12;
 const int LED2_PIN          = 15;
 const int SENSOR_VP_PIN     = 36;   //GPIO36, ADC1_CH0
@@ -189,8 +166,13 @@ const int freq = 5000;
 const int ledChannel = 0;
 const int resolution = 8;
 
-const char DataPacketHeader[] = {CES_CMDIF_PKT_START_1, CES_CMDIF_PKT_START_2, CES_CMDIF_DATA_LEN_LSB, CES_CMDIF_DATA_LEN_MSB, CES_CMDIF_TYPE_DATA};
-const char DataPacketFooter[] = {CES_CMDIF_PKT_STOP_1, CES_CMDIF_PKT_STOP_2};
+const char DataPacketHeader[] = { CES_CMDIF_PKT_START_1, 
+                                  CES_CMDIF_PKT_START_2, 
+                                  CES_CMDIF_DATA_LEN_LSB, 
+                                  CES_CMDIF_DATA_LEN_MSB, 
+                                  CES_CMDIF_TYPE_DATA};
+const char DataPacketFooter[] = { CES_CMDIF_PKT_STOP_1, 
+                                  CES_CMDIF_PKT_STOP_2};
 
 BLEServer         *pServer                    = NULL;
 BLECharacteristic *Heartrate_Characteristic   = NULL;
@@ -201,13 +183,13 @@ BLECharacteristic *temperature_Characteristic = NULL;
 BLECharacteristic *hist_Characteristic        = NULL;
 BLECharacteristic *hrv_Characteristic         = NULL;
 
-ads1292r ADS1292R;   // define class ads1292r
+ads1292r        ADS1292R;   // define class ads1292r
 ads1292r_processing ECG_RESPIRATION_ALGORITHM; // define class ecg_algorithm
-AFE4490 afe4490;
-MAX30205 tempSensor;
-spo2_algorithm spo2;
-ads1292r_data ads1292r_raw_data;
-afe44xx_data afe44xx_raw_data;
+AFE4490         afe4490;
+MAX30205        tempSensor;
+spo2_algorithm  spo2;
+ads1292r_data   ads1292r_raw_data;
+afe44xx_data    afe44xx_raw_data;
 
 class MyServerCallbacks: public BLEServerCallbacks 
 {
@@ -248,257 +230,85 @@ class MyCallbackHandler: public BLECharacteristicCallbacks
 };
  
  
-
-
-
 void push_button_intr_handler()
 {
 
-  if(Work_Mode != WEBSERVER_MODE)
-  {
-    detachInterrupt(ADS1292_DRDY_PIN);
-    mode_write_flag = true;
-  }
-
 }
-
-void delLine(fs::FS &fs, const char * path, uint32_t line,const int char_to_delete)
-{ 
-  File file = fs.open(path, FILE_WRITE);
-  
-  if(!file)
-  {
-    Serial.println("- failed to open file for writing");
-    return;
-  }
-  
-  uint32_t S= (line-1)*LINELEN;
-  file.seek(S);  
-  char ch[35]; 
-
-  // build the 'delete line'
-  for(uint8_t i=0;i<char_to_delete;i++) 
-  {
-    ch[i]=' ';
-  }
-
-  file.print(ch); // all marked as deleted! yea!
-  file.close();
-  Serial.println("file closed");
-}
-
-void deleteFile(fs::FS &fs, const char * path)
-{
-  Serial.printf("Deleting file: %s\r\n", path);
-  
-  if(fs.remove(path))
-  {
-    Serial.println("- file deleted");
-  } 
-  else 
-  {
-    Serial.println("- delete failed");
-  }
- 
-}
-
-bool readFile(fs::FS &fs, const char * path)
-{
-  Serial.printf("Reading file: %s\r\n", path);
-  uint8_t rd_config = 0;
-  File file = fs.open(path, FILE_READ);
-  
-  if(!file || file.isDirectory())
-  {
-    Serial.println("- failed to open file for reading");
-    return false;
-  }
-
-  Serial.println("- read from file:");
-  rd_config = file.read();
-  Serial.println(rd_config);
- 
-  if(rd_config == 0x0f)
-  {
-    Work_Mode = WEBSERVER_MODE;
-    delLine(SPIFFS,"/v4_mode.txt",1,5);
-  }
-  else
-  {
-    return false;
-  }
-
-  file.close();
-  Serial.println("file closed");
-  return true;
-}
-
-bool fileread(fs::FS &fs, const char * path)
-{
-  Serial.printf("Reading file: %s\r\n", path);
-  uint8_t md_config = 0;
-  File file = fs.open(path, FILE_READ);
-  
-  if(!file || file.isDirectory())
-  {
-    Serial.println("- failed to open file for reading");
-    return false;
-  }
-
-  Serial.println("- read from file:");
-  md_config = file.read();
-  Serial.println(md_config);
- 
-  if(md_config == 0x0a)
-  {
-    Work_Mode = WEBSERVER_MODE;
-    delLine(SPIFFS,"/web_mode.txt",1,5);
-  }
-  else if(md_config == 0x0b)
-  {
-    Work_Mode = WEBSERVER_MODE;
-    delLine(SPIFFS,"/web_mode.txt",1,5);
-  }
-  else if(md_config == 0x0c)
-  {
-    Work_Mode = WEBSERVER_MODE;
-    delLine(SPIFFS,"/web_mode.txt",1,5);
-  }
-  else
-  {
-    return false;
-  }
-
-  file.close();
-  Serial.println("file closed");
-  return true;
-}
-
-void writeFile(fs::FS &fs, const char * path, const char * message)
-{
-  Serial.printf("Writing file: %s\r\n", path);
-  File file = fs.open(path, FILE_WRITE);
-
-  if(!file)
-  {
-    Serial.println("- failed to open file for writing");
-    return;
-  }
-  
-  if(file.print(message))
-  {
-    Serial.println("- file written");
-  } 
-  else 
-  {
-    Serial.println("- frite failed");
-  }
-
-  file.close();
-  Serial.println("file closed");
-}
-
-void readFile(fs::FS &fs, const char * path, int* data_count, char* file_data)
-{
-  Serial.printf("Reading file: %s\r\n", path);
-  File file = fs.open(path, FILE_READ);
-  
-  if(!file || file.isDirectory())
-  {
-    Serial.println("- failed to open file for reading");    
-  }
-
-  Serial.println("- read from file:"); 
-  int i=0;
-  
-  while (file.available())
-  {
-    file_data[i++] = file.read();
-    Serial.write(file_data[i-1]);
-  }
-
-  *data_count = file.size();
-  file.close();
-  Serial.println("file closed");
-}
-
+/*---------------------------------------------------------------------------------
+ bluetooth low energy initialization
+---------------------------------------------------------------------------------*/
 void BLE_Init()
 {
-  BLEDevice::init("Healthypi v4"); // Create the BLE Device
-  pServer = BLEDevice::createServer();   // Create the BLE Server
+  BLEDevice::init("Healthypi v4");        // Create the BLE Device
+  pServer = BLEDevice::createServer();    // Create the BLE Server
   pServer->setCallbacks(new MyServerCallbacks());
-  BLEService *HeartrateService = pServer->createService(Heartrate_SERVICE_UUID);   // Create the BLE Service
-  BLEService *sp02Service = pServer->createService(sp02_SERVICE_UUID);   // Create the BLE Service
-  BLEService *TemperatureService = pServer->createService(TEMP_SERVICE_UUID);
-  BLEService *batteryService = pServer->createService(BATTERY_SERVICE_UUID);
-  BLEService *hrvService = pServer->createService(HRV_SERVICE_UUID);
+  BLEService *HeartrateService  = pServer->createService(Heartrate_SERVICE_UUID); // Create the BLE Service
+  BLEService *sp02Service       = pServer->createService(sp02_SERVICE_UUID);      // Create the BLE Service
+  BLEService *TemperatureService= pServer->createService(TEMP_SERVICE_UUID);
+  BLEService *batteryService    = pServer->createService(BATTERY_SERVICE_UUID);
+  BLEService *hrvService        = pServer->createService(HRV_SERVICE_UUID);
   BLEService *datastreamService = pServer->createService(DATASTREAM_SERVICE_UUID);
 
-  Heartrate_Characteristic = HeartrateService->createCharacteristic(
-                              Heartrate_CHARACTERISTIC_UUID,
-                              BLECharacteristic::PROPERTY_READ   |
-                              BLECharacteristic::PROPERTY_WRITE  |
-                              BLECharacteristic::PROPERTY_NOTIFY
-                              );
+  Heartrate_Characteristic      = HeartrateService->createCharacteristic(
+                                  Heartrate_CHARACTERISTIC_UUID,
+                                  BLECharacteristic::PROPERTY_READ   |
+                                  BLECharacteristic::PROPERTY_WRITE  |
+                                  BLECharacteristic::PROPERTY_NOTIFY );
 
-  sp02_Characteristic = sp02Service->createCharacteristic(
-                        sp02_CHARACTERISTIC_UUID,
-                        BLECharacteristic::PROPERTY_READ   |
-                        BLECharacteristic::PROPERTY_WRITE  |
-                        BLECharacteristic::PROPERTY_NOTIFY
-                        );
+  sp02_Characteristic           = sp02Service->createCharacteristic(
+                                  sp02_CHARACTERISTIC_UUID,
+                                  BLECharacteristic::PROPERTY_READ   |
+                                  BLECharacteristic::PROPERTY_WRITE  |
+                                  BLECharacteristic::PROPERTY_NOTIFY
+                                  );
 
-  temperature_Characteristic = TemperatureService->createCharacteristic(
-                                TEMP_CHARACTERISTIC_UUID,
-                                BLECharacteristic::PROPERTY_READ   |
-                                BLECharacteristic::PROPERTY_WRITE  |
-                                BLECharacteristic::PROPERTY_NOTIFY
-                                );
+  temperature_Characteristic    = TemperatureService->createCharacteristic(
+                                  TEMP_CHARACTERISTIC_UUID,
+                                  BLECharacteristic::PROPERTY_READ   |
+                                  BLECharacteristic::PROPERTY_WRITE  |
+                                  BLECharacteristic::PROPERTY_NOTIFY
+                                  );
                                                                       
-  battery_Characteristic = batteryService->createCharacteristic(
-                            BATTERY_CHARACTERISTIC_UUID,
-                            BLECharacteristic::PROPERTY_READ   |
-                            BLECharacteristic::PROPERTY_WRITE  |
-                            BLECharacteristic::PROPERTY_NOTIFY
-                            );
+  battery_Characteristic        = batteryService->createCharacteristic(
+                                  BATTERY_CHARACTERISTIC_UUID,
+                                  BLECharacteristic::PROPERTY_READ   |
+                                  BLECharacteristic::PROPERTY_WRITE  |
+                                  BLECharacteristic::PROPERTY_NOTIFY );
 
-  hrv_Characteristic = hrvService->createCharacteristic(
-                        HRV_CHARACTERISTIC_UUID,
-                        BLECharacteristic::PROPERTY_READ   |
-                        BLECharacteristic::PROPERTY_WRITE  |
-                        BLECharacteristic::PROPERTY_NOTIFY
-                        );
+  hrv_Characteristic            = hrvService->createCharacteristic(
+                                  HRV_CHARACTERISTIC_UUID,
+                                  BLECharacteristic::PROPERTY_READ   |
+                                  BLECharacteristic::PROPERTY_WRITE  |
+                                  BLECharacteristic::PROPERTY_NOTIFY );
 
-  hist_Characteristic = hrvService->createCharacteristic(
-                          HIST_CHARACTERISTIC_UUID,
-                          BLECharacteristic::PROPERTY_READ   |
-                          BLECharacteristic::PROPERTY_WRITE  |
-                          BLECharacteristic::PROPERTY_NOTIFY
-                          );
+  hist_Characteristic           = hrvService->createCharacteristic(
+                                  HIST_CHARACTERISTIC_UUID,
+                                  BLECharacteristic::PROPERTY_READ   |
+                                  BLECharacteristic::PROPERTY_WRITE  |
+                                  BLECharacteristic::PROPERTY_NOTIFY );
  
-  datastream_Characteristic = datastreamService->createCharacteristic(
-                              DATASTREAM_CHARACTERISTIC_UUID,
-                              BLECharacteristic::PROPERTY_READ   |
-                              BLECharacteristic::PROPERTY_WRITE  |
-                              BLECharacteristic::PROPERTY_NOTIFY 
-                              );
+  datastream_Characteristic     = datastreamService->createCharacteristic(
+                                  DATASTREAM_CHARACTERISTIC_UUID,
+                                  BLECharacteristic::PROPERTY_READ   |
+                                  BLECharacteristic::PROPERTY_WRITE  |
+                                  BLECharacteristic::PROPERTY_NOTIFY );
                 
-  Heartrate_Characteristic->addDescriptor(new BLE2902());
-  sp02_Characteristic->addDescriptor(new BLE2902());
+  Heartrate_Characteristic  ->addDescriptor(new BLE2902());
+  sp02_Characteristic       ->addDescriptor(new BLE2902());
   temperature_Characteristic->addDescriptor(new BLE2902());
-  battery_Characteristic->addDescriptor(new BLE2902());
-  hist_Characteristic->addDescriptor(new BLE2902());
-  hrv_Characteristic->addDescriptor(new BLE2902());
-  datastream_Characteristic->addDescriptor(new BLE2902());
-  datastream_Characteristic->setCallbacks(new MyCallbackHandler()); 
+  battery_Characteristic    ->addDescriptor(new BLE2902());
+  hist_Characteristic       ->addDescriptor(new BLE2902());
+  hrv_Characteristic        ->addDescriptor(new BLE2902());
+  datastream_Characteristic ->addDescriptor(new BLE2902());
+  datastream_Characteristic ->setCallbacks (new MyCallbackHandler()); 
 
   // Start the service
-  HeartrateService->start();
-  sp02Service->start();
+  HeartrateService  ->start();
+  sp02Service       ->start();
   TemperatureService->start();
-  batteryService->start();
-  hrvService->start();
-  datastreamService->start();
+  batteryService    ->start();
+  hrvService        ->start();
+  datastreamService ->start();
 
   // Start advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
@@ -514,7 +324,9 @@ void BLE_Init()
   ble_advertising(); 
   Serial.println("Waiting a client connection to notify...");
 }
-
+/*---------------------------------------------------------------------------------
+ battery level check
+---------------------------------------------------------------------------------*/
 void read_battery_value()
 {
   static int adc_val = analogRead(SENSOR_VP_PIN);
@@ -543,51 +355,33 @@ void read_battery_value()
     bt_rem = (battery % 100); 
 
     if(bt_rem>80 && bt_rem < 99 && (bat_prev != 0))
-    {
       battery = bat_prev;
-    }
 
     if((battery/100)>=41)
-    {
       battery = 100;
-    }
     else if((battery/100)==40)
-    {
       battery = 80;
-    }
     else if((battery/100)==39)
-    {
       battery = 60;
-    }
     else if((battery/100)==38)
-    {
       battery=45;
-    }
     else if((battery/100)==37)
-    {
       battery=30;
-    }
     else if((battery/100)<=36)
-    {
       battery = 20;
-    }
-
     bat_percent = (uint8_t) battery;
     bat_count=0;
     battery=0;
     bat_data_ready = true;
   }
   else
-  {
     bat_count++;
-  }
-
 }
  
-void add_hr_histgrm(uint8_t hr)
+void add_heart_rate_histogram(uint8_t hr)
 {
   uint8_t index = hr/10;
-  hr_histgrm[index-4]++;
+  heart_rate_histogram[index-4]++;
   uint32_t sum = 0;
 
   if(hr_percent_count++ > HISTGRM_CALC_TH)
@@ -596,7 +390,7 @@ void add_hr_histgrm(uint8_t hr)
     
     for(int i = 0; i < HISTGRM_DATA_SIZE; i++)
     {
-      sum += hr_histgrm[i];
+      sum += heart_rate_histogram[i];
     }
 
     if(sum != 0)
@@ -604,17 +398,19 @@ void add_hr_histgrm(uint8_t hr)
 
       for(int i = 0; i < HISTGRM_DATA_SIZE/4; i++)
       {
-        uint32_t percent = ((hr_histgrm[i] * 100) / sum);
-        histgrm_percent_bin[i] = percent;
+        uint32_t percent = ((heart_rate_histogram[i] * 100) / sum);
+        histogram_percent_bin[i] = percent;
       }
 
     }
-    
-    histgrm_ready_flag = true;
+
+    histogram_ready_flag = true;
   }
 
 }
+/*---------------------------------------------------------------------------------
 
+---------------------------------------------------------------------------------*/
 uint8_t* read_send_data(uint8_t peakvalue,uint8_t respirationrate)
 {  
   int meanval;
@@ -626,7 +422,6 @@ uint8_t* read_send_data(uint8_t peakvalue,uint8_t respirationrate)
 
   if(rear == MAX-1)
   {
-    
     for(int i=0;i<(MAX-1);i++)
     {
       array[i]=array[i+1];
@@ -667,9 +462,10 @@ uint8_t* read_send_data(uint8_t peakvalue,uint8_t respirationrate)
     hrv_array[12]=respirationrate;
     hrv_ready_flag= true;
   }
-
 }
+/*---------------------------------------------------------------------------------
 
+---------------------------------------------------------------------------------*/
 int HRVMAX(unsigned int array[])
 {  
 
@@ -771,27 +567,18 @@ float rmssd_ff(unsigned int array[])
 //Led_indications
 void ble_advertising()
 {
-
-  while((deviceConnected==false)&&(mode_write_flag==false))
+  while(deviceConnected==false)
   {
     digitalWrite(LED2_PIN, LOW);   // turn the LED on (HIGH is the voltage level)
     delay(100);                       // wait for a 100ms
     digitalWrite(LED2_PIN, HIGH);    // turn the LED off by making the voltage LOW
     delay(3000);
   }
-
 }
 
-void restart_indication()
-{
-  digitalWrite(LED2_PIN, LOW);
-  delay(2500);
-  digitalWrite(LED2_PIN, HIGH);
-  delay(2500);
-}
- 
- 
+/*---------------------------------------------------------------------------------
 
+---------------------------------------------------------------------------------*/
 void handle_ble_stack()
 {
 
@@ -857,10 +644,10 @@ void handle_ble_stack()
     temp_data_ready = false;
   }
   
-  if(histgrm_ready_flag )
+  if(histogram_ready_flag )
   {
-    histgrm_ready_flag = false;
-    hist_Characteristic->setValue(histgrm_percent_bin, 13);
+    histogram_ready_flag = false;
+    hist_Characteristic->setValue(histogram_percent_bin, 13);
     hist_Characteristic->notify();
   }
  
@@ -888,72 +675,7 @@ void handle_ble_stack()
   } 
 
 }
- 
-// https://lastminuteengineers.com/esp32-ota-updates-arduino-ide/
-CTS / RTS
 
-
-void setupBasicOTA() 
-{
-  Serial.begin(115200);
-  Serial.println("Booting");
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(wifi_ssid, wifi_password);
-  
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) 
-  {
-    Serial.println("Connection Failed! Rebooting...");
-    delay(5000);
-    ESP.restart();
-  }
-
-  // Port defaults to 3232
-  // ArduinoOTA.setPort(3232);
-
-  // Hostname defaults to esp3232-[MAC]
-  // ArduinoOTA.setHostname("myesp32");
-
-  // No authentication by default
-  // ArduinoOTA.setPassword("admin");
-
-  // Password can be set with it's md5 value as well
-  // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
-  // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
-
-  ArduinoOTA.onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH)
-        type = "sketch";
-      else // U_SPIFFS
-      {
-        type = "filesystem";
-        SPIFFS.end();
-      }
-      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      Serial.println("Start updating " + type);
-    })
-    .onEnd([]() {
-      Serial.println("\nEnd");
-    })
-    .onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    })
-    .onError([](ota_error_t error) {
-      Serial.printf("Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-      else if (error == OTA_END_ERROR) Serial.println("End Failed");
-    });
-
-  ArduinoOTA.begin();
-
-  Serial.println("Ready");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-
-}
 /*---------------------------------------------------------------------------------
 The setup() function is called when a sketch starts. Use it to initialize variables, 
 pin modes, start using libraries, etc. The setup() function will only run once, 
@@ -986,28 +708,20 @@ void setup()
   pinMode(PUSH_BUTTON_PIN,    INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON_PIN), push_button_intr_handler, FALLING);
   
-  Serial.println("SPIFFS initialization ...");
-
   // initialize SPI file system
   if(!SPIFFS.begin())
   {
-    Serial.println("Error!");
+    Serial.println("SPIFFS Init Error!");
     return;
   }
   else
-    Serial.println("OK!");
+    Serial.println("SPIFFS Init OK!");
   
-  
-  restart_indication();
-  Work_Mode = BLE_MODE;
-  Serial.println("Starts in bluetooth mode");
   BLE_Init();
   
   /*
   ???
-  need move Wire out?
-  do the SPI config first, and then call .begin()?
-
+  should it do SPI.begin() first, and then call SPIFFS.begin()?
   */
 
   SPI.begin();
@@ -1023,10 +737,11 @@ void setup()
  
   ADS1292R.ads1292_Init(ADS1292_CS_PIN,ADS1292_PWDN_PIN,ADS1292_START_PIN);  //initalize ADS1292 slave
   delay(10); 
-  attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING ); // Digital2 is attached to Data ready pin of AFE is interrupt0 in ARduino
+  // Digital2 is attached to Data ready pin of AFE is interrupt0 in ARduino
+  attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING ); 
  
   tempSensor.begin();
-  Serial.println("Initialization is complete");
+  Serial.println("Initialization is complete!");
 }
 /*---------------------------------------------------------------------------------
 After creating a setup() function, which initializes and sets the initial values, 
@@ -1071,23 +786,19 @@ void loop()
       if(npeakflag == 1)
       {
         read_send_data(global_HeartRate,global_RespirationRate);
-        add_hr_histgrm(global_HeartRate);
+        add_heart_rate_histogram(global_HeartRate);
         npeakflag = 0;
       }
    
-      if(Work_Mode == BLE_MODE)
-      {
-        ecg_data_buff[ecg_stream_cnt++] = (uint8_t)ecg_wave_sample;//ecg_filterout;
-        ecg_data_buff[ecg_stream_cnt++] = (ecg_wave_sample>>8);//(ecg_filterout>>8);
+      ecg_data_buff[ecg_stream_cnt++] = (uint8_t)ecg_wave_sample;//ecg_filterout;
+      ecg_data_buff[ecg_stream_cnt++] = (ecg_wave_sample>>8);//(ecg_filterout>>8);
       
-       if(ecg_stream_cnt >=18)
-       {
+      if(ecg_stream_cnt >=18)
+      {
           ecg_buf_ready = true;
           ecg_stream_cnt = 0;
-       }
-       
       }
-   
+       
       DataPacket[14] = global_RespirationRate;
       DataPacket[16] = global_HeartRate;
     }
@@ -1147,48 +858,17 @@ void loop()
       read_battery_value();
     }
   
-    if(Work_Mode == BLE_MODE)
-    {
-      handle_ble_stack();
-    }
-
-  }
-
-  if(mode_write_flag)
-  {
-    mode_write_flag = false;
-    const char t = 0x0f;
-    writeFile(SPIFFS, "/v4_mode.txt", &t);
-    Serial.println("setting webserver mode..\n retsrts in 3 sec"); 
-    delay(3000);
-    restart_indication();
-    ESP.restart();
-  }
- 
- 
-  if (success_flag)
-  {
-    detachInterrupt(ADS1292_DRDY_PIN);
-    writeFile(SPIFFS,"/mode_status.txt","datawritten");
-    success_flag = false;
-    const char u = 0x0a;
-    writeFile(SPIFFS,"/web_mode.txt",&u);
-    restart_indication();
-    ESP.restart();   
+    handle_ble_stack();
   }
  
   if (STA_mode_indication)
   {
-    
     for(int dutyCycle = 255; dutyCycle >= 0; dutyCycle=dutyCycle-3)
     {
       // changing the LED brightness with PWM
       ledcWrite(ledChannel, dutyCycle);   
       delay(25);
     }
-
     STA_mode_indication = false;
   }
-
 }
-
