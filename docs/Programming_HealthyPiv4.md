@@ -97,8 +97,8 @@ void setup()
 void loop()
 {
 
-  Heart Rate = (uint8_t) global_HeartRate;
-  Respiration Rate = (uint8_t) global_RespirationRate;
+  Heart Rate = (uint8_t) HeartRate;
+  Respiration Rate = (uint8_t) RespirationRate;
   spo2 = (uint8_t)afe44xx_raw_data.spo2;
   temperature =  (uint16_t) tempSensor.getTemperature();
 

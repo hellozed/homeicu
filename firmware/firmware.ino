@@ -1,7 +1,21 @@
 /* 
-   Heartrate and respiration computation based on original code from Texas Instruments
-   Requires g4p_control graphing library for processing. 
-   Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
+  Main code of HomeICU project.
+
+  Please use Arduino IDE to build and download into ESP32 boards. 
+
+  Arduino language Reference:
+  https://www.arduino.cc/en/Reference/
+
+  Heartrate and respiration computation based on original code from Texas Instruments
+  equires g4p_control graphing library for processing. 
+  Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
+
+  To view the build out, please go to the build folder. 
+
+  firmware.elf contain useful information about the build and link. 
+  It can be opened by 
+  http://www.sunshine2k.de/coding/javascript/onlineelfviewer/onlineelfviewer.html
+
 */
 
 
@@ -13,10 +27,6 @@
 #include <Update.h>
 #include <SPIFFS.h>       //ESP file system
 #include <FS.h>           //File System Headers
-#include <BLEDevice.h>    //bluetooth low energy
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
 #include <ArduinoOTA.h>   //on-the-air update
 
 // HomeICU driver code
@@ -25,7 +35,7 @@
 #include "AFE4490_Oximeter.h"
 #include "spo2_algorithm.h"
 #include "web.h"
-
+#include "BLE.h"
 /*---------------------------------------------------------------------------------
  temperature sensor: make sure ONLY turn on one of them
 ---------------------------------------------------------------------------------*/
@@ -39,23 +49,10 @@
 #ifdef TEMP_SENSOR_TMP117
 #include "TMP117.h"
 #endif 
+
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
-#define Heartrate_SERVICE_UUID        (uint16_t(0x180D))
-#define Heartrate_CHARACTERISTIC_UUID (uint16_t(0x2A37))
-#define sp02_SERVICE_UUID             (uint16_t(0x1822)) 
-#define sp02_CHARACTERISTIC_UUID      (uint16_t(0x2A5E))
-#define DATASTREAM_SERVICE_UUID       (uint16_t(0x1122)) 
-#define DATASTREAM_CHARACTERISTIC_UUID (uint16_t(0x1424))
-#define TEMP_SERVICE_UUID             (uint16_t(0x1809)) 
-#define TEMP_CHARACTERISTIC_UUID      (uint16_t(0x2a6e))
-#define BATTERY_SERVICE_UUID          (uint16_t(0x180F)) 
-#define BATTERY_CHARACTERISTIC_UUID   (uint16_t(0x2a19))
-#define HRV_SERVICE_UUID              "cd5c7491-4448-7db8-ae4c-d1da8cba36d0"
-#define HRV_CHARACTERISTIC_UUID       "01bfa86f-970f-8d96-d44d-9023c47faddc"
-#define HIST_CHARACTERISTIC_UUID      "01bf1525-970f-8d96-d44d-9023c47faddc"
-
 #define CES_CMDIF_PKT_START_1         0x0A
 #define CES_CMDIF_PKT_START_2         0xFA
 #define CES_CMDIF_DATA_LEN_LSB        20
@@ -68,9 +65,7 @@
 #define HISTGRM_DATA_SIZE             12*4
 #define HISTGRM_CALC_TH               10
 #define MAX                           20
-/*---------------------------------------------------------------------------------
 
----------------------------------------------------------------------------------*/
 unsigned int array[MAX];
 int rear = -1;
 int sqsum;
@@ -100,10 +95,10 @@ float per_pnn;
 float pnn_f=0;
 float tri =0;
  
-volatile uint8_t global_HeartRate = 0;
-volatile uint8_t global_HeartRate_prev = 0;
-volatile uint8_t global_RespirationRate=0;
-volatile uint8_t global_RespirationRate_prev = 0;
+volatile uint8_t HeartRate = 0;
+volatile uint8_t HeartRate_prev = 0;
+volatile uint8_t RespirationRate=0;
+volatile uint8_t RespirationRate_prev = 0;
 volatile uint8_t npeakflag = 0;
 volatile long time_count=0;
 volatile long hist_time_count=0;
@@ -132,16 +127,12 @@ uint32_t heart_rate_histogram[HISTGRM_DATA_SIZE];
 
 bool deviceConnected    = false;
 bool oldDeviceConnected = false;
-bool temp_data_ready    = false;
-bool spo2_calc_done     = false;
+bool temperature_data_ready = false;
+bool SpO2_calc_done     = false;
 bool ecg_buf_ready      = false;
-bool resp_buf_ready     = false;
 bool ppg_buf_ready      = false;
 bool hrv_ready_flag     = false;
-bool processing_intrpt  = false;
-bool success_flag       = false;
-bool STA_mode_indication= false;
-bool bat_data_ready     = false;
+bool battery_data_ready = false;
 bool leadoff_detected   = true;
 bool startup_flag       = true;
 
@@ -178,15 +169,6 @@ const char DataPacketHeader[] = { CES_CMDIF_PKT_START_1,
 const char DataPacketFooter[] = { CES_CMDIF_PKT_STOP_1, 
                                   CES_CMDIF_PKT_STOP_2};
 
-BLEServer         *pServer                    = NULL;
-BLECharacteristic *Heartrate_Characteristic   = NULL;
-BLECharacteristic *sp02_Characteristic        = NULL;
-BLECharacteristic *datastream_Characteristic  = NULL;
-BLECharacteristic *battery_Characteristic     = NULL;
-BLECharacteristic *temperature_Characteristic = NULL;
-BLECharacteristic *hist_Characteristic        = NULL;
-BLECharacteristic *hrv_Characteristic         = NULL;
-
 ads1292r        ADS1292R;   // define class ads1292r
 ads1292r_processing ECG_RESPIRATION_ALGORITHM; // define class ecg_algorithm
 AFE4490         afe4490;
@@ -201,137 +183,13 @@ MAX30205        tempSensor;
 #ifdef TEMP_SENSOR_TMP117
 TMP117          tempSensor; // Initalize sensor
 #endif
-
-class MyServerCallbacks: public BLEServerCallbacks 
-{
-  void onConnect(BLEServer* pServer)
-  {
-    deviceConnected = true;
-    Serial.println("connected");
-  }
-
-  void onDisconnect(BLEServer* pServer)
-  {
-    deviceConnected = false;
-  }
-};
-
-class MyCallbackHandler: public BLECharacteristicCallbacks 
-{
-  void onWrite(BLECharacteristic *datastream_Characteristic)
-  {
-    std::string value = datastream_Characteristic->getValue();
-    int len = value.length();
-    strValue = "0";
-
-    if (value.length() > 0) 
-    {
-      Serial.print("New value: ");
-
-      for (int i = 0; i < value.length(); i++)
-      {
-        Serial.print(String(value[i]));
-        strValue += value[i];
-      }
-      Serial.println();
-    }
-  }
-};
+ 
  
 void push_button_intr_handler()
 {
 
 }
-/*---------------------------------------------------------------------------------
- bluetooth low energy initialization
----------------------------------------------------------------------------------*/
-void BLE_Init()
-{
-  BLEDevice::init("Healthypi v4");        // Create the BLE Device
-  pServer = BLEDevice::createServer();    // Create the BLE Server
-  pServer->setCallbacks(new MyServerCallbacks());
-  BLEService *HeartrateService  = pServer->createService(Heartrate_SERVICE_UUID); // Create the BLE Service
-  BLEService *sp02Service       = pServer->createService(sp02_SERVICE_UUID);      // Create the BLE Service
-  BLEService *TemperatureService= pServer->createService(TEMP_SERVICE_UUID);
-  BLEService *batteryService    = pServer->createService(BATTERY_SERVICE_UUID);
-  BLEService *hrvService        = pServer->createService(HRV_SERVICE_UUID);
-  BLEService *datastreamService = pServer->createService(DATASTREAM_SERVICE_UUID);
 
-  Heartrate_Characteristic      = HeartrateService->createCharacteristic(
-                                  Heartrate_CHARACTERISTIC_UUID,
-                                  BLECharacteristic::PROPERTY_READ   |
-                                  BLECharacteristic::PROPERTY_WRITE  |
-                                  BLECharacteristic::PROPERTY_NOTIFY );
-
-  sp02_Characteristic           = sp02Service->createCharacteristic(
-                                  sp02_CHARACTERISTIC_UUID,
-                                  BLECharacteristic::PROPERTY_READ   |
-                                  BLECharacteristic::PROPERTY_WRITE  |
-                                  BLECharacteristic::PROPERTY_NOTIFY
-                                  );
-
-  temperature_Characteristic    = TemperatureService->createCharacteristic(
-                                  TEMP_CHARACTERISTIC_UUID,
-                                  BLECharacteristic::PROPERTY_READ   |
-                                  BLECharacteristic::PROPERTY_WRITE  |
-                                  BLECharacteristic::PROPERTY_NOTIFY
-                                  );
-                                                                      
-  battery_Characteristic        = batteryService->createCharacteristic(
-                                  BATTERY_CHARACTERISTIC_UUID,
-                                  BLECharacteristic::PROPERTY_READ   |
-                                  BLECharacteristic::PROPERTY_WRITE  |
-                                  BLECharacteristic::PROPERTY_NOTIFY );
-
-  hrv_Characteristic            = hrvService->createCharacteristic(
-                                  HRV_CHARACTERISTIC_UUID,
-                                  BLECharacteristic::PROPERTY_READ   |
-                                  BLECharacteristic::PROPERTY_WRITE  |
-                                  BLECharacteristic::PROPERTY_NOTIFY );
-
-  hist_Characteristic           = hrvService->createCharacteristic(
-                                  HIST_CHARACTERISTIC_UUID,
-                                  BLECharacteristic::PROPERTY_READ   |
-                                  BLECharacteristic::PROPERTY_WRITE  |
-                                  BLECharacteristic::PROPERTY_NOTIFY );
- 
-  datastream_Characteristic     = datastreamService->createCharacteristic(
-                                  DATASTREAM_CHARACTERISTIC_UUID,
-                                  BLECharacteristic::PROPERTY_READ   |
-                                  BLECharacteristic::PROPERTY_WRITE  |
-                                  BLECharacteristic::PROPERTY_NOTIFY );
-                
-  Heartrate_Characteristic  ->addDescriptor(new BLE2902());
-  sp02_Characteristic       ->addDescriptor(new BLE2902());
-  temperature_Characteristic->addDescriptor(new BLE2902());
-  battery_Characteristic    ->addDescriptor(new BLE2902());
-  hist_Characteristic       ->addDescriptor(new BLE2902());
-  hrv_Characteristic        ->addDescriptor(new BLE2902());
-  datastream_Characteristic ->addDescriptor(new BLE2902());
-  datastream_Characteristic ->setCallbacks (new MyCallbackHandler()); 
-
-  // Start the service
-  HeartrateService  ->start();
-  sp02Service       ->start();
-  TemperatureService->start();
-  batteryService    ->start();
-  hrvService        ->start();
-  datastreamService ->start();
-
-  // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(Heartrate_SERVICE_UUID);
-  pAdvertising->addServiceUUID(sp02_SERVICE_UUID);
-  pAdvertising->addServiceUUID(TEMP_SERVICE_UUID);
-  pAdvertising->addServiceUUID(BATTERY_SERVICE_UUID);
-  pAdvertising->addServiceUUID(HRV_SERVICE_UUID);
-  pAdvertising->addServiceUUID(DATASTREAM_SERVICE_UUID);
-  pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x00);  // set value to 0x00 to not advertise this parameter
-  BLEDevice::startAdvertising();
-  ble_advertising(); 
-  Serial.println("Waiting a client connection to notify...");
-}
 /*---------------------------------------------------------------------------------
  battery level check
 ---------------------------------------------------------------------------------*/
@@ -377,7 +235,7 @@ void read_battery_value()
     battery_percent = (uint8_t) battery;
     bat_count=0;
     battery=0;
-    bat_data_ready = true;
+    battery_data_ready = true;
   }
   else
     bat_count++;
@@ -469,7 +327,7 @@ uint8_t* read_send_data(uint8_t peakvalue,uint8_t respirationrate)
   }
 }
 /*---------------------------------------------------------------------------------
-
+heart-rate variability (HRV)
 ---------------------------------------------------------------------------------*/
 int HRVMAX(unsigned int array[])
 {  
@@ -574,118 +432,7 @@ float rmssd_ff(unsigned int array[])
   rmssd = sqrt(sqsum/(MAX-1));
   return rmssd;
 }
-
-//Led_indications
-void ble_advertising()
-{
-  while(deviceConnected==false)
-  {
-    digitalWrite(LED2_PIN, LOW);   // turn the LED on (HIGH is the voltage level)
-    delay(100);                       // wait for a 100ms
-    digitalWrite(LED2_PIN, HIGH);    // turn the LED off by making the voltage LOW
-    delay(3000);
-  }
-}
-
-/*---------------------------------------------------------------------------------
-
----------------------------------------------------------------------------------*/
-void handle_ble_stack()
-{
-
-  if(strValue == "\0")
-  {
-    
-    if(ecg_buf_ready)
-    {
-      ecg_buf_ready = false;
-      datastream_Characteristic->setValue(ecg_data_buff, 18);    
-      datastream_Characteristic->notify();
-    }
-
-  }
-  else if(strValue =="0spo2")
-  {
-    
-    if(ppg_buf_ready)
-    {
-      ppg_buf_ready = false;
-      datastream_Characteristic->setValue(ppg_data_buff, 18);    
-      datastream_Characteristic->notify();
-    }
-
-  }
  
-  //send notifications if connected to a client
-  if(global_HeartRate_prev != global_HeartRate)
-  {
-    global_HeartRate_prev = global_HeartRate;
-    uint8_t hr_att_ble[2];
-    hr_att_ble[0] = lead_flag;
-    hr_att_ble[1] = (uint8_t)global_HeartRate;    
-    Heartrate_Characteristic->setValue(hr_att_ble, 2);
-    Heartrate_Characteristic->notify(); 
-  }  
-    
-  if(spo2_calc_done)
-  {
-    // afe44xx_raw_data.buffer_count_overflow = false;
-    uint8_t spo2_att_ble[5];
-    spo2_att_ble[0] = 0x00;
-    spo2_att_ble[1] = (uint8_t)sp02;
-    spo2_att_ble[2] = (uint8_t)(sp02>>8);
-    spo2_att_ble[3] = 0;
-    spo2_att_ble[4] = 0;
-    sp02_Characteristic->setValue(spo2_att_ble, 5);     
-    sp02_Characteristic->notify();        
-    spo2_calc_done = false;
-  }
-
-  if(hrv_ready_flag)
-  {
-    hrv_Characteristic->setValue(hrv_array, 13);
-    hrv_Characteristic->notify(); 
-    hrv_ready_flag = false;
-  }
-    
-  if(temp_data_ready)
-  {
-    temperature_Characteristic->setValue((uint8_t *)&temperature, 2);
-    temperature_Characteristic->notify();
-    temp_data_ready = false;
-  }
-  
-  if(histogram_ready_flag )
-  {
-    histogram_ready_flag = false;
-    hist_Characteristic->setValue(histogram_percent_bin, 13);
-    hist_Characteristic->notify();
-  }
- 
-  if(bat_data_ready)
-  {
-    battery_Characteristic->setValue((uint8_t *)&battery_percent, 1);
-    battery_Characteristic->notify();
-    bat_data_ready = false;
-  }
-
-  if (!deviceConnected && oldDeviceConnected)
-  {
-    delay(500); // give the bluetooth stack the chance to get things ready
-    pServer->startAdvertising(); // restart advertising
-    Serial.println("start advertising");
-    ble_advertising();
-    oldDeviceConnected = deviceConnected;
-  }
-  
-  // connecting
-  if (deviceConnected && !oldDeviceConnected)
-  {
-   // do stuff here on connecting
-   oldDeviceConnected = deviceConnected;
-  } 
-
-}
 
 /*---------------------------------------------------------------------------------
 The setup() function is called when a sketch starts. Use it to initialize variables, 
@@ -791,14 +538,14 @@ void loop()
 
       // filter out the line noise @40Hz cutoff 161 order
       ECG_RESPIRATION_ALGORITHM.Filter_CurrentECG_sample  (&ecg_wave_sample, &ecg_filterout);   
-      ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate       (ecg_filterout,&global_HeartRate,&npeakflag); // calculate
+      ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate       (ecg_filterout,&HeartRate,&npeakflag); // calculate
       ECG_RESPIRATION_ALGORITHM.Filter_CurrentRESP_sample (res_wave_sample, &resp_filterout);
-      ECG_RESPIRATION_ALGORITHM.Calculate_RespRate        (resp_filterout,&global_RespirationRate);   
+      ECG_RESPIRATION_ALGORITHM.Calculate_RespRate        (resp_filterout,&RespirationRate);   
    
       if(npeakflag == 1)
       {
-        read_send_data(global_HeartRate,global_RespirationRate);
-        add_heart_rate_histogram(global_HeartRate);
+        read_send_data(HeartRate,RespirationRate);
+        add_heart_rate_histogram(HeartRate);
         npeakflag = 0;
       }
    
@@ -811,8 +558,8 @@ void loop()
           ecg_stream_cnt = 0;
       }
        
-      DataPacket[14] = global_RespirationRate;
-      DataPacket[16] = global_HeartRate;
+      DataPacket[14] = RespirationRate;
+      DataPacket[16] = HeartRate;
     }
   
     memcpy(&DataPacket[0], &ecg_filterout, 2);
@@ -848,7 +595,7 @@ void loop()
         sp02 = (uint8_t)afe44xx_raw_data.spo2;       
       }
 
-      spo2_calc_done = true;
+      SpO2_calc_done = true;
       afe44xx_raw_data.buffer_count_overflow = false;
     }
    
@@ -885,22 +632,13 @@ void loop()
       time_count = 0;
       DataPacket[12] = (uint8_t) temperature; 
       DataPacket[13] = (uint8_t) (temperature >> 8);
-      temp_data_ready = true;
+      temperature_data_ready = true;
       //reading the battery with same interval as temperature sensor
       read_battery_value();
     }
   
-    handle_ble_stack();
+    handle_BLE_stack();
   }
  
-  if (STA_mode_indication)
-  {
-    for(int dutyCycle = 255; dutyCycle >= 0; dutyCycle=dutyCycle-3)
-    {
-      // changing the LED brightness with PWM
-      ledcWrite(ledChannel, dutyCycle);   
-      delay(25);
-    }
-    STA_mode_indication = false;
-  }
+ 
 }
