@@ -16,11 +16,8 @@ The Base Station can upload the data to the remote cloud server and let doctor a
 ---
 
 # Programming Tools
-Base Station is developed with "Flutter", a open-source project from Google.
-You can download it from:
-https://flutter.dev/docs/get-started/install/macos
+Base Station is developed with "Xcode/Swift".
 
-It also require other tools like "Xcode"
 ---
 
 

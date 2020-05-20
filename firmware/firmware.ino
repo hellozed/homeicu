@@ -95,7 +95,7 @@ float per_pnn;
 float pnn_f=0;
 float tri =0;
  
-volatile uint8_t HeartRate = 0;
+volatile uint8_t heart_rate = 0;
 volatile uint8_t HeartRate_prev = 0;
 volatile uint8_t RespirationRate=0;
 volatile uint8_t RespirationRate_prev = 0;
@@ -197,15 +197,15 @@ void read_battery_value()
 {
   static int adc_val = analogRead(SENSOR_VP_PIN);
   battery += adc_val;
-  
-  if(bat_count == 9)
-  {         
-    battery = (battery/10);
-    battery=  ((battery*2)-400);
-    
+
+  if (bat_count == 9)
+  {
+    battery = (battery / 10);
+    battery = ((battery * 2) - 400);
+
     if (battery > 4100)
       battery = 4100;
-    else if(battery < 3600 )
+    else if (battery < 3600)
       battery = 3600;
 
     if (startup_flag == true)
@@ -538,14 +538,14 @@ void loop()
 
       // filter out the line noise @40Hz cutoff 161 order
       ECG_RESPIRATION_ALGORITHM.Filter_CurrentECG_sample  (&ecg_wave_sample, &ecg_filterout);   
-      ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate       (ecg_filterout,&HeartRate,&npeakflag); // calculate
+      ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate       (ecg_filterout,&heart_rate,&npeakflag); // calculate
       ECG_RESPIRATION_ALGORITHM.Filter_CurrentRESP_sample (res_wave_sample, &resp_filterout);
       ECG_RESPIRATION_ALGORITHM.Calculate_RespRate        (resp_filterout,&RespirationRate);   
    
       if(npeakflag == 1)
       {
-        read_send_data(HeartRate,RespirationRate);
-        add_heart_rate_histogram(HeartRate);
+        read_send_data(heart_rate,RespirationRate);
+        add_heart_rate_histogram(heart_rate);
         npeakflag = 0;
       }
    
@@ -559,7 +559,7 @@ void loop()
       }
        
       DataPacket[14] = RespirationRate;
-      DataPacket[16] = HeartRate;
+      DataPacket[16] = heart_rate;
     }
   
     memcpy(&DataPacket[0], &ecg_filterout, 2);

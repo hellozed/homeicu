@@ -51,7 +51,7 @@ extern bool battery_data_ready;
 
 extern uint8_t  ecg_data_buff[];
 extern uint8_t  ppg_data_buff[];
-extern volatile uint8_t HeartRate;
+extern volatile uint8_t heart_rate;
 extern volatile uint8_t HeartRate_prev;
 extern uint8_t  lead_flag;
 extern uint8_t  hrv_array[];
@@ -90,7 +90,6 @@ class MyCallbackHandler: public BLECharacteristicCallbacks
     if (value.length() > 0) 
     {
       Serial.print("New value: ");
-
       for (int i = 0; i < value.length(); i++)
       {
         Serial.print(String(value[i]));
@@ -126,12 +125,12 @@ void handle_BLE_stack(void)
   }
  
   //send notifications if connected to a client
-  if(HeartRate_prev != HeartRate)
+  if(HeartRate_prev != heart_rate)
   {
-    HeartRate_prev = HeartRate;
+    HeartRate_prev = heart_rate;
     uint8_t hr_att_ble[2];
     hr_att_ble[0] = lead_flag;
-    hr_att_ble[1] = (uint8_t)HeartRate;    
+    hr_att_ble[1] = (uint8_t)heart_rate;    
     Heartrate_Characteristic->setValue(hr_att_ble, 2);
     Heartrate_Characteristic->notify(); 
   }  
