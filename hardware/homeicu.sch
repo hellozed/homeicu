@@ -20009,7 +20009,7 @@ Feel free to contact us at &lt;a href="mailto:Support@PCBLayout.com"&gt;Support@
 </part>
 <part name="GND47" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="GND56" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
-<part name="P1" library="circuitects" deviceset="MICRO-B" device="">
+<part name="J5" library="circuitects" deviceset="MICRO-B" device="">
 <attribute name="MF" value=""/>
 <attribute name="MPN" value=""/>
 <attribute name="OC_NEWARK" value="unknown"/>
@@ -20019,7 +20019,7 @@ Feel free to contact us at &lt;a href="mailto:Support@PCBLayout.com"&gt;Support@
 <part name="J2" library="SparkFun-Connectors" library_urn="urn:adsk.eagle:library:513" deviceset="QWIIC_CONNECTOR" device="JS-1MM" value="Qwiic1"/>
 <part name="J1" library="SparkFun-Connectors" library_urn="urn:adsk.eagle:library:513" deviceset="QWIIC_CONNECTOR" device="JS-1MM" value="Qwiic1"/>
 <part name="J3" library="SparkFun-Connectors" library_urn="urn:adsk.eagle:library:513" deviceset="6_PIN_SERIAL_TARGET" device="" value="6-pin Hearder"/>
-<part name="JP3" library="Connectors" library_urn="urn:adsk.eagle:library:14555660" deviceset="35RASMT4BHNTRX" device="" package3d_urn="urn:adsk.eagle:package:10989939/7"/>
+<part name="J4" library="Connectors" library_urn="urn:adsk.eagle:library:14555660" deviceset="35RASMT4BHNTRX" device="" package3d_urn="urn:adsk.eagle:package:10989939/7"/>
 <part name="U2" library="esp32" deviceset="ESP-WROOM-32" device=""/>
 </parts>
 <sheets>
@@ -20426,8 +20426,8 @@ CTS    =  RTS</text>
 <instance part="GND56" gate="1" x="46.99" y="76.2" smashed="yes">
 <attribute name="VALUE" x="44.45" y="73.66" size="1.778" layer="96"/>
 </instance>
-<instance part="P1" gate="G$1" x="36.83" y="93.98" smashed="yes" rot="MR0">
-<attribute name="NAME" x="41.656" y="102.108" size="1.778" layer="95" rot="MR0"/>
+<instance part="J5" gate="G$1" x="36.83" y="93.98" smashed="yes" rot="MR0">
+<attribute name="NAME" x="38.862" y="102.87" size="2.54" layer="95" rot="MR0"/>
 <attribute name="VALUE" x="41.91" y="78.994" size="1.778" layer="96" rot="MR0"/>
 <attribute name="OC_NEWARK" x="36.83" y="93.98" size="1.778" layer="96" display="off"/>
 <attribute name="MF" x="36.83" y="93.98" size="1.778" layer="96" display="off"/>
@@ -20605,10 +20605,10 @@ CTS    =  RTS</text>
 <wire x1="46.99" y1="83.82" x2="46.99" y2="78.74" width="0.1524" layer="91"/>
 <junction x="46.99" y="83.82"/>
 <junction x="46.99" y="86.36"/>
-<pinref part="P1" gate="G$1" pin="GND"/>
-<pinref part="P1" gate="G$1" pin="GND1"/>
+<pinref part="J5" gate="G$1" pin="GND"/>
+<pinref part="J5" gate="G$1" pin="GND1"/>
 <wire x1="46.99" y1="86.36" x2="44.45" y2="86.36" width="0.1524" layer="91"/>
-<pinref part="P1" gate="G$1" pin="GND2"/>
+<pinref part="J5" gate="G$1" pin="GND2"/>
 <wire x1="46.99" y1="83.82" x2="44.45" y2="83.82" width="0.1524" layer="91"/>
 </segment>
 <segment>
@@ -21173,7 +21173,7 @@ CTS    =  RTS</text>
 <label x="68.58" y="101.6" size="1.778" layer="95" rot="R180" xref="yes"/>
 <wire x1="68.58" y1="101.6" x2="68.58" y2="99.06" width="0.1524" layer="91"/>
 <wire x1="68.58" y1="99.06" x2="68.58" y2="97.79" width="0.1524" layer="91"/>
-<pinref part="P1" gate="G$1" pin="VCC"/>
+<pinref part="J5" gate="G$1" pin="VCC"/>
 <wire x1="44.45" y1="99.06" x2="68.58" y2="99.06" width="0.1524" layer="91"/>
 <junction x="68.58" y="99.06"/>
 </segment>
@@ -21711,7 +21711,7 @@ I2C addresses 0x48</text>
 <instance part="GND47" gate="1" x="281.94" y="195.58" smashed="yes">
 <attribute name="VALUE" x="281.94" y="195.326" size="1.778" layer="96" font="vector" align="top-center"/>
 </instance>
-<instance part="JP3" gate="G$1" x="360.68" y="137.16" smashed="yes" rot="MR0">
+<instance part="J4" gate="G$1" x="360.68" y="137.16" smashed="yes" rot="MR0">
 <attribute name="NAME" x="363.2474" y="144.78911875" size="1.27151875" layer="95" rot="MR0"/>
 <attribute name="VALUE" x="373.3944" y="126.9936" size="1.2708" layer="96" rot="MR0"/>
 </instance>
@@ -22352,7 +22352,7 @@ I2C addresses 0x48</text>
 <wire x1="312.42" y1="119.38" x2="347.98" y2="119.38" width="0.1524" layer="91"/>
 <wire x1="347.98" y1="119.38" x2="347.98" y2="134.62" width="0.1524" layer="91"/>
 <wire x1="347.98" y1="134.62" x2="350.52" y2="134.62" width="0.1524" layer="91"/>
-<pinref part="JP3" gate="G$1" pin="3"/>
+<pinref part="J4" gate="G$1" pin="3"/>
 </segment>
 </net>
 <net name="N$50" class="0">
@@ -22382,7 +22382,7 @@ I2C addresses 0x48</text>
 <wire x1="322.58" y1="76.2" x2="322.58" y2="81.28" width="0.1524" layer="91"/>
 <wire x1="322.58" y1="81.28" x2="350.52" y2="81.28" width="0.1524" layer="91"/>
 <wire x1="350.52" y1="81.28" x2="350.52" y2="132.08" width="0.1524" layer="91"/>
-<pinref part="JP3" gate="G$1" pin="1"/>
+<pinref part="J4" gate="G$1" pin="1"/>
 </segment>
 </net>
 <net name="N$8" class="0">
@@ -22452,7 +22452,7 @@ I2C addresses 0x48</text>
 <wire x1="350.52" y1="154.94" x2="350.52" y2="142.24" width="0.1524" layer="91"/>
 <junction x="302.26" y="154.94"/>
 <pinref part="C2" gate="G$1" pin="1"/>
-<pinref part="JP3" gate="G$1" pin="2"/>
+<pinref part="J4" gate="G$1" pin="2"/>
 </segment>
 </net>
 <net name="N$31" class="0">
