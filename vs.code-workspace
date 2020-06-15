@@ -14,7 +14,9 @@
 			"random": "cpp",
 			"*.tcc": "cpp",
 			"ratio": "cpp",
-			"cinttypes": "cpp"
+			"cinttypes": "cpp",
+			"__functional_03": "cpp",
+			"functional": "cpp"
 		}
 	},
 	"arduino.ignoreBoards": []

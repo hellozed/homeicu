@@ -1,9 +1,6 @@
-/******************************************************************************
-BLE.cpp
+/*---------------------------------------------------------------------------------
 
-
-
-******************************************************************************/
+---------------------------------------------------------------------------------*/
 #include <Arduino.h>
 #include <BLEDevice.h>    //bluetooth low energy
 #include <BLEServer.h>
@@ -58,7 +55,7 @@ extern uint8_t  hrv_array[];
 extern uint8_t          histogram_percent_bin[];
 extern volatile bool    histogram_ready_flag;
 extern uint8_t  heartbeat,sp02,respirationrate;
-extern int      temperature;
+extern uint8_t  temperature;
 extern uint8_t  battery_percent;
 
 extern String strValue;
@@ -99,7 +96,6 @@ class MyCallbackHandler: public BLECharacteristicCallbacks
     }
   }
 };
-
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
@@ -158,7 +154,7 @@ void handle_BLE_stack(void)
     
   if(temperature_data_ready)
   {
-    temperature_Characteristic->setValue((uint8_t *)&temperature, 2);
+    temperature_Characteristic->setValue(&temperature, 2);
     temperature_Characteristic->notify();
     temperature_data_ready = false;
   }
@@ -172,7 +168,7 @@ void handle_BLE_stack(void)
  
   if(battery_data_ready)
   {
-    battery_Characteristic->setValue((uint8_t *)&battery_percent, 1);
+    battery_Characteristic->setValue(&battery_percent, 1);
     battery_Characteristic->notify();
     battery_data_ready = false;
   }

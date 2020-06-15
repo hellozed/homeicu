@@ -1,4 +1,4 @@
-/* 
+/*---------------------------------------------------------------------------------
   Main code of HomeICU project.
 
   Please use Arduino IDE to build and download into ESP32 boards. 
@@ -6,7 +6,7 @@
   Arduino language Reference:
   https://www.arduino.cc/en/Reference/
 
-  Heartrate and respiration computation based on original code from Texas Instruments
+  Heart rate and respiration computation based on original code from Texas Instruments
   equires g4p_control graphing library for processing. 
   Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
 
@@ -15,12 +15,11 @@
   firmware.elf contain useful information about the build and link. 
   It can be opened by 
   http://www.sunshine2k.de/coding/javascript/onlineelfviewer/onlineelfviewer.html
-
-*/
+---------------------------------------------------------------------------------*/
 
 
 /*---------------------------------------------------------------------------------
- Library Headers
+ Arduino/ESP32 library
 ---------------------------------------------------------------------------------*/
 #include <SPI.h>
 #include <Wire.h>         //I2C library
@@ -29,7 +28,9 @@
 #include <FS.h>           //File System Headers
 #include <ArduinoOTA.h>   //on-the-air update
 
-// HomeICU driver code
+/*---------------------------------------------------------------------------------
+ HomeICU driver code
+---------------------------------------------------------------------------------*/
 #include "ADS1292r.h"
 #include "ecg_resp_signal_processing.h"
 #include "AFE4490_Oximeter.h"
@@ -37,10 +38,10 @@
 #include "web.h"
 #include "BLE.h"
 /*---------------------------------------------------------------------------------
- temperature sensor: make sure ONLY turn on one of them
+ Temperature sensor
 ---------------------------------------------------------------------------------*/
-//#define TEMP_SENSOR_MAX30325
-#define TEMP_SENSOR_TMP117
+//#define TEMP_SENSOR_MAX30325  //  ONLY turn either one
+#define TEMP_SENSOR_TMP117      //  ONLY turn either one
 
 #ifdef TEMP_SENSOR_MAX30325
 #include "MAX30205.h"
@@ -49,9 +50,21 @@
 #ifdef TEMP_SENSOR_TMP117
 #include "TMP117.h"
 #endif 
-
 /*---------------------------------------------------------------------------------
-
+  PIN number defined by ESP-WROOM-32 IO port number
+---------------------------------------------------------------------------------*/
+const int ADS1292_DRDY_PIN  = 26;
+const int ADS1292_CS_PIN    = 13;
+const int ADS1292_START_PIN = 14;
+const int ADS1292_PWDN_PIN  = 27;
+const int PUSH_BUTTON_PIN   = 17;
+const int AFE4490_CS_PIN    = 21; 
+const int AFE4490_DRDY_PIN  = 39; 
+const int AFE4490_PWDN_PIN  = 4;
+const int LED_PIN           = 2;
+const int SENSOR_VP_PIN     = 36;   //GPIO36, ADC1_CH0
+/*---------------------------------------------------------------------------------
+ constant and global variables
 ---------------------------------------------------------------------------------*/
 #define CES_CMDIF_PKT_START_1         0x0A
 #define CES_CMDIF_PKT_START_2         0xFA
@@ -79,7 +92,7 @@ int min_t=0;
 int index_cnt = 0;
 int data_count;
 int status_size;
-int temperature;
+uint8_t temperature;
 int number_of_samples = 0;
 int battery=0;
 int bat_count=0;
@@ -140,22 +153,8 @@ char DataPacket[30];
 
 String strValue = "";
 
-static int bat_prev=100;
-static uint8_t battery_percent = 100;
-/*---------------------------------------------------------------------------------
-  PIN numbers are defined as ESP-WROOM-32 IO port number
----------------------------------------------------------------------------------*/
-const int ADS1292_DRDY_PIN  = 26;
-const int ADS1292_CS_PIN    = 13;
-const int ADS1292_START_PIN = 14;
-const int ADS1292_PWDN_PIN  = 27;
-const int PUSH_BUTTON_PIN   = 17;
-const int AFE4490_CS_PIN    = 21; 
-const int AFE4490_DRDY_PIN  = 39; 
-const int AFE4490_PWDN_PIN  = 4;
-const int LED1_PIN          = 12;
-const int LED2_PIN          = 15;
-const int SENSOR_VP_PIN     = 36;   //GPIO36, ADC1_CH0
+static int bat_prev = 100;
+uint8_t battery_percent = 100;
 
 const int freq = 5000;
 const int ledChannel = 0;
@@ -181,15 +180,17 @@ MAX30205        tempSensor;
 #endif
 
 #ifdef TEMP_SENSOR_TMP117
-TMP117          tempSensor; // Initalize sensor
+TMP117          tempSensor; 
 #endif
- 
- 
+
+int system_init_error = 0;  
+/*---------------------------------------------------------------------------------
+ Button handle
+---------------------------------------------------------------------------------*/
 void push_button_intr_handler()
 {
-
+  // No button hardware in this design
 }
-
 /*---------------------------------------------------------------------------------
  battery level check
 ---------------------------------------------------------------------------------*/
@@ -258,18 +259,14 @@ void add_heart_rate_histogram(uint8_t hr)
 
     if(sum != 0)
     {
-
       for(int i = 0; i < HISTGRM_DATA_SIZE/4; i++)
       {
         uint32_t percent = ((heart_rate_histogram[i] * 100) / sum);
         histogram_percent_bin[i] = percent;
       }
-
     }
-
     histogram_ready_flag = true;
   }
-
 }
 /*---------------------------------------------------------------------------------
 
@@ -331,34 +328,26 @@ heart-rate variability (HRV)
 ---------------------------------------------------------------------------------*/
 int HRVMAX(unsigned int array[])
 {  
-
   for(int i=0;i<MAX;i++)
   {
-
     if(array[i]>max_t)
     {
       max_t = array[i];
     }
-
   }
-
   return max_t;
 }
 
 int HRVMIN(unsigned int array[])
 {   
   min_t = max_f;
-
   for(int i=0;i<MAX;i++)
   {
-
     if(array[i]< min_t)
     {
       min_t = array[i]; 
     }
-
   }
-
   return min_t;
 }
 
@@ -432,8 +421,18 @@ float rmssd_ff(unsigned int array[])
   rmssd = sqrt(sqsum/(MAX-1));
   return rmssd;
 }
- 
-
+void halt_and_flash(void)
+{
+  // Only for debuging
+  Serial.println("System Halt!");
+  while (true)
+  {
+    delay(800);
+    digitalWrite(LED_PIN, HIGH);
+    delay(800);
+    digitalWrite(LED_PIN, LOW);
+  }
+}
 /*---------------------------------------------------------------------------------
 The setup() function is called when a sketch starts. Use it to initialize variables, 
 pin modes, start using libraries, etc. The setup() function will only run once, 
@@ -441,15 +440,13 @@ after each powerup or reset of the  board.
 ---------------------------------------------------------------------------------*/
 void setup()
 {
-  delay(2000);
-
   // Make sure serial port on first
   // Setup serial port U0UXD for programming and reset/boot
   Serial.begin  (115200);   // Baudrate for serial communication
+
+  Serial.println("************************************************");
   Serial.println("HomeICU is starting...");
-  
-  setupBasicOTA();
-  Serial.println("Basic OTA: On");
+  Serial.println("************************************************");
 
   // initalize the  data ready and chip select pins:
   // Pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
@@ -457,31 +454,18 @@ void setup()
   pinMode(ADS1292_CS_PIN,     OUTPUT);    
   pinMode(ADS1292_START_PIN,  OUTPUT);
   pinMode(ADS1292_PWDN_PIN,   OUTPUT);  
-  pinMode(LED1_PIN,           OUTPUT); 
-  pinMode(LED2_PIN,           OUTPUT); 
+  pinMode(LED_PIN,            OUTPUT); 
   pinMode(AFE4490_PWDN_PIN,   OUTPUT);
   pinMode(AFE4490_CS_PIN,     OUTPUT);//Slave Select
   pinMode(AFE4490_DRDY_PIN,   INPUT);// data ready 
 
   pinMode(PUSH_BUTTON_PIN,    INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON_PIN), push_button_intr_handler, FALLING);
-  
-  // initialize SPI file system
-  if(!SPIFFS.begin())
-  {
-    Serial.println("SPIFFS Init Error!");
-    return;
-  }
-  else
-    Serial.println("SPIFFS Init OK!");
-  
-  BLE_Init();
-  
-  /*
-  ???
-  should it do SPI.begin() first, and then call SPIFFS.begin()?
-  */
 
+  //??? BLE_Init();  
+  setupBasicOTA();      //Basic Over The Air
+  
+  // ESP32 has 4 SPI, one is used by flash memory
   SPI.begin();
   Wire.begin(25,22);
   SPI.setClockDivider (SPI_CLOCK_DIV16);
@@ -492,18 +476,30 @@ void setup()
   delay(10); 
   SPI.setDataMode (SPI_MODE1);          //Set SPI mode as 1
   delay(10);
- 
+  
+  //Initialize SPI file system
+  if(!SPIFFS.begin(true)) 
+  {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    system_init_error++;
+  }
+  else
+    Serial.println("SPIFFS Init OK!");
+
   ADS1292R.ads1292_Init(ADS1292_CS_PIN,ADS1292_PWDN_PIN,ADS1292_START_PIN);  //initalize ADS1292 slave
   delay(10); 
   // Digital2 is attached to Data ready pin of AFE is interrupt0 in ARduino
   attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING ); 
   
   if (tempSensor.begin()) 
-    Serial.println("Temperature sensor began.");
+    Serial.println("Temperature sensor - ok.");
   else
-    Serial.println("Temperature sensor failed.");
-
-  Serial.println("Initialization is complete!");
+    Serial.println("Temperature sensor - failed.");
+ 
+  if (system_init_error>0)
+    halt_and_flash(); 
+  else   
+    Serial.println("Initialization is complete!");
 }
 /*---------------------------------------------------------------------------------
 After creating a setup() function, which initializes and sets the initial values, 
@@ -636,9 +632,6 @@ void loop()
       //reading the battery with same interval as temperature sensor
       read_battery_value();
     }
-  
     handle_BLE_stack();
   }
- 
- 
 }

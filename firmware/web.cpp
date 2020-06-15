@@ -5,17 +5,18 @@
 
 
 ---------------------------------------------------------------------------------*/
-
 #include <SPIFFS.h>
 #include <FS.h>      //Include File System Headers
 #include <ArduinoOTA.h>
 #include "web.h"
 /*---------------------------------------------------------------------------------
   WiFi router configuration
----------------------------------------------------------------------------------*/
-const char* wifi_ssid = "...";
-const char* wifi_password = ".....";
 
+  wifi_id.h only contain the lines blow, and is not tracked by Git.
+  const char* wifi2_4G_ssid = " ";    // ESP32 only support 2.4GHz wifi, not 5G Hz
+  const char* wifi_password = "";
+---------------------------------------------------------------------------------*/
+#include "wifi_id.h"
 /*---------------------------------------------------------------------------------
   Basic OTA (on-the-air) function
 
@@ -23,11 +24,10 @@ const char* wifi_password = ".....";
 ---------------------------------------------------------------------------------*/
 void setupBasicOTA(void) 
 {
-  Serial.begin(115200);
-  Serial.println("Booting");
+  Serial.println("Basic OTA Setting");
   WiFi.mode(WIFI_STA);
-  WiFi.begin(wifi_ssid, wifi_password);
-  
+
+  WiFi.begin(wifi2_4G_ssid, wifi_password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) 
   {
     Serial.println("Connection Failed! Rebooting...");
