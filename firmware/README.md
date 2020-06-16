@@ -1,10 +1,21 @@
+ESP32 integrates four SPI peripherals.
+
+SPI0 and SPI1 are used internally to access the ESP32’s attached flash memory and share an arbiter.
+
+There are quite a few limitations when using SPI Master driver on the SPI1 bus, see Notes on Using the SPI Master driver on SPI1 Bus.
+SPI2 and SPI3 are general purpose SPI controllers, sometimes referred to as HSPI and VSPI, respectively. They are open to users. SPI2 and SPI3 have independent signal buses with the same respective names. Each bus has three CS lines to drive up to three SPI slaves.
+
+
 # Sensor Firmware 
 The HomeICU sensor board is driven by a ESP32 microprocessor. 
 
 # Build
 The build binary is stored in "../../homeicu-build"
-partitions.csv - partition information. 
-firmware.ino.bin - binary file.
+- partitions.csv   - partition information. 
+- firmware.ino.bin - binary file. 
+- firmware.elf     - contain useful information about the build and link. 
+  It can be opened by [this tool]
+  (http://www.sunshine2k.de/coding/javascript/onlineelfviewer/onlineelfviewer.html).
 
 # Tool Chain
 The firmware of it is written in C/C++ and built by Arduino IDE.
@@ -21,7 +32,7 @@ The building cache directory is different from VS Code. Go "File -> Preferences"
 The building cache directory is configued by "../.vscode/{...}arduino.json". 
 It is "../homeicu-build" right now, and this directory does not require backup.
 
-## Tool Setting
+## Settings
 Board: ESP32 Dev Module
 PSRAM: Disabled
 Uploading Speed: 921600
@@ -46,33 +57,28 @@ This driver is also for Serial Monitor.
 
 - Arduino IDE: Turn on the "Serial Monitor" window
 
-## Program board by USB/UART 
-The IDE/VSCode has a "LOAD" function for programming binary into the ESP32 board, but it will wait you to press "BOOT" button. VSCode may have slow speed.
+# Upload Binary to board
+3. 4. 5. will skip the building process to save time.
 
-## Use OTA update code (Wifi update)
-1. "Tools > Port" option and you should see something like this: esp32-xxxxxx at your_esp_ip_address. Select that Port, and press "Upload". (This may block you use serial monitor.)
+## 1. IDE/VSCode + USBtoUART 
+Select Port to the correct USB/UART like "/dev/tty.SLAB_USBtoUART", then press "Upload" button on the IDE/VSCode. It will wait you to press "BOOT" button.
 
-2. In VSCode, build the code, and run "ota.py".
+## 2. IDE/VSCode + OTA (Wifi)
+Select Port to board IP like: "esp32-xxxxxx at your_esp_ip_address". then press "Upload". 
 
-# Arduino extension Commands (VSCode)
+## 3. command line + "./ota.py"
+Upload binary from the VSCode build directory over the wifi OTA. 
 
-This extension provides several commands in the Command Palette (F1 or Ctrl + Shift + P) for working with *.ino files:
+## 4. command line + "./usb.py"
+Upload binary from the VSCode build directory over the USBtoUART.
+(This will skip the building process.) 
 
-- Arduino: Board Manager: Manage packages for boards. You can add 3rd party Arduino board by configuring Additional Board Manager URLs in the board manager.
-- Arduino: Change Baud Rate: Change the baud rate of the selected serial port.
-- Arduino: Change Board Type: Change board type or platform.
-- Arduino: Close Serial Monitor: Stop the serial monitor and release the serial port.
-- Arduino: Examples: Show list of examples.
-- Arduino: Initialize: Scaffold a VS Code project with an Arduino sketch.
-- Arduino: Library Manager: Explore and manage libraries.
-- Arduino: Open Serial Monitor: Open the serial monitor in the integrated output window.
-- Arduino: Select Serial Port: Change the current serial port.
-- Arduino: Send Text to Serial Port: Send a line of text via the current serial port.
-- Arduino: Upload: Build sketch and upload to Arduino board.
-- Arduino: Upload Using Programmer: Upload using an external programmer.
-- Arduino: Verify: Build sketch.
+## 5. web uploading
+Open a browser, type "homeicu.local", "admin/password"
 
-## Debug
+Note: The binary of IDE and VSCode is located in the different folder.
+
+# Debug
 In IDE interface, choose "Verbose" in "Tools/Core Debug Level" to see more debug information.
 
 # OTA command and partition
@@ -82,3 +88,7 @@ the basic version is espota.py
 https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/ota.html
 
 https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/partition-tables.html
+
+# Arduino extension Commands (VSCode)
+
+This extension provides several commands in the Command Palette (F1 or Ctrl + Shift + P) for working with *.ino files:

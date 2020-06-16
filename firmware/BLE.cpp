@@ -6,7 +6,6 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include "BLE.h"
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
@@ -35,7 +34,7 @@ BLECharacteristic *hist_Characteristic        = NULL;
 BLECharacteristic *hrv_Characteristic         = NULL;
 
 /*---------------------------------------------------------------------------------
- These global variables must be checked for interrupt access conflict ???
+ FIXME: These global variables must be checked for interrupt access conflict
 ---------------------------------------------------------------------------------*/
 extern bool deviceConnected;
 extern bool oldDeviceConnected;
@@ -192,9 +191,9 @@ void handle_BLE_stack(void)
  bluetooth low energy initialization
 
 ---------------------------------------------------------------------------------*/
-void BLE_Init(void)
+void initBLE(void)
 {
-  BLEDevice::init("HomeICU Device");        // Create the BLE Device
+  BLEDevice::init("HomeICU");        // Create the BLE Device
   pServer = BLEDevice::createServer();      // Create the BLE Server
   pServer->setCallbacks(new MyServerCallbacks());
   BLEService *HeartrateService  = pServer->createService(Heartrate_SERVICE_UUID); // Create the BLE Service
@@ -276,5 +275,5 @@ void BLE_Init(void)
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x00);  // set value to 0x00 to not advertise this parameter
   BLEDevice::startAdvertising();
-  Serial.println("Waiting a client connection to notify...");
+  Serial.println("BLE: Waiting a client connection to notify...");
 }

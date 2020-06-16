@@ -12,6 +12,10 @@
 //
 //   For information on how to use, visit https://github.com/Protocentral/AFE4490_Oximeter
 /////////////////////////////////////////////////////////////////////////////////////////
+#include "Arduino.h"
+#include <SPI.h>
+#include <string.h>
+#include <math.h>
 #include "AFE4490_Oximeter.h"
 #include "spo2_algorithm.h"
 

@@ -19958,6 +19958,9 @@ for saving battery</text>
 VUSB  = +5V from USB
 RESET = DTR
 CTS    =  RTS</text>
+<text x="251.46" y="139.7" size="1.778" layer="97" font="vector" align="top-center">TODO:
+afe44xx connector change to other type</text>
+<rectangle x1="223.52" y1="114.3" x2="302.26" y2="147.32" layer="91"/>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0" smashed="yes">

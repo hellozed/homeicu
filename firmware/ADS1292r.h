@@ -19,8 +19,6 @@
 #ifndef ads1292r_h
 #define ads1292r_h
 
-#include "Arduino.h"
-
 #define CONFIG_SPI_MASTER_DUMMY   0xFF
 
 // Register Read Commands

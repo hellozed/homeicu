@@ -33,10 +33,13 @@ Phase II:
 
 * **/docs**     - additional documentation
 * **/extras**   - includes the datasheet
-* **/firmware** - software code for running in the 
-* **/gui**      - GUI for iPhone, iPad and Android phone/tablet
-* **/hardware** - design files (.brd, .sch)
-* **/toools**   - tools for developing the project
+* **/firmware** - software running in the ESP32 processor 
+  (developed with Arduino IDE/C Language)
+* **/gui**      - GUI for iPhone, iPad and Android 
+  (Developed with Flutter/Dart Language)
+* **/hardware** - design files .brd, .sch 
+  (Designed with Autodesk Eagle tool)
+* **/tools**   - tools for developing the project
 
 * **../homeicu-build** - directory for building binary file, no backup needed.
    
@@ -44,14 +47,11 @@ Phase II:
 ---
 # Hardware
 
-* Microcontroller: ESP32, in WROOM32 module format, with Dual-core Xtensa 32-bit CPU, 4 MB of on-board flash, 520 KB RAM. 
+* Microprocessor: ESP32, in WROOM32 module, Dual-core Xtensa 32-bit CPU, 4 MB of on-board SPI flash, 520 KB RAM. 
 
 * Wireless Connectivity:
 Wi-Fi and Access Point (AP) mode
 BLE (Bluetooth Low Energy).
-
-* Firmware programming: 
-Arduino IDE and Espressif ESP-IDF.
 
 * Sensors: 
 ECG and respiration: TI ADS1292R
@@ -80,7 +80,20 @@ Isolated, medical-grade (5 V, 2.5 A) USB wall power adapter (100-240 VAC) with s
 ---
 # Software
 
-Processing-based GUI, Android App, iOS devices App, web interface
+## Base Station 
+Processing-based GUI, Android App, iOS devices App, web interface.
+The software is developed with Dard language with Flutter and one source code support all platform.
+
+## Firmware 
+Running on a ESP32 microproessor and written with C/C++. 
+The development tools are Arduino IDE and VSCode.
+
+## Code Standard
+This project has taken code from from many different sources and several different programming language such as Arduino, C/C++, Flutter/Dart, python, and markdown.
+
+- It’s better to throw coding standards out and allow free expression.
+
+- To build a prototype asap is much urgent than spending time on tidy up coding standards and make them stylish and beautiful.
 
 ---
 # Getting Started:
@@ -98,6 +111,13 @@ Coming soon.
 # Medical Approval
 
 The goal of HomeICU is to have functions of a medical-grade patient monitoring system. So far, HomeICU does NOT have any certifications (FDA, CE, etc.) and is NOT officially approved for medical or diagnostic use. It is your responsibility to ensure your safety when using the device. Furthermore, you MUST NOT power the device from a non-isolated power source for your safety.
+
+# Safety Notice
+
+Unless we receive the medical device approval, please only use this project under the following conditions:
+
+- The HomeICU is intended only for electrical evaluation of the features in a laboratory, simulation, or development environment. It is not intended for direct interface with a patient, or patient diagnostics. It is intended for development purposes ONLY, and is not intended to be used as all or part of an end-equipment application.
+- The HomeICU should be used only by qualified engineers and technicians who are familiar with the risks associated with handling electrical and mechanical components, systems, and subsystems. The user is responsible for the safety of themself, fellow employees and contractors, and coworkers when using or handling the HomeICU. Furthermore, the user is fully responsible for the contact interface between the human body and electronics; consequently, the user is responsible for preventing electrical hazards such as shock, electrostatic discharge, and electrical overstress of electric circuit components.
 
 ---
 # License

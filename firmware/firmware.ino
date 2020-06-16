@@ -11,22 +11,17 @@
   Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
 
   To view the build out, please go to the build folder. 
-
-  firmware.elf contain useful information about the build and link. 
-  It can be opened by 
-  http://www.sunshine2k.de/coding/javascript/onlineelfviewer/onlineelfviewer.html
 ---------------------------------------------------------------------------------*/
-
 
 /*---------------------------------------------------------------------------------
  Arduino/ESP32 library
 ---------------------------------------------------------------------------------*/
 #include <SPI.h>
-#include <Wire.h>         //I2C library
+#include <Wire.h>         // I2C library
 #include <Update.h>
-#include <SPIFFS.h>       //ESP file system
-#include <FS.h>           //File System Headers
-#include <ArduinoOTA.h>   //on-the-air update
+#include <SPIFFS.h>       // ESP file system
+#include <FS.h>           // File System Headers
+#include <ArduinoOTA.h>   // On-The-Air upload (wifi)
 
 /*---------------------------------------------------------------------------------
  HomeICU driver code
@@ -35,13 +30,19 @@
 #include "ecg_resp_signal_processing.h"
 #include "AFE4490_Oximeter.h"
 #include "spo2_algorithm.h"
-#include "web.h"
-#include "BLE.h"
+#include "../version.txt"
+
+void handle_BLE_stack(void);
+void initBLE(void);
+void handleWebClient(void);
+void setupWebServer(void);
+void setupBasicOTA(void);
+
 /*---------------------------------------------------------------------------------
- Temperature sensor
+ Temperature sensor (ONLY turn either one)
 ---------------------------------------------------------------------------------*/
-//#define TEMP_SENSOR_MAX30325  //  ONLY turn either one
-#define TEMP_SENSOR_TMP117      //  ONLY turn either one
+//#define TEMP_SENSOR_MAX30325  
+#define TEMP_SENSOR_TMP117      
 
 #ifdef TEMP_SENSOR_MAX30325
 #include "MAX30205.h"
@@ -433,6 +434,34 @@ void halt_and_flash(void)
     digitalWrite(LED_PIN, LOW);
   }
 }
+
+/*---------------------------------------------------------------------------------
+ The ESP32 has four SPI buses, only two of them are available to use, HSPI and VSPI. 
+ Simply using the SPI API as illustrated in Arduino examples will use VSPI, leaving HSPI unused.
+ 
+ However if we simply intialise two instance of the SPI class for both
+ of these buses both can be used. However when just using these the Arduino
+ way only will actually be outputting at a time.
+
+ SPI	  MOSI	  MISO	  CLK	    CS
+ VSPI	GPIO23	GPIO19	GPIO18	GPIO5
+ HSPI	GPIO13	GPIO12	GPIO14	GPIO15
+ FIXME This design only uses VSPI, the default CS pin is IO5, but this design use IO21.
+ TODO: IDE provides another example of SPI code.
+---------------------------------------------------------------------------------*/
+void initSPI(void)
+{
+  SPI.begin();
+  Wire.begin(25,22);  //FIXME test this line
+  SPI.setClockDivider (SPI_CLOCK_DIV16);
+  SPI.setBitOrder     (MSBFIRST);
+  SPI.setDataMode     (SPI_MODE0);
+  delay(10);        //delay 10ms
+  afe4490.afe44xxInit (AFE4490_CS_PIN,AFE4490_PWDN_PIN);
+  delay(10); 
+  SPI.setDataMode (SPI_MODE1);          //Set SPI mode as 1
+  delay(10);
+}
 /*---------------------------------------------------------------------------------
 The setup() function is called when a sketch starts. Use it to initialize variables, 
 pin modes, start using libraries, etc. The setup() function will only run once, 
@@ -443,11 +472,16 @@ void setup()
   // Make sure serial port on first
   // Setup serial port U0UXD for programming and reset/boot
   Serial.begin  (115200);   // Baudrate for serial communication
-
-  Serial.println("************************************************");
-  Serial.println("HomeICU is starting...");
-  Serial.println("************************************************");
-
+  
+  Serial.write(12);         // ASCII for a Form feed to "clear" the screen
+  Serial.println("************************");
+  Serial.println("HomeICU Firmware");
+  Serial.println("************************");
+  Serial.println("version:");
+  Serial.println(homeicu_version); 
+  Serial.println("commits:");
+  Serial.println(homeicu_commits);
+ 
   // initalize the  data ready and chip select pins:
   // Pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
   pinMode(ADS1292_DRDY_PIN,   INPUT);  
@@ -462,21 +496,11 @@ void setup()
   pinMode(PUSH_BUTTON_PIN,    INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON_PIN), push_button_intr_handler, FALLING);
 
-  //??? BLE_Init();  
-  setupBasicOTA();      //Basic Over The Air
-  
-  // ESP32 has 4 SPI, one is used by flash memory
-  SPI.begin();
-  Wire.begin(25,22);
-  SPI.setClockDivider (SPI_CLOCK_DIV16);
-  SPI.setBitOrder     (MSBFIRST);
-  SPI.setDataMode     (SPI_MODE0);
-  delay(10);  //delay 10ms
-  afe4490.afe44xxInit (AFE4490_CS_PIN,AFE4490_PWDN_PIN);
-  delay(10); 
-  SPI.setDataMode (SPI_MODE1);          //Set SPI mode as 1
-  delay(10);
-  
+  initBLE();                  //low energy blue tooth 
+  setupBasicOTA();            //Over The Air for code uploading
+  setupWebServer();           //Web server for code uploading
+  //TODO initSPI();            //initalize SPI
+
   //Initialize SPI file system
   if(!SPIFFS.begin(true)) 
   {
@@ -492,14 +516,14 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING ); 
   
   if (tempSensor.begin()) 
-    Serial.println("Temperature sensor - ok.");
+    Serial.println("Temperature sensor: OK.");
   else
-    Serial.println("Temperature sensor - failed.");
+    Serial.println("Temperature sensor: Missing.");
  
   if (system_init_error>0)
     halt_and_flash(); 
   else   
-    Serial.println("Initialization is complete!");
+    Serial.println("Initialization done!");
 }
 /*---------------------------------------------------------------------------------
 After creating a setup() function, which initializes and sets the initial values, 
@@ -509,8 +533,11 @@ void loop()
 {
   boolean ret;
 
-  ArduinoOTA.handle();        // This is for "On The Air" update function 
-
+//FIXME  ArduinoOTA.handle();        // This is for "On The Air" update function 
+//FIXME  handle_BLE_stack();
+  handleWebClient();
+  delay(2);
+#ifdef SSSS  //FIXME
   ret = ADS1292R.getAds1292r_Data_if_Available(ADS1292_DRDY_PIN,ADS1292_CS_PIN,&ads1292r_raw_data);
 
   if (ret == true)
@@ -520,6 +547,7 @@ void loop()
   
     if (!((ads1292r_raw_data.status_reg & 0x1f) == 0))
     {
+      // the measure lead is OFF the body 
       leadoff_detected  = true; 
       lead_flag         = 0x04;
       ecg_filterout     = 0;
@@ -529,6 +557,7 @@ void loop()
     }  
     else
     {
+      // the measure lead is ON the body 
       leadoff_detected  = false;
       lead_flag = 0x06;
 
@@ -632,6 +661,6 @@ void loop()
       //reading the battery with same interval as temperature sensor
       read_battery_value();
     }
-    handle_BLE_stack();
   }
+#endif 
 }

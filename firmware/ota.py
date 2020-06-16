@@ -5,8 +5,11 @@
 
 import os
 
-ToolPath = "~/Documents/Arduino/hardware/espressif/esp32/tools/"
-ESP32_IP = "192.168.1.23"
-BinaryFile = "../../homeicu-build/firmware.ino.bin" 
+import socket
 
-os.system(ToolPath + "espota.py -r -d -i " + ESP32_IP + " -f " + BinaryFile)
+ToolPath = "~/Documents/Arduino/hardware/espressif/esp32/tools/"
+esp32_ip = socket.gethostbyname("homeicu.local")
+BinaryFile = "../../homeicu-build/firmware.ino.bin" 
+shell_comand = ToolPath + "espota.py -r -d -t 3 -i " + esp32_ip + " -f " + BinaryFile
+print(shell_comand)
+os.system(shell_comand)

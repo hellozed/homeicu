@@ -21,10 +21,6 @@ Distributed as-is; no warranty is given.
 #ifndef __SparkFun_TMP117_H__
 #define __SparkFun_TMP117_H__
 
-#include <Wire.h>
-#include <Arduino.h>
-#include "TMP117_Registers.h"
-
 #define DEVICE_ID_VALUE 0x0117			// Value found in the device ID register on reset (page 24 Table 3 of datasheet)
 #define TMP117_RESOLUTION 0.0078125f	// Resolution of the device, found on (page 1 of datasheet)
 #define CONTINUOUS_CONVERSION_MODE 0b00 // Continuous Conversion Mode

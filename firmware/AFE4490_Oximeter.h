@@ -17,11 +17,6 @@
 #ifndef _AFE4490
 #define _AFE4490
 
-#include "Arduino.h"
-#include <SPI.h>
-#include <string.h>
-#include <math.h>
-
 //afe44xx Register definition
 #define CONTROL0      0x00
 #define LED2STC       0x01
@@ -82,7 +77,6 @@ typedef struct afe44xx_Record{
   boolean buffer_count_overflow = false;
 }afe44xx_data;
 
-
 class AFE4490
 {
   public:
@@ -95,5 +89,4 @@ class AFE4490
     boolean get_AFE4490_Data (afe44xx_data *afe44xx_raw_data,const int chip_select,const int data_ready);
     boolean get_AFE4490_Data (afe44xx_data *afe44xx_raw_data);
 };
-
 #endif
