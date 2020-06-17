@@ -1,5 +1,7 @@
-#ifndef ecg_resp_signal_processing_h
-#define ecg_resp_signal_processing_h
+#ifndef ecg_resp_h
+#define ecg_resp_h
+
+#include "Arduino.h"
 
 #define TEMPERATURE          0
 #define FILTERORDER         161

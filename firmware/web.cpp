@@ -201,7 +201,7 @@ String style =
 /* Login page */
 String loginIndex = 
 "<form name=loginForm>"
-"<h1>HomeICU Firmware Login</h1>"
+"<h1>HomeICU Upload</h1>"
 "<input name=userid placeholder='User ID'> "
 "<input name=pwd placeholder=Password type=Password> "
 "<input type=submit onclick=check(this.form) class=btn value=Login></form>"

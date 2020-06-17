@@ -26,7 +26,7 @@
  HomeICU driver code
 ---------------------------------------------------------------------------------*/
 #include "ADS1292r.h"
-#include "ecg_resp_signal_processing.h"
+#include "ecg_resp.h"
 #include "AFE4490_Oximeter.h"
 #include "spo2_algorithm.h"
 #include "version.h"
@@ -459,7 +459,7 @@ void initSPI(void)
   SPI.setBitOrder     (MSBFIRST);
   SPI.setDataMode     (SPI_MODE0);
   delay(10);        //delay 10ms
-  afe4490.afe44xxInit (AFE4490_CS_PIN,AFE4490_PWDN_PIN);
+  afe4490.Init (AFE4490_CS_PIN,AFE4490_PWDN_PIN);
   delay(10); 
   SPI.setDataMode (SPI_MODE1);          //Set SPI mode as 1
   delay(10);
@@ -512,7 +512,7 @@ void setup()
   else
     Serial.println("SPIFFS Init OK!");
 
-  ADS1292R.ads1292_Init(ADS1292_CS_PIN,ADS1292_PWDN_PIN,ADS1292_START_PIN);  //initalize ADS1292 slave
+  ADS1292R.Init(ADS1292_CS_PIN,ADS1292_PWDN_PIN,ADS1292_START_PIN);  //initalize ADS1292 slave
   delay(10); 
   // Digital2 is attached to Data ready pin of AFE is interrupt0 in ARduino
   attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING ); 
@@ -592,7 +592,7 @@ void loop()
     memcpy(&DataPacket[0], &ecg_filterout, 2);
     memcpy(&DataPacket[2], &resp_filterout, 2);
     SPI.setDataMode (SPI_MODE0);
-    afe4490.get_AFE4490_Data(&afe44xx_raw_data,AFE4490_CS_PIN,AFE4490_DRDY_PIN);
+    afe4490.getData(&afe44xx_raw_data,AFE4490_CS_PIN,AFE4490_DRDY_PIN);
     ppg_wave_ir = (uint16_t)(afe44xx_raw_data.IR_data>>8);
     ppg_wave_ir = ppg_wave_ir;
     

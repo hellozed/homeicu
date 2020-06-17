@@ -82,13 +82,13 @@ typedef struct afe44xx_Record{
 class AFE4490
 {
   public:
-    void afe44xxInit (const int chip_select,const int data_ready);
-    void afe44xxInit ();
-    void afe44xxWrite (uint8_t address, uint32_t data,const int chip_select);
-    void afe44xxWrite (uint8_t address,uint32_t data);
-    unsigned long afe44xxRead (uint8_t address,const int chip_select);
-    unsigned long afe44xxRead (uint8_t address);
-    boolean get_AFE4490_Data (afe44xx_data *afe44xx_raw_data,const int chip_select,const int data_ready);
-    boolean get_AFE4490_Data (afe44xx_data *afe44xx_raw_data);
+    void Init (const int chip_select,const int data_ready);
+    void Init ();
+    void writeData (uint8_t address, uint32_t data,const int chip_select);
+    void writeData (uint8_t address,uint32_t data);
+    unsigned long readData (uint8_t address,const int chip_select);
+    unsigned long readData (uint8_t address);
+    boolean getData (afe44xx_data *afe44xx_raw_data,const int chip_select,const int data_ready);
+    boolean getData (afe44xx_data *afe44xx_raw_data);
 };
 #endif

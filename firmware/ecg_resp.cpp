@@ -1,6 +1,6 @@
 #include "Arduino.h"
 #include "ADS1292r.h"
-#include "ecg_resp_signal_processing.h"
+#include "ecg_resp.h"
 #include <SPI.h>
 
 unsigned char Start_Sample_Count_Flag = 0;

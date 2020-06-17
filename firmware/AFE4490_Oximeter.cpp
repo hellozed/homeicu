@@ -55,12 +55,12 @@ const uint8_t uch_spo2_table[184]={ 95, 95, 95, 96, 96, 96, 97, 97, 97, 97, 97, 
 
 spo2_algorithm Spo2;
 
-boolean AFE4490 :: get_AFE4490_Data (afe44xx_data *afe44xx_raw_data,const int chip_select,const int data_ready)
+boolean AFE4490 :: getData (afe44xx_data *afe44xx_raw_data,const int chip_select,const int data_ready)
 {
-  afe44xxWrite(CONTROL0, 0x000001,chip_select);
-  IRtemp = afe44xxRead(LED1VAL,chip_select);
-  afe44xxWrite(CONTROL0, 0x000001,chip_select);
-  REDtemp = afe44xxRead(LED2VAL,chip_select);
+  writeData(CONTROL0, 0x000001,chip_select);
+  IRtemp = readData(LED1VAL,chip_select);
+  writeData(CONTROL0, 0x000001,chip_select);
+  REDtemp = readData(LED2VAL,chip_select);
   afe44xx_data_ready = true;
   IRtemp = (unsigned long) (IRtemp << 10);
   afe44xx_raw_data->IR_data = (signed long) (IRtemp);
@@ -92,12 +92,12 @@ boolean AFE4490 :: get_AFE4490_Data (afe44xx_data *afe44xx_raw_data,const int ch
   return true;
 }
 
-boolean AFE4490 :: get_AFE4490_Data (afe44xx_data *afe44xx_raw_data)
+boolean AFE4490 :: getData (afe44xx_data *afe44xx_raw_data)
 {
-  afe44xxWrite(CONTROL0, 0x000001);
-  IRtemp = afe44xxRead(LED1VAL);
-  afe44xxWrite(CONTROL0, 0x000001);
-  REDtemp = afe44xxRead(LED2VAL);
+  writeData(CONTROL0, 0x000001);
+  IRtemp = readData(LED1VAL);
+  writeData(CONTROL0, 0x000001);
+  REDtemp = readData(LED2VAL);
   afe44xx_data_ready = true;
   IRtemp = (unsigned long) (IRtemp << 10);
   afe44xx_raw_data->IR_data = (signed long) (IRtemp);
@@ -130,97 +130,97 @@ boolean AFE4490 :: get_AFE4490_Data (afe44xx_data *afe44xx_raw_data)
 }
 
 
-void AFE4490 :: afe44xxInit (const int chip_select,const int reset_pin)
+void AFE4490 :: Init (const int chip_select,const int reset_pin)
 {
   digitalWrite(reset_pin, LOW);
   delay(500);
   digitalWrite(reset_pin, HIGH);
   delay(500);
-  afe44xxWrite(CONTROL0, 0x000000,chip_select);
-  afe44xxWrite(CONTROL0, 0x000008,chip_select);
-  afe44xxWrite(TIAGAIN, 0x000000,chip_select); // CF = 5pF, RF = 500kR
-  afe44xxWrite(TIA_AMB_GAIN, 0x000001,chip_select);
-  afe44xxWrite(LEDCNTRL, 0x001414,chip_select);
-  afe44xxWrite(CONTROL2, 0x000000,chip_select); // LED_RANGE=100mA, LED=50mA
-  afe44xxWrite(CONTROL1, 0x010707,chip_select); // Timers ON, average 3 samples
-  afe44xxWrite(PRPCOUNT, 0X001F3F,chip_select);
-  afe44xxWrite(LED2STC, 0X001770,chip_select);
-  afe44xxWrite(LED2ENDC, 0X001F3E,chip_select);
-  afe44xxWrite(LED2LEDSTC, 0X001770,chip_select);
-  afe44xxWrite(LED2LEDENDC, 0X001F3F,chip_select);
-  afe44xxWrite(ALED2STC, 0X000000,chip_select);
-  afe44xxWrite(ALED2ENDC, 0X0007CE,chip_select);
-  afe44xxWrite(LED2CONVST, 0X000002,chip_select);
-  afe44xxWrite(LED2CONVEND, 0X0007CF,chip_select);
-  afe44xxWrite(ALED2CONVST, 0X0007D2,chip_select);
-  afe44xxWrite(ALED2CONVEND, 0X000F9F,chip_select);
-  afe44xxWrite(LED1STC, 0X0007D0,chip_select);
-  afe44xxWrite(LED1ENDC, 0X000F9E,chip_select);
-  afe44xxWrite(LED1LEDSTC, 0X0007D0,chip_select);
-  afe44xxWrite(LED1LEDENDC, 0X000F9F,chip_select);
-  afe44xxWrite(ALED1STC, 0X000FA0,chip_select);
-  afe44xxWrite(ALED1ENDC, 0X00176E,chip_select);
-  afe44xxWrite(LED1CONVST, 0X000FA2,chip_select);
-  afe44xxWrite(LED1CONVEND, 0X00176F,chip_select);
-  afe44xxWrite(ALED1CONVST, 0X001772,chip_select);
-  afe44xxWrite(ALED1CONVEND, 0X001F3F,chip_select);
-  afe44xxWrite(ADCRSTCNT0, 0X000000,chip_select);
-  afe44xxWrite(ADCRSTENDCT0, 0X000000,chip_select);
-  afe44xxWrite(ADCRSTCNT1, 0X0007D0,chip_select);
-  afe44xxWrite(ADCRSTENDCT1, 0X0007D0,chip_select);
-  afe44xxWrite(ADCRSTCNT2, 0X000FA0,chip_select);
-  afe44xxWrite(ADCRSTENDCT2, 0X000FA0,chip_select);
-  afe44xxWrite(ADCRSTCNT3, 0X001770,chip_select);
-  afe44xxWrite(ADCRSTENDCT3, 0X001770,chip_select);
+  writeData(CONTROL0, 0x000000,chip_select);
+  writeData(CONTROL0, 0x000008,chip_select);
+  writeData(TIAGAIN, 0x000000,chip_select); // CF = 5pF, RF = 500kR
+  writeData(TIA_AMB_GAIN, 0x000001,chip_select);
+  writeData(LEDCNTRL, 0x001414,chip_select);
+  writeData(CONTROL2, 0x000000,chip_select); // LED_RANGE=100mA, LED=50mA
+  writeData(CONTROL1, 0x010707,chip_select); // Timers ON, average 3 samples
+  writeData(PRPCOUNT, 0X001F3F,chip_select);
+  writeData(LED2STC, 0X001770,chip_select);
+  writeData(LED2ENDC, 0X001F3E,chip_select);
+  writeData(LED2LEDSTC, 0X001770,chip_select);
+  writeData(LED2LEDENDC, 0X001F3F,chip_select);
+  writeData(ALED2STC, 0X000000,chip_select);
+  writeData(ALED2ENDC, 0X0007CE,chip_select);
+  writeData(LED2CONVST, 0X000002,chip_select);
+  writeData(LED2CONVEND, 0X0007CF,chip_select);
+  writeData(ALED2CONVST, 0X0007D2,chip_select);
+  writeData(ALED2CONVEND, 0X000F9F,chip_select);
+  writeData(LED1STC, 0X0007D0,chip_select);
+  writeData(LED1ENDC, 0X000F9E,chip_select);
+  writeData(LED1LEDSTC, 0X0007D0,chip_select);
+  writeData(LED1LEDENDC, 0X000F9F,chip_select);
+  writeData(ALED1STC, 0X000FA0,chip_select);
+  writeData(ALED1ENDC, 0X00176E,chip_select);
+  writeData(LED1CONVST, 0X000FA2,chip_select);
+  writeData(LED1CONVEND, 0X00176F,chip_select);
+  writeData(ALED1CONVST, 0X001772,chip_select);
+  writeData(ALED1CONVEND, 0X001F3F,chip_select);
+  writeData(ADCRSTCNT0, 0X000000,chip_select);
+  writeData(ADCRSTENDCT0, 0X000000,chip_select);
+  writeData(ADCRSTCNT1, 0X0007D0,chip_select);
+  writeData(ADCRSTENDCT1, 0X0007D0,chip_select);
+  writeData(ADCRSTCNT2, 0X000FA0,chip_select);
+  writeData(ADCRSTENDCT2, 0X000FA0,chip_select);
+  writeData(ADCRSTCNT3, 0X001770,chip_select);
+  writeData(ADCRSTENDCT3, 0X001770,chip_select);
   delay(1000);
 }
 
-void AFE4490 :: afe44xxInit ()
+void AFE4490 :: Init ()
 {
   digitalWrite(reset_pin, LOW);
   delay(500);
   digitalWrite(reset_pin, HIGH);
   delay(500);
-  afe44xxWrite(CONTROL0, 0x000000);
-  afe44xxWrite(CONTROL0, 0x000008);
-  afe44xxWrite(TIAGAIN, 0x000000); // CF = 5pF, RF = 500kR
-  afe44xxWrite(TIA_AMB_GAIN, 0x000001);
-  afe44xxWrite(LEDCNTRL, 0x001414);
-  afe44xxWrite(CONTROL2, 0x000000); // LED_RANGE=100mA, LED=50mA
-  afe44xxWrite(CONTROL1, 0x010707); // Timers ON, average 3 samples
-  afe44xxWrite(PRPCOUNT, 0X001F3F);
-  afe44xxWrite(LED2STC, 0X001770);
-  afe44xxWrite(LED2ENDC, 0X001F3E);
-  afe44xxWrite(LED2LEDSTC, 0X001770);
-  afe44xxWrite(LED2LEDENDC, 0X001F3F);
-  afe44xxWrite(ALED2STC, 0X000000);
-  afe44xxWrite(ALED2ENDC, 0X0007CE);
-  afe44xxWrite(LED2CONVST, 0X000002);
-  afe44xxWrite(LED2CONVEND, 0X0007CF);
-  afe44xxWrite(ALED2CONVST, 0X0007D2);
-  afe44xxWrite(ALED2CONVEND, 0X000F9F);
-  afe44xxWrite(LED1STC, 0X0007D0);
-  afe44xxWrite(LED1ENDC, 0X000F9E);
-  afe44xxWrite(LED1LEDSTC, 0X0007D0);
-  afe44xxWrite(LED1LEDENDC, 0X000F9F);
-  afe44xxWrite(ALED1STC, 0X000FA0);
-  afe44xxWrite(ALED1ENDC, 0X00176E);
-  afe44xxWrite(LED1CONVST, 0X000FA2);
-  afe44xxWrite(LED1CONVEND, 0X00176F);
-  afe44xxWrite(ALED1CONVST, 0X001772);
-  afe44xxWrite(ALED1CONVEND, 0X001F3F);
-  afe44xxWrite(ADCRSTCNT0, 0X000000);
-  afe44xxWrite(ADCRSTENDCT0, 0X000000);
-  afe44xxWrite(ADCRSTCNT1, 0X0007D0);
-  afe44xxWrite(ADCRSTENDCT1, 0X0007D0);
-  afe44xxWrite(ADCRSTCNT2, 0X000FA0);
-  afe44xxWrite(ADCRSTENDCT2, 0X000FA0);
-  afe44xxWrite(ADCRSTCNT3, 0X001770);
-  afe44xxWrite(ADCRSTENDCT3, 0X001770);
+  writeData(CONTROL0, 0x000000);
+  writeData(CONTROL0, 0x000008);
+  writeData(TIAGAIN, 0x000000); // CF = 5pF, RF = 500kR
+  writeData(TIA_AMB_GAIN, 0x000001);
+  writeData(LEDCNTRL, 0x001414);
+  writeData(CONTROL2, 0x000000); // LED_RANGE=100mA, LED=50mA
+  writeData(CONTROL1, 0x010707); // Timers ON, average 3 samples
+  writeData(PRPCOUNT, 0X001F3F);
+  writeData(LED2STC, 0X001770);
+  writeData(LED2ENDC, 0X001F3E);
+  writeData(LED2LEDSTC, 0X001770);
+  writeData(LED2LEDENDC, 0X001F3F);
+  writeData(ALED2STC, 0X000000);
+  writeData(ALED2ENDC, 0X0007CE);
+  writeData(LED2CONVST, 0X000002);
+  writeData(LED2CONVEND, 0X0007CF);
+  writeData(ALED2CONVST, 0X0007D2);
+  writeData(ALED2CONVEND, 0X000F9F);
+  writeData(LED1STC, 0X0007D0);
+  writeData(LED1ENDC, 0X000F9E);
+  writeData(LED1LEDSTC, 0X0007D0);
+  writeData(LED1LEDENDC, 0X000F9F);
+  writeData(ALED1STC, 0X000FA0);
+  writeData(ALED1ENDC, 0X00176E);
+  writeData(LED1CONVST, 0X000FA2);
+  writeData(LED1CONVEND, 0X00176F);
+  writeData(ALED1CONVST, 0X001772);
+  writeData(ALED1CONVEND, 0X001F3F);
+  writeData(ADCRSTCNT0, 0X000000);
+  writeData(ADCRSTENDCT0, 0X000000);
+  writeData(ADCRSTCNT1, 0X0007D0);
+  writeData(ADCRSTENDCT1, 0X0007D0);
+  writeData(ADCRSTCNT2, 0X000FA0);
+  writeData(ADCRSTENDCT2, 0X000FA0);
+  writeData(ADCRSTCNT3, 0X001770);
+  writeData(ADCRSTENDCT3, 0X001770);
   delay(1000);
 }
 
-void AFE4490 :: afe44xxWrite (uint8_t address, uint32_t data,const int chip_select)
+void AFE4490 :: writeData (uint8_t address, uint32_t data,const int chip_select)
 {
   digitalWrite (chip_select, LOW); // enable device
   SPI.transfer (address); // send address to device
@@ -230,7 +230,7 @@ void AFE4490 :: afe44xxWrite (uint8_t address, uint32_t data,const int chip_sele
   digitalWrite (chip_select, HIGH); // disable device
 }
 
-void AFE4490 :: afe44xxWrite (uint8_t address, uint32_t data)
+void AFE4490 :: writeData (uint8_t address, uint32_t data)
 {
   digitalWrite (chip_select, LOW); // enable device
   SPI.transfer (address); // send address to device
@@ -240,7 +240,7 @@ void AFE4490 :: afe44xxWrite (uint8_t address, uint32_t data)
   digitalWrite (chip_select, HIGH); // disable device
 }
 
-unsigned long AFE4490 :: afe44xxRead (uint8_t address,const int chip_select)
+unsigned long AFE4490 :: readData (uint8_t address,const int chip_select)
 {
   unsigned long data = 0;
   digitalWrite (chip_select, LOW); // enable device
@@ -252,7 +252,7 @@ unsigned long AFE4490 :: afe44xxRead (uint8_t address,const int chip_select)
   return data; // return with 24 bits of read data
 }
 
-unsigned long AFE4490 :: afe44xxRead (uint8_t address)
+unsigned long AFE4490 :: readData (uint8_t address)
 {
   unsigned long data = 0;
   digitalWrite (chip_select, LOW); // enable device
