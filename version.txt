@@ -1,2 +1,0 @@
-#define homeicu_version "v0.1.0-2-g63a472a"
-#define homeicu_commits "48"

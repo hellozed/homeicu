@@ -22,7 +22,6 @@
 #include <SPIFFS.h>       // ESP file system
 #include <FS.h>           // File System Headers
 #include <ArduinoOTA.h>   // On-The-Air upload (wifi)
-
 /*---------------------------------------------------------------------------------
  HomeICU driver code
 ---------------------------------------------------------------------------------*/
@@ -30,7 +29,7 @@
 #include "ecg_resp_signal_processing.h"
 #include "AFE4490_Oximeter.h"
 #include "spo2_algorithm.h"
-#include "../version.txt"
+#include "version.h"
 
 void handle_BLE_stack(void);
 void initBLE(void);
@@ -58,7 +57,7 @@ const int ADS1292_DRDY_PIN  = 26;
 const int ADS1292_CS_PIN    = 13;
 const int ADS1292_START_PIN = 14;
 const int ADS1292_PWDN_PIN  = 27;
-const int PUSH_BUTTON_PIN   = 17;
+const int PUSH_BUTTON_PIN   = 0;
 const int AFE4490_CS_PIN    = 21; 
 const int AFE4490_DRDY_PIN  = 39; 
 const int AFE4490_PWDN_PIN  = 4;
@@ -190,7 +189,10 @@ int system_init_error = 0;
 ---------------------------------------------------------------------------------*/
 void push_button_intr_handler()
 {
-  // No button hardware in this design
+  // BOOT button is pressed down
+
+  Serial.println("BOOT is down");
+
 }
 /*---------------------------------------------------------------------------------
  battery level check
@@ -533,7 +535,7 @@ void loop()
 {
   boolean ret;
 
-//FIXME  ArduinoOTA.handle();        // This is for "On The Air" update function 
+  ArduinoOTA.handle();        // This is for "On The Air" update function 
 //FIXME  handle_BLE_stack();
   handleWebClient();
   delay(2);

@@ -21,12 +21,11 @@
   //  AWS_S3_OTA_Update.ino  - download from amazone cloud
   //  OTAWebUpdater.ino - upload into esp32 by web
 
-
 #include <SPIFFS.h>
 #include <FS.h>                     // File System
 #include <ArduinoOTA.h>
-
-#define HOST_NAME  "homeicu"
+extern String  loginIndex;
+extern String  serverIndex;
 /*---------------------------------------------------------------------------------
   WiFi router configuration
 
@@ -35,6 +34,7 @@
   const char* wifi_password = "";
 ---------------------------------------------------------------------------------*/
 #include "wifi_id.h"
+#define HOST_NAME  "homeicu"
 /*---------------------------------------------------------------------------------
   Basic OTA (on-the-air) function
 

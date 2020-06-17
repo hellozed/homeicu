@@ -17,6 +17,8 @@
 #ifndef _AFE4490
 #define _AFE4490
 
+#include "Arduino.h"
+
 //afe44xx Register definition
 #define CONTROL0      0x00
 #define LED2STC       0x01
