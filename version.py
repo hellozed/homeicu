@@ -16,8 +16,8 @@ commits =  getCommits.read()
 file1 = open('version.txt', 'w') 
   
 # Writing a string to file 
-version = "#define homeicu_version = \"" + str(version.decode()).strip() + "\"\n"
-commits = "#define homeicu_commits = \"" + str(commits.decode()).strip() + "\"\n"
+version = "#define homeicu_version \"" + str(version.decode()).strip() + "\"\n"
+commits = "#define homeicu_commits \"" + str(commits.decode()).strip() + "\"\n"
 file1.write(version)
 file1.write(commits)
   
