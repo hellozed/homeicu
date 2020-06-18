@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# generate version from git, and store in version.h
+
+# generate version from git, and store it in version.h
 
 import os
 print("generate version from the git, and store it in the version.txt")
@@ -18,6 +19,12 @@ file1 = open('version.h', 'w')
 # Writing a string to file 
 version = "#define homeicu_version \"" + str(version.decode()).strip() + "\"\n"
 commits = "#define homeicu_commits \"" + str(commits.decode()).strip() + "\"\n"
+
+file1.write("// This version is generated from Git\n")
+file1.write("// please run version.py again to get the correct version number \n")
+file1.write("// before building the binary\n")
+file1.write("\n\n")
+
 file1.write(version)
 file1.write(commits)
   

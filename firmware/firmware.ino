@@ -1,16 +1,17 @@
 /*---------------------------------------------------------------------------------
-  Main code of HomeICU project.
+  Main code of the HomeICU project.
 
-  Please use Arduino IDE to build and download into ESP32 boards. 
+  Arduino IDE and VSCode is needed to build/download into boards. 
 
-  Arduino language Reference:
+  Arduino Language Reference:
   https://www.arduino.cc/en/Reference/
 
   Heart rate and respiration computation based on original code from Texas Instruments
-  equires g4p_control graphing library for processing. 
+  requires a g4p_control graphing library for processing. 
+
   Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
 
-  To view the build out, please go to the build folder. 
+  To view the build-out, please go to the build folder. 
 ---------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------
@@ -107,18 +108,18 @@ float per_pnn;
 float pnn_f=0;
 float tri =0;
  
-volatile uint8_t heart_rate = 0;
-volatile uint8_t HeartRate_prev = 0;
-volatile uint8_t RespirationRate=0;
-volatile uint8_t RespirationRate_prev = 0;
-volatile uint8_t npeakflag = 0;
-volatile long time_count=0;
-volatile long hist_time_count=0;
-volatile bool histogram_ready_flag = false;
+volatile uint8_t  heart_rate = 0;
+volatile uint8_t  HeartRate_prev = 0;
+volatile uint8_t  RespirationRate=0;
+volatile uint8_t  RespirationRate_prev = 0;
+volatile uint8_t  npeakflag = 0;
+volatile long     time_count=0;
+volatile long     hist_time_count=0;
+volatile bool     histogram_ready_flag = false;
 volatile unsigned int RR;
 
-volatile unsigned long  buttonInterruptTime = 0;
-volatile int            buttonEventPending = false;
+volatile uint32_t  buttonInterruptTime = 0;
+volatile int       buttonEventPending = false;
 
 volatile SemaphoreHandle_t timerSemaphore;
 hw_timer_t * timer = NULL;
@@ -127,11 +128,11 @@ portMUX_TYPE buttonMux  = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE ads1292Mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE timerMux   = portMUX_INITIALIZER_UNLOCKED;
 
-uint8_t ecg_data_buff[20];
+uint8_t ecg_data_buff [20];
 uint8_t resp_data_buff[2];
-uint8_t ppg_data_buff[20];
+uint8_t ppg_data_buff [20];
 uint8_t lead_flag = 0x04;
-uint8_t data_len = 20;
+uint8_t data_len  = 20;
 uint8_t heartbeat,sp02,respirationrate;
 uint8_t histogram_percent_bin[HISTGRM_DATA_SIZE/4];
 uint8_t hr_percent_count = 0;
@@ -162,8 +163,8 @@ char DataPacket[30];
 
 String strValue = "";
 
-static int bat_prev = 100;
-uint8_t battery_percent = 100;
+static int  bat_prev        = 100;
+uint8_t     battery_percent = 100;
 
 const int freq = 5000;
 const int ledChannel = 0;
@@ -201,7 +202,7 @@ ESP32 has 2 cores, each has 6 internal peripheral interrupts:
 
 Arduino normally use "NoInterrupts" and "Interrupts" functions to enable/disable interrupt.
 But "NoInterrupts" and "Interrupts" have not been implemented in ESP32 Arduino, please 
-use following methods.
+use the following methods.
 
 portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
 
@@ -219,9 +220,9 @@ http://www.iotsharing.com/2017/06/how-to-use-binary-semaphore-mutex-counting-sem
 
 
 /*---------------------------------------------------------------------------------
-  Button interrup handler
+  Button interrupt handler
 
-  Interup routine should: 
+  Interrupt routine should: 
     Keep it short
     Don't use delay ()
     Don't do serial prints
@@ -233,7 +234,7 @@ http://www.iotsharing.com/2017/06/how-to-use-binary-semaphore-mutex-counting-sem
     count++;
   interrupts ();
 
-  further refer to: http://www.gammon.com.au/interrupts
+  refer to: http://www.gammon.com.au/interrupts
 ---------------------------------------------------------------------------------*/
 void IRAM_ATTR button_interrupt_handler()
 {
@@ -564,15 +565,15 @@ void halt_and_flash()
  The ESP32 has four SPI buses, only two of them are available to use, HSPI and VSPI. 
  Simply using the SPI API as illustrated in Arduino examples will use VSPI, leaving HSPI unused.
  
- However if we simply intialise two instance of the SPI class for both
- of these buses both can be used. However when just using these the Arduino
- way only will actually be outputting at a time.
+ If we simply initialize two instances of the SPI class for both
+ of these buses both can be used. When using these the Arduino
+ way only will be outputting at a time.
 
  SPI	  MOSI	  MISO	  CLK	    CS
  VSPI	GPIO23	GPIO19	GPIO18	GPIO5
  HSPI	GPIO13	GPIO12	GPIO14	GPIO15
  FIXME This design only uses VSPI, the default CS pin is IO5, but this design use IO21.
- TODO: IDE provides another example of SPI code.
+ TODO: IDE provides another example of the SPI code.
 ---------------------------------------------------------------------------------*/
 void initSPI()
 {
@@ -590,7 +591,7 @@ void initSPI()
 /*---------------------------------------------------------------------------------
 The setup() function is called when a sketch starts. Use it to initialize variables, 
 pin modes, start using libraries, etc. The setup() function will only run once, 
-after each powerup or reset of the  board.
+after power-up or reset of the  board.
 ---------------------------------------------------------------------------------*/
 void setup()
 {
@@ -607,7 +608,7 @@ void setup()
   Serial.printf ("Version: %s Git commits: %s \r\n", homeicu_version, homeicu_commits);
 	Serial.printf ("MAC address: %04X %08X \r\n",(uint16_t)(chipid>>32), (uint32_t)chipid);
 
-  // initalize the data ready and chip select pins:
+  // initialize the data ready and chip select pins:
   // Pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
   pinMode(ADS1292_DRDY_PIN,   INPUT);  
   pinMode(ADS1292_CS_PIN,     OUTPUT);    
@@ -626,7 +627,7 @@ void setup()
   initBLE();                  //low energy blue tooth 
   setupBasicOTA();            //Over The Air for code uploading
   setupWebServer();           //Web server for code uploading
-  initSPI();                  //initalize SPI
+  initSPI();                  //initialize SPI
 
   //Initialize SPI file system
   if(!SPIFFS.begin(true)) 
@@ -637,7 +638,7 @@ void setup()
   else
     Serial.println("SPIFFS OK");
 
-  ADS1292R.Init(ADS1292_CS_PIN,ADS1292_PWDN_PIN,ADS1292_START_PIN);  //initalize ADS1292 slave
+  ADS1292R.Init(ADS1292_CS_PIN,ADS1292_PWDN_PIN,ADS1292_START_PIN);  //initialize ADS1292 slave
   delay(10); 
   // Digital2 is attached to Data ready pin of AFE is interrupt0 in ARduino
   attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING ); 
@@ -769,8 +770,9 @@ void loop()
       #endif
 
       #ifdef TEMP_SENSOR_TMP117
-        // Data Ready is a flag for the conversion modes - in continous conversion the dataReady flag should always be high
-      if (tempSensor.dataReady()) // Function to make sure that there is data ready to be printed, only prints temperature values when data is ready
+        // Data Ready is a flag for the conversion modes
+        // the dataReady flag should always be high in continuous conversion 
+      if (tempSensor.dataReady()) // Function to make sure that there are data ready to be printed, only prints temperature values when data is ready
       {
         float tempC = tempSensor.readTempC();
         float tempF = tempSensor.readTempF();

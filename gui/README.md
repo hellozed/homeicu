@@ -2,7 +2,7 @@
 
 HomeICU Device measures the vital signs and sends measurement to base station through bluetooth.
 
-The Base Station is a iPhone/Android phone/tablet device runing a GUI software to accept the data and display them on the screen. 
+The Base Station is a iPhone/Android phone/tablet device running a GUI software to accept the data and display them on the screen. 
 
 The Base Station can upload the data to the remote cloud server and let doctor access it over Internet.
 
@@ -11,7 +11,7 @@ The Base Station can upload the data to the remote cloud server and let doctor a
 # Repository
 
 * **gui.cpp**   - reference code
-* **  **   - includes the datasheet
+* **  **   - includes the data sheet
 
 ---
 

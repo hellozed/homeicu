@@ -4,7 +4,7 @@
 #include "Arduino.h"
 #define SF_spo2          25     //sampling frequency
 #define BUFFER_SIZE  (SF_spo2*4)
-#define MA4_SIZE         4      // DONOT CHANGE
+#define MA4_SIZE         4      // DO NOT CHANGE
 #define min(x,y) ((x) < (y) ? (x) : (y))
 
 class spo2_algorithm

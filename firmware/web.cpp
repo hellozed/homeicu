@@ -16,7 +16,7 @@
  FIXME There is security risk here.
 ---------------------------------------------------------------------------------*/
   //WiFi.setSleep(true);
-  // stop blude tooth: 
+  // stop blue tooth: 
   // btStop(); 
   //  AWS_S3_OTA_Update.ino  - download from amazone cloud
   //  OTAWebUpdater.ino - upload into esp32 by web

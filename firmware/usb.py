@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# excute a tool to upload binary to ESP32 board through USBtoUART
+# execute a tool to upload the binary to ESP32 board through USBtoUART
 # please modify the setting below
 
 import os
@@ -14,7 +14,7 @@ bin2 = "0x1000  /Users/a123/Documents/Arduino/hardware/espressif/esp32/tools/sdk
 bin3 = "0x10000 /Users/a123/code/homeicu-build/firmware.ino.bin "
 bin4 = "0x8000  /Users/a123/code/homeicu-build/firmware.ino.partitions.bin "
 
-# the code below is for Arduino IDE built
+# the code below is for building binary with Arduino IDE 
 # bin3 = "0x10000 /var/folders/zt/7cvp4v655ng7568vkml4bty00000gn/T/arduino_build_346603/firmware.ino.bin "
 # bin4 = "0x8000 /var/folders/zt/7cvp4v655ng7568vkml4bty00000gn/T/arduino_build_346603/firmware.ino.partitions.bin "
 

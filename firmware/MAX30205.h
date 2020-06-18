@@ -30,15 +30,15 @@
 
 typedef unsigned char uint8_t;
 
-typedef enum{   	//For configuration registers
-  SHUTDOWN,    		// shutdwon mode to reduce power consumption <3.5uA
-  COMPARATOR,    	// Bit 0 = operate OS in comparator mode, 1= INTERRUPT MODE
+typedef enum{   	  // For configuration registers
+  SHUTDOWN,    		  // shut down mode to reduce power consumption <3.5uA
+  COMPARATOR,    	  // Bit 0 = operate OS in comparator mode, 1= INTERRUPT MODE
   OS_POLARITY,    	// Polarity bit ;Bit 0 = Active low output, Bit 1 = Active high
   FAULT_QUEUE_0,    // Fault indication bits
   FAULT_QUEUE_1,    // Fault indication bits
-  DATA_FORMAT,      //Data Format
-  TIME_OUT,          //Time out
-  ONE_SHOT           //1= One shot, 0 = Continuos
+  DATA_FORMAT,      // Data Format
+  TIME_OUT,         //  Time out
+  ONE_SHOT          //  1= One shot, 0 = Continuos
 }configuration;
 
 

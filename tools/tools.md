@@ -1,11 +1,11 @@
 
 
-# Tools for devleoping the project
+# Tools for developing the project
 
 ---
 # usb2uart breakout board
 
-HomeICU only surpport UART interface, it require a convert board to bridge UART with USB interface. Connect a 6-pin cable to link HomeICU board with this USB2BART breakout board. 
+HomeICU only supports the UART interface, it requires a conversion board to bridge UART with USB interface. Connect a 6-pin cable to link the HomeICU board with this USB2BART breakout board. 
 
 The usb2uart breakout board is "ft231x-breakout-v11" from www.sparkfun.com.
 

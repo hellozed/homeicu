@@ -166,7 +166,7 @@ void spo2_algorithm :: estimate_spo2(uint16_t *pun_ir_buffer, int32_t n_ir_buffe
 
         if (n_denom>0  && n_i_ratio_count <5 &&  n_nume != 0)
         {
-          an_ratio[n_i_ratio_count]= (n_nume*100)/n_denom ; //formular is ( n_y_ac *n_x_dc_max) / ( n_x_ac *n_y_dc_max) ;
+          an_ratio[n_i_ratio_count]= (n_nume*100)/n_denom ; //formula is ( n_y_ac *n_x_dc_max) / ( n_x_ac *n_y_dc_max) ;
           n_i_ratio_count++;
         }
 

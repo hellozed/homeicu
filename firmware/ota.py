@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# excute a tool to upload binary to ESP32 board by OTA
+# execute a tool to upload the binary to ESP32 board by OTA
 # please modify the setting below
 
 import os
