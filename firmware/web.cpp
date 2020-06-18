@@ -47,7 +47,6 @@ extern String  serverIndex;
 ---------------------------------------------------------------------------------*/
 void setupBasicOTA(void) 
 {
-  Serial.println("Setting OTA ...");
   WiFi.mode(WIFI_STA);
   //TODO WiFi.mode(WIFI_AP_STA);
 
@@ -99,7 +98,7 @@ void setupBasicOTA(void)
 
   ArduinoOTA.begin();
 
-  Serial.print("OTA Ready at IP address: ");
+  Serial.print("OTA IP: ");
   Serial.println(WiFi.localIP());
 }
 /*---------------------------------------------------------------------------------

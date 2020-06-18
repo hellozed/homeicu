@@ -31,12 +31,11 @@
 #include "spo2_algorithm.h"
 #include "version.h"
 
-void handle_BLE_stack(void);
-void initBLE(void);
-void handleWebClient(void);
-void setupWebServer(void);
-void setupBasicOTA(void);
-
+void handle_BLE_stack();
+void initBLE();
+void handleWebClient();
+void setupWebServer();
+void setupBasicOTA();
 /*---------------------------------------------------------------------------------
  Temperature sensor (ONLY turn either one)
 ---------------------------------------------------------------------------------*/
@@ -118,6 +117,16 @@ volatile long hist_time_count=0;
 volatile bool histogram_ready_flag = false;
 volatile unsigned int RR;
 
+volatile unsigned long  buttonInterruptTime = 0;
+volatile int            buttonEventPending = false;
+
+volatile SemaphoreHandle_t timerSemaphore;
+hw_timer_t * timer = NULL;
+
+portMUX_TYPE buttonMux  = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE ads1292Mux = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE timerMux   = portMUX_INITIALIZER_UNLOCKED;
+
 uint8_t ecg_data_buff[20];
 uint8_t resp_data_buff[2];
 uint8_t ppg_data_buff[20];
@@ -140,7 +149,7 @@ uint32_t heart_rate_histogram[HISTGRM_DATA_SIZE];
 
 bool deviceConnected    = false;
 bool oldDeviceConnected = false;
-bool temperature_data_ready = false;
+bool temperature_ready  = false;
 bool SpO2_calc_done     = false;
 bool ecg_buf_ready      = false;
 bool ppg_buf_ready      = false;
@@ -185,20 +194,134 @@ TMP117          tempSensor;
 
 int system_init_error = 0;  
 /*---------------------------------------------------------------------------------
- Button handle
+ESP32 has 2 cores, each has 6 internal peripheral interrupts:
+3 x timer comparators
+1 x performance monitor
+3 x software interrupts.
+
+Arduino normally use "NoInterrupts" and "Interrupts" functions to enable/disable interrupt.
+But "NoInterrupts" and "Interrupts" have not been implemented in ESP32 Arduino, please 
+use following methods.
+
+portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
+
+portENTER_CRITICAL(&myMutex);
+//critical section
+portEXIT_CRITICAL(&myMutex);
+
+portENTER_CRITICAL_ISR(&myMutex);
+//ISR section
+portEXIT_CRITICAL_ISR(&myMutex);
+
+You also can use semaphore if using FreeRtos. Refer to:
+http://www.iotsharing.com/2017/06/how-to-use-binary-semaphore-mutex-counting-semaphore-resource-management.html
 ---------------------------------------------------------------------------------*/
-void push_button_intr_handler()
+
+
+/*---------------------------------------------------------------------------------
+  Button interrup handler
+
+  Interup routine should: 
+    Keep it short
+    Don't use delay ()
+    Don't do serial prints
+    Make variables shared with the main code volatile and protected by "critical sections"
+    Don't try to turn interrupts off or on
+
+  critical sections should be like this:
+  noInterrupts ();
+    count++;
+  interrupts ();
+
+  further refer to: http://www.gammon.com.au/interrupts
+---------------------------------------------------------------------------------*/
+void IRAM_ATTR button_interrupt_handler()
 {
-  // BOOT button is pressed down
+  portENTER_CRITICAL_ISR(&buttonMux);
+    buttonEventPending++;
+    buttonInterruptTime = millis();
+  portEXIT_CRITICAL_ISR(&buttonMux);
+}
 
-  Serial.println("BOOT is down");
+void doButton() {
+  // if button was pressed
+  if (buttonEventPending>0)
+  {
+    if ((millis() - buttonInterruptTime) > 100)    //after a delay
+    {
+      if (digitalRead(PUSH_BUTTON_PIN) == 0)  //still LOW    
+      {
+        Serial.println("BUTTON Yes");
+      }
+      portENTER_CRITICAL(&buttonMux);
+        buttonEventPending--;                 //clear the event pending flag
+      portEXIT_CRITICAL(&buttonMux);
+    } 
+  } 
+}  
+/*---------------------------------------------------------------------------------
+ Repeat Timer interrupt
 
+ Note: code for killing the timer:
+  if (timer) {
+      // Stop and free timer
+      timerEnd(timer);
+      timer = NULL;
+  }
+---------------------------------------------------------------------------------*/
+void IRAM_ATTR onTimer(){
+  portENTER_CRITICAL_ISR(&timerMux);
+  // Do something here
+  portEXIT_CRITICAL_ISR(&timerMux);
+
+  // Give a semaphore that we can check in the loop
+  xSemaphoreGiveFromISR(timerSemaphore, NULL);
+}
+
+void setupTimer() {
+  // Create semaphore to inform us when the timer has fired
+  timerSemaphore = xSemaphoreCreateBinary();
+
+  // Use 1st timer of 4 (counted from zero).
+  // Set 80 divider for prescaler
+  timer = timerBegin(0, 80, true);
+
+  // Attach onTimer function to our timer.
+  timerAttachInterrupt(timer, &onTimer, true);
+
+  // Set alarm to call onTimer function every x microseconds).
+  // Repeat the alarm (third parameter)
+  timerAlarmWrite(timer, 200000, true);  // 0.2 second
+
+  // Start an alarm
+  timerAlarmEnable(timer);
+}
+
+void doTimer() {
+  // if Timer has fired
+  if (xSemaphoreTake(timerSemaphore, 0) == pdTRUE){
+    // Read the interrupt count and time
+    portENTER_CRITICAL(&timerMux);
+
+    portEXIT_CRITICAL (&timerMux);
+
+    // FIXME: need remove this test code
+    read_battery_value();
+  }
 }
 /*---------------------------------------------------------------------------------
  battery level check
 ---------------------------------------------------------------------------------*/
 void read_battery_value()
 {
+  // ESP32 ADC return a 12bit value 0~4095 (uint16_t) 
+
+  //FIXME : test code  
+  battery_data_ready = true;
+  battery_percent = analogRead(SENSOR_VP_PIN)*100/4095;
+  Serial.printf("Battery: %02d%% \r", battery_percent);
+
+/*FIXME : original code for the real battery   
   static int adc_val = analogRead(SENSOR_VP_PIN);
   battery += adc_val;
 
@@ -243,6 +366,7 @@ void read_battery_value()
   }
   else
     bat_count++;
+*/    
 }
  
 void add_heart_rate_histogram(uint8_t hr)
@@ -424,7 +548,7 @@ float rmssd_ff(unsigned int array[])
   rmssd = sqrt(sqsum/(MAX-1));
   return rmssd;
 }
-void halt_and_flash(void)
+void halt_and_flash()
 {
   // Only for debuging
   Serial.println("System Halt!");
@@ -436,7 +560,6 @@ void halt_and_flash(void)
     digitalWrite(LED_PIN, LOW);
   }
 }
-
 /*---------------------------------------------------------------------------------
  The ESP32 has four SPI buses, only two of them are available to use, HSPI and VSPI. 
  Simply using the SPI API as illustrated in Arduino examples will use VSPI, leaving HSPI unused.
@@ -451,7 +574,7 @@ void halt_and_flash(void)
  FIXME This design only uses VSPI, the default CS pin is IO5, but this design use IO21.
  TODO: IDE provides another example of SPI code.
 ---------------------------------------------------------------------------------*/
-void initSPI(void)
+void initSPI()
 {
   SPI.begin();
   Wire.begin(25,22);  //FIXME test this line
@@ -471,20 +594,20 @@ after each powerup or reset of the  board.
 ---------------------------------------------------------------------------------*/
 void setup()
 {
+  uint64_t chipid;
+  
   // Make sure serial port on first
   // Setup serial port U0UXD for programming and reset/boot
   Serial.begin  (115200);   // Baudrate for serial communication
+  chipid=ESP.getEfuseMac(); // chip ID is MAC address(6 bytes).
   
-  Serial.write(12);         // ASCII for a Form feed to "clear" the screen
-  Serial.println("************************");
+  Serial.println("************************************************");
   Serial.println("HomeICU Firmware");
-  Serial.println("************************");
-  Serial.println("version:");
-  Serial.println(homeicu_version); 
-  Serial.println("commits:");
-  Serial.println(homeicu_commits);
- 
-  // initalize the  data ready and chip select pins:
+  Serial.println("************************************************");
+  Serial.printf ("Version: %s Git commits: %s \r\n", homeicu_version, homeicu_commits);
+	Serial.printf ("MAC address: %04X %08X \r\n",(uint16_t)(chipid>>32), (uint32_t)chipid);
+
+  // initalize the data ready and chip select pins:
   // Pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
   pinMode(ADS1292_DRDY_PIN,   INPUT);  
   pinMode(ADS1292_CS_PIN,     OUTPUT);    
@@ -492,25 +615,27 @@ void setup()
   pinMode(ADS1292_PWDN_PIN,   OUTPUT);  
   pinMode(LED_PIN,            OUTPUT); 
   pinMode(AFE4490_PWDN_PIN,   OUTPUT);
-  pinMode(AFE4490_CS_PIN,     OUTPUT);//Slave Select
-  pinMode(AFE4490_DRDY_PIN,   INPUT);// data ready 
+  pinMode(AFE4490_CS_PIN,     OUTPUT);  // slave select
+  pinMode(AFE4490_DRDY_PIN,   INPUT);   // data ready 
 
   pinMode(PUSH_BUTTON_PIN,    INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON_PIN), push_button_intr_handler, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON_PIN), button_interrupt_handler, FALLING);
+ 
+  setupTimer();               
 
   initBLE();                  //low energy blue tooth 
   setupBasicOTA();            //Over The Air for code uploading
   setupWebServer();           //Web server for code uploading
-  //TODO initSPI();            //initalize SPI
+  initSPI();                  //initalize SPI
 
   //Initialize SPI file system
   if(!SPIFFS.begin(true)) 
   {
-    Serial.println("An Error has occurred while mounting SPIFFS");
+    Serial.println("SPIFFS Error");
     system_init_error++;
   }
   else
-    Serial.println("SPIFFS Init OK!");
+    Serial.println("SPIFFS OK");
 
   ADS1292R.Init(ADS1292_CS_PIN,ADS1292_PWDN_PIN,ADS1292_START_PIN);  //initalize ADS1292 slave
   delay(10); 
@@ -525,7 +650,7 @@ void setup()
   if (system_init_error>0)
     halt_and_flash(); 
   else   
-    Serial.println("Initialization done!");
+    Serial.println("Init OK");
 }
 /*---------------------------------------------------------------------------------
 After creating a setup() function, which initializes and sets the initial values, 
@@ -535,10 +660,13 @@ void loop()
 {
   boolean ret;
 
+  doTimer();                  // process timer event
+  doButton();                 // process button event
+
   ArduinoOTA.handle();        // This is for "On The Air" update function 
-//FIXME  handle_BLE_stack();
+  handle_BLE_stack();
   handleWebClient();
-  delay(2);
+  delay(1);//FIXME
 #ifdef SSSS  //FIXME
   ret = ADS1292R.getAds1292r_Data_if_Available(ADS1292_DRDY_PIN,ADS1292_CS_PIN,&ads1292r_raw_data);
 
@@ -659,7 +787,7 @@ void loop()
       time_count = 0;
       DataPacket[12] = (uint8_t) temperature; 
       DataPacket[13] = (uint8_t) (temperature >> 8);
-      temperature_data_ready = true;
+      temperature_ready = true;
       //reading the battery with same interval as temperature sensor
       read_battery_value();
     }

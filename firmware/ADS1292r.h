@@ -55,6 +55,7 @@ typedef struct ads1292r_Record
 } ads1292r_data;
 
 void ads1292r_interrupt_handler(void);
+extern portMUX_TYPE ads1292Mux;
 
 class ads1292r
 {

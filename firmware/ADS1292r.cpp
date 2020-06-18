@@ -24,7 +24,7 @@ volatile byte SPI_RX_Buff[15];
 volatile static int SPI_RX_Buff_Count = 0;
 volatile char *SPI_RX_Buff_Ptr;
 volatile bool ads1292dataReceived = false;
-volatile bool ads1292r_intr_flag = false;
+volatile bool ads1292r_intr_flag  = false;
 
 const int pwdn_pin = 27;
 const int start_pin = 14;
@@ -43,7 +43,9 @@ int j,i;
 
 void IRAM_ATTR ads1292r_interrupt_handler(void)
 {
- ads1292r_intr_flag = true;
+  portENTER_CRITICAL_ISR(&ads1292Mux);
+  ads1292r_intr_flag = true;
+  portEXIT_CRITICAL_ISR (&ads1292Mux);  
 }
 
 boolean ads1292r::getAds1292r_Data_if_Available(const int data_ready,const int chip_select,ads1292r_data *data_struct)
@@ -51,7 +53,10 @@ boolean ads1292r::getAds1292r_Data_if_Available(const int data_ready,const int c
   
    if (ads1292r_intr_flag)      // Sampling rate is set to 125SPS ,DRDY ticks for every 8ms
    {
+     portENTER_CRITICAL_ISR(&ads1292Mux);
      ads1292r_intr_flag = false;
+     portEXIT_CRITICAL_ISR (&ads1292Mux);  
+
      SPI_RX_Buff_Ptr = Read_Data(chip_select); // Read the data,point the data to a pointer
      ads1292dataReceived = true;
      uecgtemp = (unsigned long) (  ((unsigned long)SPI_RX_Buff_Ptr[3] << 16) | ( (unsigned long) SPI_RX_Buff_Ptr[4] << 8) |  (unsigned long) SPI_RX_Buff_Ptr[5]);

@@ -442,7 +442,7 @@ public void makeGUI()
   
 
        lblHR = cp5.addTextlabel("lblHR")
-      .setText("Heartrate: --- bpm")
+      .setText("HeartRate: --- bpm")
       .setPosition(width-550,50)
       .setColorValue(color(255,255,255))
       .setFont(createFont("Impact",40));

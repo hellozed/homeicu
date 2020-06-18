@@ -1,31 +1,35 @@
 /*---------------------------------------------------------------------------------
+ Bluetooth Low Energy (BLE)
 
+ Base station read data from the board through BLE
 ---------------------------------------------------------------------------------*/
 #include <Arduino.h>
-#include <BLEDevice.h>    //bluetooth low energy
+#include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
 /*---------------------------------------------------------------------------------
-
+ define 
 ---------------------------------------------------------------------------------*/
-#define Heartrate_SERVICE_UUID        (uint16_t(0x180D))
-#define Heartrate_CHARACTERISTIC_UUID (uint16_t(0x2A37))
-#define SPO2_SERVICE_UUID             (uint16_t(0x1822)) 
-#define SPO2_CHARACTERISTIC_UUID      (uint16_t(0x2A5E))
-#define DATASTREAM_SERVICE_UUID       (uint16_t(0x1122)) 
-#define DATASTREAM_CHARACTERISTIC_UUID (uint16_t(0x1424))
-#define TEMP_SERVICE_UUID             (uint16_t(0x1809)) 
-#define TEMP_CHARACTERISTIC_UUID      (uint16_t(0x2a6e))
-#define BATTERY_SERVICE_UUID          (uint16_t(0x180F)) 
-#define BATTERY_CHARACTERISTIC_UUID   (uint16_t(0x2a19))
-#define HRV_SERVICE_UUID              "cd5c7491-4448-7db8-ae4c-d1da8cba36d0"
-#define HRV_CHARACTERISTIC_UUID       "01bfa86f-970f-8d96-d44d-9023c47faddc"
-#define HIST_CHARACTERISTIC_UUID      "01bf1525-970f-8d96-d44d-9023c47faddc"
+#define BLEDeviceName                   "HomeICU" 
+
+#define HeartRate_SERVICE_UUID          (uint16_t(0x180D))
+#define HeartRate_CHARACTERISTIC_UUID   (uint16_t(0x2A37))
+#define SPO2_SERVICE_UUID               (uint16_t(0x1822)) 
+#define SPO2_CHARACTERISTIC_UUID        (uint16_t(0x2A5E))
+#define DATASTREAM_SERVICE_UUID         (uint16_t(0x1122)) 
+#define DATASTREAM_CHARACTERISTIC_UUID  (uint16_t(0x1424))
+#define TEMP_SERVICE_UUID               (uint16_t(0x1809)) 
+#define TEMP_CHARACTERISTIC_UUID        (uint16_t(0x2a6e))
+#define BATTERY_SERVICE_UUID            (uint16_t(0x180F)) 
+#define BATTERY_CHARACTERISTIC_UUID     (uint16_t(0x2a19))
+#define HRV_SERVICE_UUID                "cd5c7491-4448-7db8-ae4c-d1da8cba36d0"
+#define HRV_CHARACTERISTIC_UUID         "01bfa86f-970f-8d96-d44d-9023c47faddc"
+#define HIST_CHARACTERISTIC_UUID        "01bf1525-970f-8d96-d44d-9023c47faddc"
 
 
 BLEServer         *pServer                    = NULL;
-BLECharacteristic *Heartrate_Characteristic   = NULL;
+BLECharacteristic *HeartRate_Characteristic   = NULL;
 BLECharacteristic *SpO2_Characteristic        = NULL;
 BLECharacteristic *datastream_Characteristic  = NULL;
 BLECharacteristic *battery_Characteristic     = NULL;
@@ -36,26 +40,25 @@ BLECharacteristic *hrv_Characteristic         = NULL;
 /*---------------------------------------------------------------------------------
  FIXME: These global variables must be checked for interrupt access conflict
 ---------------------------------------------------------------------------------*/
-extern bool deviceConnected;
-extern bool oldDeviceConnected;
-extern bool temperature_data_ready;
-extern bool SpO2_calc_done;
-extern bool ecg_buf_ready;
-extern bool ppg_buf_ready;
-extern bool hrv_ready_flag;
-extern bool battery_data_ready;
-
+extern bool     deviceConnected;
+extern bool     oldDeviceConnected;
+extern bool     temperature_ready;
+extern bool     SpO2_calc_done;
+extern bool     ecg_buf_ready;
+extern bool     ppg_buf_ready;
+extern bool     hrv_ready_flag;
+extern bool     battery_data_ready;
 extern uint8_t  ecg_data_buff[];
 extern uint8_t  ppg_data_buff[];
-extern volatile uint8_t heart_rate;
-extern volatile uint8_t HeartRate_prev;
 extern uint8_t  lead_flag;
 extern uint8_t  hrv_array[];
-extern uint8_t          histogram_percent_bin[];
-extern volatile bool    histogram_ready_flag;
 extern uint8_t  heartbeat,sp02,respirationrate;
 extern uint8_t  temperature;
 extern uint8_t  battery_percent;
+extern volatile uint8_t heart_rate;
+extern volatile uint8_t HeartRate_prev;
+extern uint8_t          histogram_percent_bin[];
+extern volatile bool    histogram_ready_flag;
 
 extern String strValue;
 /*---------------------------------------------------------------------------------
@@ -66,7 +69,7 @@ class MyServerCallbacks: public BLEServerCallbacks
   void onConnect(BLEServer* pServer)
   {
     deviceConnected = true;
-    Serial.println("connected");
+    Serial.println("BLE: connected");
   }
 
   void onDisconnect(BLEServer* pServer)
@@ -85,7 +88,7 @@ class MyCallbackHandler: public BLECharacteristicCallbacks
 
     if (value.length() > 0) 
     {
-      Serial.print("New value: ");
+      Serial.print("BLE: New value: ");
       for (int i = 0; i < value.length(); i++)
       {
         Serial.print(String(value[i]));
@@ -126,8 +129,8 @@ void handle_BLE_stack(void)
     uint8_t hr_att_ble[2];
     hr_att_ble[0] = lead_flag;
     hr_att_ble[1] = (uint8_t)heart_rate;    
-    Heartrate_Characteristic->setValue(hr_att_ble, 2);
-    Heartrate_Characteristic->notify(); 
+    HeartRate_Characteristic->setValue(hr_att_ble, 2);
+    HeartRate_Characteristic->notify(); 
   }  
     
   if(SpO2_calc_done)
@@ -151,11 +154,11 @@ void handle_BLE_stack(void)
     hrv_ready_flag = false;
   }
     
-  if(temperature_data_ready)
+  if(temperature_ready)
   {
     temperature_Characteristic->setValue(&temperature, 2);
     temperature_Characteristic->notify();
-    temperature_data_ready = false;
+    temperature_ready = false;
   }
   
   if(histogram_ready_flag )
@@ -176,16 +179,13 @@ void handle_BLE_stack(void)
   {
     delay(500); // give the bluetooth stack the chance to get things ready
     pServer->startAdvertising(); // restart advertising
-    Serial.println("start advertising");
+    Serial.println("BLE: start advertising");
     oldDeviceConnected = deviceConnected;
   }
   
   // connecting
   if (deviceConnected && !oldDeviceConnected)
-  {
-   // do stuff here on connecting
-   oldDeviceConnected = deviceConnected;
-  } 
+    oldDeviceConnected = deviceConnected;
 }
 /*---------------------------------------------------------------------------------
  bluetooth low energy initialization
@@ -193,18 +193,20 @@ void handle_BLE_stack(void)
 ---------------------------------------------------------------------------------*/
 void initBLE(void)
 {
-  BLEDevice::init("HomeICU");        // Create the BLE Device
-  pServer = BLEDevice::createServer();      // Create the BLE Server
+  BLEDevice::init(BLEDeviceName);                 // Create Device
+  pServer = BLEDevice::createServer();            // Create Server
   pServer->setCallbacks(new MyServerCallbacks());
-  BLEService *HeartrateService  = pServer->createService(Heartrate_SERVICE_UUID); // Create the BLE Service
-  BLEService *sp02Service       = pServer->createService(SPO2_SERVICE_UUID);      // Create the BLE Service
+
+  // Create BLE Service
+  BLEService *HeartRateService  = pServer->createService(HeartRate_SERVICE_UUID); 
+  BLEService *sp02Service       = pServer->createService(SPO2_SERVICE_UUID);
   BLEService *TemperatureService= pServer->createService(TEMP_SERVICE_UUID);
   BLEService *batteryService    = pServer->createService(BATTERY_SERVICE_UUID);
   BLEService *hrvService        = pServer->createService(HRV_SERVICE_UUID);
   BLEService *datastreamService = pServer->createService(DATASTREAM_SERVICE_UUID);
 
-  Heartrate_Characteristic      = HeartrateService->createCharacteristic(
-                                  Heartrate_CHARACTERISTIC_UUID,
+  HeartRate_Characteristic      = HeartRateService->createCharacteristic(
+                                  HeartRate_CHARACTERISTIC_UUID,
                                   BLECharacteristic::PROPERTY_READ   |
                                   BLECharacteristic::PROPERTY_WRITE  |
                                   BLECharacteristic::PROPERTY_NOTIFY );
@@ -247,7 +249,7 @@ void initBLE(void)
                                   BLECharacteristic::PROPERTY_WRITE  |
                                   BLECharacteristic::PROPERTY_NOTIFY );
                 
-  Heartrate_Characteristic  ->addDescriptor(new BLE2902());
+  HeartRate_Characteristic  ->addDescriptor(new BLE2902());
   SpO2_Characteristic       ->addDescriptor(new BLE2902());
   temperature_Characteristic->addDescriptor(new BLE2902());
   battery_Characteristic    ->addDescriptor(new BLE2902());
@@ -257,7 +259,7 @@ void initBLE(void)
   datastream_Characteristic ->setCallbacks (new MyCallbackHandler()); 
 
   // Start the service
-  HeartrateService  ->start();
+  HeartRateService  ->start();
   sp02Service       ->start();
   TemperatureService->start();
   batteryService    ->start();
@@ -266,7 +268,7 @@ void initBLE(void)
 
   // Start advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(Heartrate_SERVICE_UUID);
+  pAdvertising->addServiceUUID(HeartRate_SERVICE_UUID);
   pAdvertising->addServiceUUID(SPO2_SERVICE_UUID);
   pAdvertising->addServiceUUID(TEMP_SERVICE_UUID);
   pAdvertising->addServiceUUID(BATTERY_SERVICE_UUID);
@@ -275,5 +277,5 @@ void initBLE(void)
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x00);  // set value to 0x00 to not advertise this parameter
   BLEDevice::startAdvertising();
-  Serial.println("BLE: Waiting a client connection to notify...");
+  Serial.println("BLE: adverting");     // wait for connection to notify
 }
