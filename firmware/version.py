@@ -13,7 +13,7 @@ version =  getVersion.read()
 commits =  getCommits.read()
 
 # Opening a file 
-file1 = open('version.txt', 'w') 
+file1 = open('version.h', 'w') 
   
 # Writing a string to file 
 version = "#define homeicu_version \"" + str(version.decode()).strip() + "\"\n"
