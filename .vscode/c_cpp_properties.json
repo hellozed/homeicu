@@ -17,7 +17,7 @@
             "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64",
             "forcedInclude": [
-                "${workspaceFolder}/firmware/vscode-fake.h"
+                "${workspaceFolder}/firmware/firmware.h"
             ]
         }
     ],

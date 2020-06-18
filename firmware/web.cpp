@@ -3,27 +3,12 @@
  
  Credit: The original code is from the link below:
  https://lastminuteengineers.com/esp32-ota-updates-arduino-ide/
- https://lastminuteengineers.com/esp32-ota-web-updater-arduino-ide/
-
- in the web uploading:
- "if(form.userid.value=='admin' && form.pwd.value=='password')" 
- In case you want to change the User ID and Password, change below code in your sketch.
- User ID: admin   Password: password
-
-
- Future development
-
- FIXME There is security risk here.
 ---------------------------------------------------------------------------------*/
-  //WiFi.setSleep(true);
-  // stop blue tooth: 
-  // btStop(); 
-  //  AWS_S3_OTA_Update.ino  - download from amazone cloud
-  //  OTAWebUpdater.ino - upload into esp32 by web
-
+#include "firmware.h"
+#if OTA_UPDATE
+#include <ArduinoOTA.h>
 #include <SPIFFS.h>
 #include <FS.h>                     // File System
-#include <ArduinoOTA.h>
 extern String  loginIndex;
 extern String  serverIndex;
 /*---------------------------------------------------------------------------------
@@ -48,7 +33,6 @@ extern String  serverIndex;
 void setupBasicOTA(void) 
 {
   WiFi.mode(WIFI_STA);
-  //TODO WiFi.mode(WIFI_AP_STA);
 
   WiFi.begin(wifi2_4G_ssid, wifi_password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) 
@@ -108,7 +92,6 @@ void setupBasicOTA(void)
 ---------------------------------------------------------------------------------*/
 void stopWifi(void)
 {
-
   WiFi.disconnect();
   while(WiFi.status() != WL_CONNECTED)
   {
@@ -118,12 +101,20 @@ void stopWifi(void)
   WiFi.mode(WIFI_OFF);
   Serial.println("WiFi is OFF.");
 }
+#endif //OTA_UPDATE
 /*---------------------------------------------------------------------------------
  web uploading
 
-To upload through terminal you can use: 
-TODO curl -F "image=@firmware.bin" homeicu.local/update
+ https://lastminuteengineers.com/esp32-ota-web-updater-arduino-ide/
+
+ User ID: admin   Password: password
+
+ it is hard coded in the string like below:
+ "if(form.userid.value=='admin' && form.pwd.value=='password')" 
+
+ This feature is disabled in the real product, no security risk.
 ---------------------------------------------------------------------------------*/
+#if WEB_UPDATE
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
@@ -257,3 +248,32 @@ String serverIndex =
 "});"
 "});"
 "</script>" + style;
+
+#endif //WEB_UPDATE
+
+/*
+Future feature: 
+This feature enable ESP32 receive wifi passoword from phone before initialization.
+It turn WiFi to the AP mode, and wait phone use an app to connect it.
+The problem is that ESP32 only use 2.4G Hz, might confuse consumer.
+It is better not to turn this feature on.
+
+void setupSmartConfig() {
+  //Init WiFi as Station, start SmartConfig
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.beginSmartConfig();
+
+  //Wait for SmartConfig packet from mobile
+  while (!WiFi.smartConfigDone()) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  //Wait for WiFi to connect to AP
+  Serial.println("Waiting for WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+}
+*/

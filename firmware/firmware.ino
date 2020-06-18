@@ -31,6 +31,7 @@
 #include "AFE4490_Oximeter.h"
 #include "spo2_algorithm.h"
 #include "version.h"
+#include "firmware.h"
 
 void handle_BLE_stack();
 void initBLE();
@@ -306,8 +307,9 @@ void doTimer() {
 
     portEXIT_CRITICAL (&timerMux);
 
-    // FIXME: need remove this test code
+    #ifdef SIM_BATTERY
     read_battery_value();
+    #endif 
   }
 }
 /*---------------------------------------------------------------------------------
@@ -317,12 +319,15 @@ void read_battery_value()
 {
   // ESP32 ADC return a 12bit value 0~4095 (uint16_t) 
 
-  //FIXME : test code  
+  #ifdef SIM_BATTERY
+  
   battery_data_ready = true;
   battery_percent = analogRead(SENSOR_VP_PIN)*100/4095;
   Serial.printf("Battery: %02d%% \r", battery_percent);
+  
+  #else //SIM_BATTERY
 
-/*FIXME : original code for the real battery   
+  // the real battery   
   static int adc_val = analogRead(SENSOR_VP_PIN);
   battery += adc_val;
 
@@ -367,7 +372,8 @@ void read_battery_value()
   }
   else
     bat_count++;
-*/    
+
+  #endif //SIM_BATTERY
 }
  
 void add_heart_rate_histogram(uint8_t hr)
@@ -573,7 +579,7 @@ void halt_and_flash()
  VSPI	GPIO23	GPIO19	GPIO18	GPIO5
  HSPI	GPIO13	GPIO12	GPIO14	GPIO15
  FIXME This design only uses VSPI, the default CS pin is IO5, but this design use IO21.
- TODO: IDE provides another example of the SPI code.
+ IDE provides another example of the SPI code.
 ---------------------------------------------------------------------------------*/
 void initSPI()
 {
@@ -625,8 +631,14 @@ void setup()
   setupTimer();               
 
   initBLE();                  //low energy blue tooth 
+   
+  #if OTA_UPDATE
   setupBasicOTA();            //Over The Air for code uploading
+  #if WEB_UPDATE
   setupWebServer();           //Web server for code uploading
+  #endif 
+  #endif 
+
   initSPI();                  //initialize SPI
 
   //Initialize SPI file system
@@ -664,11 +676,16 @@ void loop()
   doTimer();                  // process timer event
   doButton();                 // process button event
 
+  #if OTA_UPDATE
   ArduinoOTA.handle();        // This is for "On The Air" update function 
-  handle_BLE_stack();
+  #if WEB_UPDATE
   handleWebClient();
+  #endif 
+  #endif 
+
+  handle_BLE_stack();
   delay(1);//FIXME
-#ifdef SSSS  //FIXME
+#ifdef SSSS  
   ret = ADS1292R.getAds1292r_Data_if_Available(ADS1292_DRDY_PIN,ADS1292_CS_PIN,&ads1292r_raw_data);
 
   if (ret == true)
