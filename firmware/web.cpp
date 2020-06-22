@@ -4,13 +4,18 @@
  Credit: The original code is from the link below:
  https://lastminuteengineers.com/esp32-ota-updates-arduino-ide/
 ---------------------------------------------------------------------------------*/
-#include "firmware.h"
-#if OTA_UPDATE
 #include <ArduinoOTA.h>
-#include <SPIFFS.h>
-#include <FS.h>                     // File System
-extern String  loginIndex;
-extern String  serverIndex;
+#include <SPIFFS.h>                 // SPI File system
+#include <Update.h>
+//#include <WiFi.h>
+//#include <WiFiClient.h>
+//#include <WebServer.h>
+//#include <ESPmDNS.h>
+
+#include "firmware.h"
+extern String   loginIndex;
+extern String   serverIndex;
+extern int      system_init_error;
 /*---------------------------------------------------------------------------------
   WiFi router configuration
 
@@ -41,6 +46,15 @@ void setupBasicOTA(void)
     delay(4000);
     ESP.restart();
   }
+
+  //initialize SPI file system
+  if(!SPIFFS.begin(true)) 
+  {
+    Serial.println("SPIFFS Error (it is ok for the brand new board's the first time bootup)");
+    system_init_error++;
+  }
+  else
+    Serial.println("SPIFFS OK");
 
   // Hostname 
   ArduinoOTA.setHostname(HOST_NAME);
@@ -94,14 +108,11 @@ void stopWifi(void)
 {
   WiFi.disconnect();
   while(WiFi.status() != WL_CONNECTED)
-  {
     delay(100);
-  }
   Serial.println("WiFi is disconnected.");
   WiFi.mode(WIFI_OFF);
   Serial.println("WiFi is OFF.");
 }
-#endif //OTA_UPDATE
 /*---------------------------------------------------------------------------------
  web uploading
 
@@ -115,11 +126,6 @@ void stopWifi(void)
  This feature is disabled in the real product, no security risk.
 ---------------------------------------------------------------------------------*/
 #if WEB_UPDATE
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <WebServer.h>
-#include <ESPmDNS.h>
-#include <Update.h>
 
 const char *host = HOST_NAME;       // host name of web server, this name will be used by ota.py and usb.py
 WebServer server(80);               // 80 is the port number

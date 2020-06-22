@@ -19,6 +19,8 @@
 #ifndef ads1292r_h
 #define ads1292r_h
 
+#include "Arduino.h"
+
 #define CONFIG_SPI_MASTER_DUMMY 0xFF
 
 // Register Read Commands
@@ -60,7 +62,7 @@ extern portMUX_TYPE ads1292Mux;
 class ads1292r
 {
 public:
-  boolean getAds1292r_Data_if_Available(const int data_ready, const int chip_select, ads1292r_data *data_struct);
+  boolean getData(const int data_ready, const int chip_select, ads1292r_data *data_struct);
   static void Init(const int chip_select, const int pwdn_pin, const int start_pin);
   static void Init();
   static void Reset(const int pwdn_pin);

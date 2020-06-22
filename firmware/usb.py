@@ -1,11 +1,19 @@
 #!/usr/bin/env python
 
+# author: ZWang
+#
 # execute a tool to upload the binary to ESP32 board through USBtoUART
 # please modify the setting below
 
 import os
 
-print("Upload through USBtoUART without re-building")
+print('''
+===========================================================
+USB upload to board
+    
+"CTRL+\" to stop
+
+===========================================================''')
 
 tool = "/Users/a123/Documents/Arduino/hardware/espressif/esp32/tools/esptool/esptool "
 para = "--chip esp32 --port /dev/cu.SLAB_USBtoUART --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size detect "

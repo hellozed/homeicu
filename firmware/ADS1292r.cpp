@@ -48,7 +48,7 @@ void IRAM_ATTR ads1292r_interrupt_handler(void)
   portEXIT_CRITICAL_ISR (&ads1292Mux);  
 }
 
-boolean ads1292r::getAds1292r_Data_if_Available(const int data_ready,const int chip_select,ads1292r_data *data_struct)
+boolean ads1292r::getData(const int data_ready,const int chip_select,ads1292r_data *data_struct)
 {
   
    if (ads1292r_intr_flag)      // Sampling rate is set to 125SPS ,DRDY ticks for every 8ms
@@ -75,13 +75,11 @@ boolean ads1292r::getAds1292r_Data_if_Available(const int data_ready,const int c
      ads1292dataReceived = false;
      SPI_RX_Buff_Count = 0;
      return true;
-
     }
     else
     {
     return false;
     }
-
 }
 
 char* ads1292r::Read_Data(const int chip_select)

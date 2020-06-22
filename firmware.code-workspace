@@ -17,7 +17,12 @@
 			"cinttypes": "cpp",
 			"__functional_03": "cpp",
 			"functional": "cpp",
-			"*.txt": "cpp"
+			"*.txt": "cpp",
+			"array": "cpp",
+			"iterator": "cpp",
+			"string": "cpp",
+			"string_view": "cpp",
+			"vector": "cpp"
 		}
 	},
 	"arduino.ignoreBoards": []

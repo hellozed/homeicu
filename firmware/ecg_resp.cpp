@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------
+ FIXME
+ The code here is from healthypi project, 
+ Code here requires tidy up and testing!
+---------------------------------------------------------------------------------*/
 #include "Arduino.h"
 #include "ADS1292r.h"
 #include "ecg_resp.h"
@@ -5,7 +10,8 @@
 
 unsigned char Start_Sample_Count_Flag = 0;
 unsigned char first_peak_detect = FALSE ;
-unsigned int sample_count = 0 ; /* Variable which will hold the calculated heart rate */
+/* Variable which will hold the calculated heart rate */
+unsigned int sample_count = 0 ; 
 unsigned int sample_index[MAX_PEAK_TO_SEARCH + 2] ;
 
 int QRS_Second_Prev_Sample = 0 ;
@@ -23,7 +29,8 @@ uint8_t Respiration_Rate = 0 ;
 
 volatile uint8_t peak_flag =0;
 volatile uint16_t QRS_Heart_Rate = 0 ;
-static uint16_t QRS_B4_Buffer_ptr = 0 ; /*   Variable which holds the threshold value to calculate the maxima */
+/* Variable which holds the threshold value to calculate the maxima */
+static uint16_t QRS_B4_Buffer_ptr = 0 ; 
 
 int16_t RESP_WorkingBuff[2 * FILTERORDER];
 int16_t Pvev_DC_Sample=0, Pvev_Sample=0;
@@ -76,19 +83,13 @@ void ads1292r_processing :: ECG_FilterProcess(int16_t * WorkingBuff, int16_t * C
   // perform the multiply-accumulate
 
   for ( k = 0; k < 161; k++ )
-  {
     acc += (int32_t)(*CoeffBuf++) * (int32_t)(*WorkingBuff--);
-  }
   // saturate the result
 
   if ( acc > 0x3fffffff )
-  {
     acc = 0x3fffffff;
-  }
   else if ( acc < -0x40000000 )
-  {
     acc = -0x40000000;
-  }
   // convert from Q30 to Q15
   *FilterOut = (int16_t)(acc >> 15);
 }
@@ -106,11 +107,8 @@ void ads1292r_processing :: Filter_CurrentECG_sample(int16_t *CurrAqsSample, int
 
   if  ( ECGFirstFlag )                // First Time initialize static variables.
   {
-    
     for ( Cur_Chan = 0 ; Cur_Chan < FILTERORDER; Cur_Chan++)
-    {
       ECG_WorkingBuff[Cur_Chan] = 0;
-    }
 
     ECG_Pvev_DC_Sample = 0;
     ECG_Pvev_Sample = 0;
@@ -137,8 +135,6 @@ void ads1292r_processing :: Filter_CurrentECG_sample(int16_t *CurrAqsSample, int
     ECG_bufStart = 0;
     ECG_bufCur = FILTERORDER - 1;
   }
-
-  return ;
 }
 
 void ads1292r_processing :: Calculate_HeartRate(int16_t CurrSample,volatile uint8_t *Heart_rate, volatile uint8_t *peakflag )
@@ -182,9 +178,7 @@ void ads1292r_processing :: QRS_process_buffer(volatile uint8_t *Heart_rate, vol
   scaled_result = first_derivative;
 
   if ( scaled_result > Max )
-  {
     Max = scaled_result ;
-  }
 
   QRS_B4_Buffer_ptr++;
 
@@ -198,10 +192,7 @@ void ads1292r_processing :: QRS_process_buffer(volatile uint8_t *Heart_rate, vol
   }
 
   if ( TRUE == first_peak_detect )
-  {
     QRS_check_sample_crossing_threshold(scaled_result,Heart_rate,peakflag) ;
-  }
-
 }
 
 void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled_result,volatile uint8_t *Heart_rate,volatile uint8_t *peakflag)
@@ -231,9 +222,7 @@ void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled
     maxima_search ++ ;
 
     if ( scaled_result > peak )
-    {
       peak = scaled_result ;
-    }
 
     if ( maxima_search >= MAXIMA_SEARCH_WINDOW )
     {
@@ -243,14 +232,11 @@ void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled
       threshold_crossed = FALSE ;
       peak_detected = TRUE ;
     }
-
   }
   else if ( TRUE == peak_detected )
   {
-    /*
-    Once the sample value goes below the threshold
-    skip the samples untill the SKIP WINDOW criteria is meet
-    */
+    // Once the sample value goes below the threshold
+    // skip the samples untill the SKIP WINDOW criteria is meet
     sample_count ++ ;
     skip_window ++ ;
 
@@ -269,9 +255,8 @@ void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled
       QRS_Heart_Rate =  QRS_Heart_Rate / HRAvg ;
 
       if (QRS_Heart_Rate > 250)
-      {
         QRS_Heart_Rate = 250 ;
-      }
+
       /* Setting the Current HR value in the ECG_Info structure*/
       maxima_sum =  maxima_sum / MAX_PEAK_TO_SEARCH;
       Max = (int16_t) maxima_sum ;
@@ -282,9 +267,7 @@ void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled
       /* Limiting the QRS Threshold to be in the permissible range*/
 
       if (QRS_Threshold_New > (4 * QRS_Threshold_Old))
-      {
         QRS_Threshold_New = QRS_Threshold_Old;
-      }
 
       sample_count = 0 ;
       s_array_index = 0 ;
@@ -297,13 +280,10 @@ void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled
       Start_Sample_Count_Flag = 0;
       sample_sum = 0;
     }
-
   }
   else if ( scaled_result > QRS_Threshold_New )
   {
-    /*
-      If the sample value crosses the threshold then store the sample index
-    */
+    // if the sample value crosses the threshold then store the sample index
     Start_Sample_Count_Flag = 1;
     sample_count ++ ;
     m_array_index++;
@@ -312,16 +292,14 @@ void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled
      peak_flag =1;
     *peakflag = peak_flag;
     nopeak = 0;
-    /*  storing sample index*/
+
+    //  storing sample index
     sample_index[ s_array_index ] = sample_count ;
 
     if ( s_array_index >= 1 )
-    {
       sample_sum += sample_index[ s_array_index ] - sample_index[ s_array_index - 1 ] ;
-    }
 
     s_array_index ++ ;
-
   }
   else if (( scaled_result < QRS_Threshold_New ) && (Start_Sample_Count_Flag == 1))
   {
@@ -345,15 +323,14 @@ void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled
       nopeak = 0;
       QRS_Heart_Rate = 0;
     }
-
   }
   else
   {
     nopeak++;
-
     if (nopeak > (3 * SAMPLING_RATE))
     {
-      /* Reset heart rate computation sate variable in case of no peak found in 3 seconds */
+      // Reset heart rate computation sate variable 
+      // in case of no peak found in 3 seconds 
       sample_count = 0 ;
       s_array_index = 0 ;
       m_array_index = 0 ;
@@ -369,7 +346,6 @@ void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled
       nopeak = 0;
       QRS_Heart_Rate = 0;
     }
-
   }
   *Heart_rate = (uint8_t)QRS_Heart_Rate;
 }
@@ -381,23 +357,16 @@ void ads1292r_processing :: Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16
 
 // perform the multiply-accumulate
   for ( k = 0; k < 161; k++ )
-  {
       acc += (int32_t)(*CoeffBuf++) * (int32_t)(*RESP_WorkingBuff--);
-  }
 
   // saturate the result
   if ( acc > 0x3fffffff )
-  {
       acc = 0x3fffffff;
-  }
   else if ( acc < -0x40000000 )
-  {
       acc = -0x40000000;
-  }
 
   // convert from Q30 to Q15
   *FilterOut = (int16_t)(acc >> 15);
-
 }
 
 void ads1292r_processing :: Filter_CurrentRESP_sample(int16_t CurrAqsSample, int16_t * FiltOut)
@@ -407,7 +376,8 @@ void ads1292r_processing :: Filter_CurrentRESP_sample(int16_t CurrAqsSample, int
   int16_t RESPData;
   /* Count variable*/
   uint16_t Cur_Chan;
-//  int16_t FiltOut;
+  
+  // int16_t FiltOut;
   temp1 = NRCOEFF * Pvev_DC_Sample;
   Pvev_DC_Sample = (CurrAqsSample  - Pvev_Sample) + temp1;
   Pvev_Sample = CurrAqsSample;
@@ -428,9 +398,7 @@ void ads1292r_processing :: Filter_CurrentRESP_sample(int16_t CurrAqsSample, int
     bufStart=0;
     bufCur = FILTERORDER-1;
   }
-
 }
-
 
 void ads1292r_processing :: Calculate_RespRate(int16_t CurrSample,volatile uint8_t *RespirationRate)
 {
@@ -467,28 +435,19 @@ void ads1292r_processing :: Respiration_Rate_Detection(int16_t Resp_wave,volatil
   TimeCnt++;
 
   if (Resp_wave < MinThresholdNew)
-  {
     MinThresholdNew = Resp_wave;
-  }
 
   if (Resp_wave > MaxThresholdNew)
-  {
     MaxThresholdNew = Resp_wave;
-  }
 
   if (SampleCount > 1000)
-  {
     SampleCount =0;
-  }
   
   if (SampleCountNtve > 1000)
-  {
     SampleCountNtve =0;
-  }
 
   if ( startCalc == 1)
   {
-
     if (TimeCnt >= 500)
     {
       TimeCnt =0;
@@ -505,7 +464,6 @@ void ads1292r_processing :: Respiration_Rate_Detection(int16_t Resp_wave,volatil
         startCalc = 0;
         Respiration_Rate = 0;
       }
-
     }
 
     PrevPrevPrevSample = PrevPrevSample;
@@ -514,32 +472,26 @@ void ads1292r_processing :: Respiration_Rate_Detection(int16_t Resp_wave,volatil
 
     if ( skipCount == 0)
     {
-
       if (PrevPrevPrevSample < AvgThreshold && Resp_wave > AvgThreshold)
       {
-
         if ( SampleCount > 40 &&  SampleCount < 700)
         {
           PtiveEdgeDetected = 1;
           PtiveCnt = SampleCount;
           skipCount = 4;
         }
-
         SampleCount = 0;
       }
 
       if (PrevPrevPrevSample < AvgThreshold && Resp_wave > AvgThreshold)
       {
-
         if ( SampleCountNtve > 40 &&  SampleCountNtve < 700)
         {
           NtiveEdgeDetected = 1;
           NtiveCnt = SampleCountNtve;
           skipCount = 4;
         }
-
         SampleCountNtve = 0;
-
       }
 
       if (PtiveEdgeDetected ==1 && NtiveEdgeDetected ==1)
@@ -560,26 +512,18 @@ void ads1292r_processing :: Respiration_Rate_Detection(int16_t Resp_wave,volatil
             PtiveCnt = PtiveCnt >> 3;
             Respiration_Rate = 6000/PtiveCnt; // 60 * 125/SampleCount;
           }
-
         }
-
       }
-
     }
     else
-    {
       skipCount--;
-    }
-
   }
   else
   {
     TimeCnt++;
-
     if (TimeCnt >= 500)
     {
       TimeCnt = 0;
-
       if ( (MaxThresholdNew - MinThresholdNew) > 400)
       {
         startCalc = 1;
@@ -591,9 +535,7 @@ void ads1292r_processing :: Respiration_Rate_Detection(int16_t Resp_wave,volatil
         PrevPrevSample = Resp_wave;
         PrevSample = Resp_wave;
       }
-
     }
-
   }
   *RespirationRate=(uint8_t)Respiration_Rate;
 }
