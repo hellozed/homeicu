@@ -3,14 +3,36 @@
 # generate version from git, and store it in version.h
 #
 # author: ZWang
+#
+# remove tag in both local and remote:
+#
 
 import os
-import subprocess
+import subprocess  # use subprocess.call to replace os.system
 
-print("\n\ngenerate version from the git, and store it in the version.txt")
 
-print("git fetch ...")
-os.system("git fetch")      # tag is added in the github side, use this command to get tag back
+s = '''
+=================================================================== 
+
+tag git with version number, and store to version.txt
+
+The current local tags are: 
+===================================================================
+'''
+print(s)
+
+subprocess.call("git describe --tags | sed \'s/\\(.*\\)-.*/\\1/\'",shell=True) 
+
+s = input("input new tag, or fetch it from github:\n") 
+s = s.strip().lower()
+
+if s=="":
+    # get new tag from github
+    subprocess.call("git fetch",shell=True) 
+else:    
+    # git tag -a -m "message"  "tag"
+    subprocess.call("git tag -a -m \"only add version number\" " +s,shell=True) 
+    subprocess.call("git push origin "+s,shell=True) 
 
 # git describe --tags | sed 's/\(.*\)-.*/\1/'
 # use "sed" to remove unwanted string
@@ -45,4 +67,16 @@ file1.write(commits)
 # Closing file 
 file1.close() 
 
-print("done!")
+s = '''
+=================================================================== 
+    
+Done! version number is in both git and version.txt now
+    
+if you want to delete tag, please run: 
+    git tag -d v1.0 
+    git push --delete origin v1.0 
+
+===================================================================
+'''
+
+print(s)
