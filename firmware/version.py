@@ -12,8 +12,10 @@ print("\n\ngenerate version from the git, and store it in the version.txt")
 print("git fetch ...")
 os.system("git fetch")      # tag is added in the github side, use this command to get tag back
 
+# git describe --tags | sed 's/\(.*\)-.*/\1/'
+# use "sed" to remove unwanted string
 print("writing to version.h")
-getVersion =  subprocess.Popen("git describe --tags", shell=True, stdout=subprocess.PIPE).stdout
+getVersion =  subprocess.Popen("git describe --tags | sed \'s/\\(.*\\)-.*/\\1/\'", shell=True, stdout=subprocess.PIPE).stdout
 getCommits =  subprocess.Popen("git rev-list HEAD | wc -l", shell=True, stdout=subprocess.PIPE).stdout
 
 version =  getVersion.read()

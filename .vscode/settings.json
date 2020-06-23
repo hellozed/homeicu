@@ -1,0 +1,9 @@
+{
+    "search.useGlobalIgnoreFiles": true,
+    "search.exclude": {
+        "**/datasheet": true,
+        "**/docs": true,
+        "**/hardware": true,
+        "**/tools": true
+    }
+}
