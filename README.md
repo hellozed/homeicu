@@ -11,10 +11,10 @@ The website is at [www.homeicu.ca](http://homeicu.ca/).
 ---
 
 HomeICU is an Open-Source patient monitor that uses wearable sensors to measure the patient's vital signs and enable doctors to do medical diagnosis and treatment remotely over the Internet. 
-
 This project is specially designed to tackle the COVID-19 pandemic. Millions of patients have to recover at home without monitoring by professional doctors. 
 
-The goal of HomeICU is to build features of a medical-grade patient monitoring system like the ICU in the hospital. It will measure the following vital sign parameters and let the patient's doctor view and monitor them over the Internet.
+The goal of HomeICU is to build features of a medical-grade patient monitoring system like the ICU in the hospital. It will measure the following vital sign parameters and let the patient's d
+octor view and monitor them over the Internet.
 
 Phase I:
 
@@ -117,7 +117,11 @@ A 3-electrode cable along with a standard stereo jack is provided along with the
 Coming soon.
 
 ---
-# Medical Approval
+
+---
+# Medical Standard and Approval
+
+CPT codes exist for all components necessary for the provision of RPM (Remote Patient Monitoring), please refer to [doc folder](./doc) for further information.
 
 So far, HomeICU has NOT received any medical device certifications (FDA, CE, etc.) This device is NOT for consumer usage. It is not intended for direct interface with a patient, or patient diagnostics.
 
