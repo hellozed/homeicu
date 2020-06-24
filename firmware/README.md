@@ -1,6 +1,6 @@
 ![HomeICU](http://homeicu.ca/wp-content/uploads/2020/04/cropped-homeicu.png)
 
-> Attention: HomeICU project is in the developing stage and all the code and design shared here are the draft version and have not been formally released yet. 
+> Attention: HomeICU project is in the pre-release stage and all the code and design shared here are the draft version and have not been formally released yet. 
 
 > Please do NOT use the pre-release verion on the real human body until it receives medical device approval in your country.
 
