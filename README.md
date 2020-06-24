@@ -117,7 +117,11 @@ A 3-electrode cable along with a standard stereo jack is provided along with the
 Coming soon.
 
 ---
-# Medical Approval
+
+---
+# Medical Standard and Approval
+
+CPT codes exist for all components necessary for the provision of RPM (Remote Patient Monitoring), please refer to [doc folder](./doc) for further information.
 
 So far, HomeICU has NOT received any medical device certifications (FDA, CE, etc.) This device is NOT for consumer usage. It is not intended for direct interface with a patient, or patient diagnostics.
 
