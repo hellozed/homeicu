@@ -2,7 +2,7 @@
 
 > Attention: HomeICU project is in the developing stage and all the code and design shared here are the draft version and have not been formally released yet. 
 
-> Please do NOT use the current code and design on the real human body until it receives medical device approval in your country.
+> Please do NOT use the pre-release verion on the real human body until it receives medical device approval in your country.
 
 # HomeICU - remote vital signs monitor
 
@@ -41,7 +41,7 @@ Phase II:
   (developed with Arduino IDE/C Language)
   
 * **/gui**      - GUI for iPhone, iPad and Android 
-  (Developed with Flutter/Dart Language)
+  (Developed with Flutter/Dart Language). The project is hosted at https://github.com/hellozed/mychart.
 * **/hardware** - printed circuit board design files .brd, .sch 
   (Designed with Autodesk Eagle tool)
 * **/tools**   - tools for developing the project
@@ -84,10 +84,10 @@ Isolated, medical-grade (5 V, 2.5 A) USB wall power adapter (100-240 VAC) with s
 ---
 # Software
 
-## Base Station 
-Processing-based GUI, Android App, iOS devices App, web interface.
+## Base Station [link](https://github.com/hellozed/mychart)
+Processing-based GUI, Android App, iOS devices App, web interface. The code is hosted at https://github.com/hellozed/mychart
 
-The software is developed with Dart language with Flutter and one source code support all platform.
+The software is developed with Dart language with Flutter and one source code support all platform. 
 
 ## Firmware 
 Running on an ESP32 microprocessor and written with C/C++. 
@@ -117,7 +117,11 @@ A 3-electrode cable along with a standard stereo jack is provided along with the
 Coming soon.
 
 ---
-# Medical Approval
+
+---
+# Medical Standard and Approval
+
+CPT codes exist for all components necessary for the provision of RPM (Remote Patient Monitoring), please refer to [doc folder](./doc) for further information.
 
 So far, HomeICU has NOT received any medical device certifications (FDA, CE, etc.) This device is NOT for consumer usage. It is not intended for direct interface with a patient, or patient diagnostics.
 
