@@ -1,107 +1,5 @@
 ![HomeICU](http://homeicu.ca/wp-content/uploads/2020/04/cropped-homeicu.png)
 
-> Attention: HomeICU project is in the developing stage and all the code and design shared here are the draft version and have not been formally released yet. 
-
-> Please do NOT use the current code and design on the real human body until it receives medical device approval in your country.
-
-# HomeICU - remote vital signs monitor
-
-The website is at [www.homeicu.ca](http://homeicu.ca/).
-
----
-
-HomeICU is an Open-Source patient monitor that uses wearable sensors to measure the patient's vital signs and enable doctors to do medical diagnosis and treatment remotely over the Internet. 
-
-This project is specially designed to tackle the COVID-19 pandemic. Millions of patients have to recover at home without monitoring by professional doctors. 
-
-The goal of HomeICU is to build features of a medical-grade patient monitoring system like the ICU in the hospital. It will measure the following vital sign parameters and let the patient's doctor view and monitor them over the Internet.
-
-Phase I:
-
-1. body temperature
-2. oxygen saturation  (SPO₂/pulse oximetry)
-3. heart rate and heart-rate variability (HRV)
-4. respiration rate (based on impedance pneumography)
-5. Electrocardiography (ECG)
-6. motion occurrence and intensity
-
-Phase II:
-
-7. blood pressure (by the 3rd party meter)
-8. GPS (by the base station)
-
----
-
-# Repository
-
-
-* **/docs**     - additional documentation
-* **/datasheet**   - IC manuals
-* **/firmware** - software running in the ESP32 microprocessor 
-  (developed with Arduino IDE/C Language)
-  
-* **/gui**      - GUI for iPhone, iPad and Android 
-  (Developed with Flutter/Dart Language)
-* **/hardware** - printed circuit board design files .brd, .sch 
-  (Designed with Autodesk Eagle tool)
-* **/tools**   - tools for developing the project
-
-* **../homeicu-build** - directory for building binary file, no backup needed.
-   
----
-# Hardware
-
-* Microprocessor: ESP32, in WROOM32 module, Dual-core Xtensa 32-bit CPU, 4 MB of onboard SPI flash, 520 KB RAM. 
-
-* Wireless Connectivity:
-Wi-Fi and Access Point (AP) mode
-BLE (Bluetooth Low Energy).
-
-* Sensors: 
-ECG and respiration: TI ADS1292R
-Pulse oximetry: TI AFE4400
-Temperature sensor: Maxim MAX30205
-Accelerometer: MMA8452Q
-
-* Battery:
-Rechargeable 1000 mAh Lithium Polymer (LiPo) battery.
-
-* Electrode and Connector
-Three-electrode cable with ECG "snap connectors" on one end and a stereo connector on the other, and single-use ECG electrodes.
-
-* Probe:
-Finger-clip SpO₂ probe with a Nellcor-compatible DB9 connector
-
-* Qwiic:
-Qwiic connector and Qwiic-based temperature sensor.
-
-* USB:
-On-board battery charging
-
-* Power Supply
-Isolated, medical-grade (5 V, 2.5 A) USB wall power adapter (100-240 VAC) with snap-on plugs for the following regions: US, EU, CA
-
----
-# Software
-
-## Base Station 
-Processing-based GUI, Android App, iOS devices App, web interface.
-
-The software is developed with Dart language with Flutter and one source code support all platform.
-
-## Firmware 
-Running on an ESP32 microprocessor and written with C/C++. 
-
-The development tools are Arduino IDE and VSCode.
-
-## Code Standard
-This project has taken source codes from many different open-source projects and several different programming languages such as Arduino, C/C++, Flutter/Dart, python, and markdown.
-
-- It’s better to throw coding standards out and allow free expression.
-
-- To build a prototype ASAP is more urgent than spending time on tidy up coding standards and make source code stylish and beautiful.
-
----
 # Getting Started:
 
 ## Program binary file into ESP32 board
@@ -109,31 +7,95 @@ You need a breakout board bridges USB to UART for Arduino. This board brings out
 
 You can build this breakout board or just purchase one  "SparkFun FT231X" from their website. 
 
----
-# Connecting the ECG Electrodes
+# Sensor Firmware 
+The HomeICU sensor board is driven by an ESP32 microprocessor. 
 
-A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board. 
+# Build
+The build binary is stored in "../../homeicu-build"
+- partitions.csv   - partition information. 
+- firmware.ino.bin - binary file. 
+- firmware.elf     - contain useful information about the build and link. 
+  It can be opened by [this tool]
+  (http://www.sunshine2k.de/coding/javascript/onlineelfviewer/onlineelfviewer.html).
 
-Coming soon.
+# Tool Chain
+The firmware of it is written in C/C++ and built by Arduino IDE.
+You need to install [IDE](https://www.arduino.cc/en/main/software), then install the plugin as this [Installation Instruction].
+(https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/)
 
----
-# Medical Approval
+VSCode provides better editing features, and we use it to edit the code. 
+VSCode can call Arduino IDE to compile and upload code into ESP32.
 
-So far, HomeICU has NOT received any medical device certifications (FDA, CE, etc.) This device is NOT for consumer usage. It is not intended for direct interface with a patient, or patient diagnostics.
+## Arduino IDE
+The building cache directory is different from the VSCode. Go "File -> Preferences" and then select "Show verbose output during -> compilation", you will be able to see more compiling information.
 
-# Safety Notice
+## VS Code with Arduino extension
+The building cache directory is configured by "../.vscode/{...}arduino.json". 
+It is "../homeicu-build" right now, and this directory does not require backup.
 
-Unless we receive the medical device approval, please only use this project under the following conditions:
+## Settings
+Board: ESP32 Dev Module
+PSRAM: Disabled
+Uploading Speed: 921600
+Partition Scheme: Minimum SPIFFS (1.9MB APP with OTA/190KB SPIFFS)
 
-- The HomeICU is intended only for electrical evaluation of the features in a laboratory, simulation, or development environment.  It is intended for development purposes ONLY and is not intended to be used as all or part of an end-equipment application.
+## USBtoUART driver
+You need to install this driver to connect with the ESP32 board through a USB cable. 
+This driver is also for Serial Monitor.
 
-- The HomeICU should be used only by qualified engineers and technicians who are familiar with the risks associated with handling electrical and mechanical components, systems, and subsystems. 
+[CP210x UART Driver - EVB board]
+(https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers)
 
-- The user is responsible for the safety of themselves, fellow employees and contractors, and coworkers when using or handling the HomeICU. 
+[FT231x Breakout Board]
+(https://www.ftdichip.com/Drivers/VCP.htm)
 
-- The user is fully responsible for the contact interface between the human body and electronics; consequently, the user is responsible for preventing electrical hazards such as shock, electrostatic discharge, and electrical overstress of electric circuit components.
+## Serial Port Monitor
+- VSCode: Press F1 turn it ON, then in the "Output" window, select the "Serial Monitor"
 
-- You MUST NOT power the device from a non-isolated power source.
+- Mac iTerm: in a terminal window, execute 
+  "screen /dev/tty.SLAB_USBtoUART 115200"
+  You need to close the terminal if you need to use that UART for uploading code.
+
+- Arduino IDE: Turn on the "Serial Monitor" window
+
+# Upload Binary to board
+3. 4. 5. will skip the building process to save time.
+
+## 1. IDE/VSCode + USBtoUART 
+Select Port to the correct USB/UART like "/dev/tty.SLAB_USBtoUART", then press the "Upload" button on the IDE/VSCode. It will wait for you to press the "BOOT" button.
+
+## 2. IDE/VSCode + OTA (WiFi)
+Select Port to board IP like: "esp32-xxxxxx at your_esp_ip_address". then press "Upload". 
+
+## 3. command line + "./ota.py"
+Upload binary from the VSCode build directory over the WiFi OTA. 
+
+## 4. command line + "./usb.py"
+Upload binary from the VSCode's build directory over the USBtoUART.
+(This will skip the building process.) 
+
+## 5. web uploading
+Open a browser, type "homeicu.local", "admin/password"
+
+Note: The binary of IDE and VSCode is located in a different folder.
+
+# Debug
+In the IDE interface, choose "Verbose" in "Tools/Core Debug Level" to see more debug information.
+
+# OTA command and partition
+otatool.py is the more advanced tool for programming binary by OTA.
+the basic version is espota.py
+
+https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/ota.html
+
+https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/partition-tables.html
+
+# Arduino extension Commands (VSCode)
+
+This extension provides several commands in the Command Palette (F1 or Ctrl + Shift + P) for working with *.ino files:
+
+# The version number
+The version is stored in version.txt, it is generated by version.py from "git". 
 
 ---
 # License
@@ -142,21 +104,10 @@ The hardware and software are open-source and licensed under the following licen
 
 MIT License(http://opensource.org/licenses/MIT)
 
----
-# Credits
-This application uses many Open Source components. You can find the source code of their open-source projects along with the license information below. We acknowledge and are grateful to these developers for their contributions to open source.
 
-## Project: [Arduino Library for Healthypi-v4](https://github.com/Protocentral/protocentral_healthypi_v4) 
+ESP32 integrates four SPI peripherals.
 
-Copyright (c) 2019 ProtoCentral.
+SPI0 and SPI1 are used internally to access the ESP32’s attached flash memory and share an arbiter.
 
-License: [MIT](http://opensource.org/licenses/MIT)
-
-## Project: [SparkFun](https://www.sparkfun.com)
-
-Copyright (c), SparkFun.
-
-License: [MIT](http://opensource.org/licenses/MIT), Beerware: If you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us one round! 
-
-
- 
+There are quite a few limitations when using SPI Master driver on the SPI1 bus, see Notes on Using the SPI Master driver on SPI1 Bus.
+SPI2 and SPI3 are general-purpose SPI controllers, sometimes referred to as HSPI and VSPI, respectively. They are open to users. SPI2 and SPI3 have independent signal buses with the same respective names. Each bus has three CS lines to drive up to three SPI slaves.
