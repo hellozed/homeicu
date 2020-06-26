@@ -40,15 +40,15 @@ float per_pnn;
 float pnn_f=0;
 float tri =0;
 
-#define HISTGRM_DATA_SIZE             12*4
+
 #define HISTGRM_CALC_TH               10
 
 uint32_t heart_rate_histogram[HISTGRM_DATA_SIZE];
 
 uint8_t respirationRate;
-uint8_t histogram_percent_bin[HISTGRM_DATA_SIZE/4];
+uint8_t histogram_percent[HISTGRM_PERCENT_SIZE];
 uint8_t hr_percent_count = 0;
-uint8_t hrv_array[20];
+uint8_t hrv_array[HVR_ARRAY_SIZE];
 
 
 volatile unsigned int RR;
@@ -215,7 +215,7 @@ void add_heart_rate_histogram(uint8_t hr)
       for(int i = 0; i < HISTGRM_DATA_SIZE/4; i++)
       {
         uint32_t percent = ((heart_rate_histogram[i] * 100) / sum);
-        histogram_percent_bin[i] = percent;
+        histogram_percent[i] = percent;
       }
     }
     histogramReady = true;

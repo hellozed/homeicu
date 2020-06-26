@@ -2,6 +2,12 @@
  FIXME
  The code here is from healthypi project, 
  Code here requires tidy up and testing!
+
+ECG front-end IC provide 24-bit two-channel ADC,
+It can sample at a rate of 125 ~ 8kSPS (samples per second),
+the default is 500 sample per second.
+
+The typical ECG detection system internal converters is 12 bits, and 125 SPS.
 ---------------------------------------------------------------------------------*/
 #include "Arduino.h"
 #include "ADS1292r.h"

@@ -2,13 +2,16 @@
  Bluetooth Low Energy (BLE)
 
  Base station read data from the board through BLE
+
+ Reference
+ https://randomnerdtutorials.com/esp32-bluetooth-low-energy-ble-arduino-ide/
+
 ---------------------------------------------------------------------------------*/
 #include <Arduino.h>
 #include <BLEDevice.h>
-//#include <BLEServer.h>
-//#include <BLEUtils.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
 #include <BLE2902.h>
-
 #include "firmware.h"
 /*---------------------------------------------------------------------------------
  UUID Define 
@@ -24,7 +27,8 @@
 #define SPO2_CHARACTERISTIC_UUID        (uint16_t(0x2A5E))
 
 #define DATASTREAM_SERVICE_UUID         (uint16_t(0x1122)) 
-#define DATASTREAM_CHARACTERISTIC_UUID  (uint16_t(0x1424))
+#define ECG_STREAM_CHARACTERISTIC_UUID  (uint16_t(0x1424))
+#define PPG_STREAM_CHARACTERISTIC_UUID  (uint16_t(0x1425))  //FIXME config this uuid
 
 #define TEMP_SERVICE_UUID               (uint16_t(0x1809)) 
 #define TEMP_CHARACTERISTIC_UUID        (uint16_t(0x2a6e))
@@ -43,7 +47,8 @@
 BLEServer         *pServer                    = NULL;
 BLECharacteristic *heartRate_Characteristic   = NULL;
 BLECharacteristic *SpO2_Characteristic        = NULL;
-BLECharacteristic *datastream_Characteristic  = NULL;
+BLECharacteristic *ecgStream_Characteristic   = NULL;
+BLECharacteristic *ppgStream_Characteristic   = NULL;
 BLECharacteristic *battery_Characteristic     = NULL;
 BLECharacteristic *temperature_Characteristic = NULL;
 BLECharacteristic *hist_Characteristic        = NULL;
@@ -62,20 +67,18 @@ extern bool     ppgBufferReady;
 extern bool     hrvDataReady;
 extern bool     batteryDataReady;
 
-extern uint8_t  ecg_data_buff[];
-extern uint8_t  ppg_data_buff[];
+extern uint8_t  ecg_data_buff[ECG_BUFFER_SIZE];
+extern uint8_t  ppg_data_buff[PPG_BUFFER_SIZE];
 extern uint8_t  lead_flag;
-extern uint8_t  hrv_array[];
+extern uint8_t  hrv_array[HVR_ARRAY_SIZE];
 extern uint8_t  Sp02;
-extern uint8_t  bodyTemperature;
+extern float    bodyTemperature;
 extern uint8_t  battery_percent;
 
 extern volatile uint8_t heart_rate;
 extern volatile uint8_t HeartRate_prev;
-extern uint8_t  histogram_percent_bin[];
+extern uint8_t  histogram_percent[HISTGRM_PERCENT_SIZE];
 extern bool     histogramReady;
-
-extern String strValue;
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
@@ -84,6 +87,7 @@ class MyServerCallbacks: public BLEServerCallbacks
   void onConnect(BLEServer* pServer)
   {
     deviceConnected = true;
+    pServer->startAdvertising();
     Serial.println("BLE: connected");
   }
 
@@ -94,34 +98,49 @@ class MyServerCallbacks: public BLEServerCallbacks
   }
 };
 
-class MyCallbackHandler: public BLECharacteristicCallbacks 
+class ecgCallbackHandler: public BLECharacteristicCallbacks 
 {
-  void onWrite(BLECharacteristic *datastream_Characteristic)
+  void onWrite(BLECharacteristic *characteristic) 
   {
-    std::string value = datastream_Characteristic->getValue();
+    std::string value = characteristic->getValue();
     int len = value.length();
-    strValue = "0";
 
     if (value.length() > 0) 
     {
-      Serial.print("BLE: New value: ");
+      Serial.print("BLE: ppg rec: ");
       for (int i = 0; i < value.length(); i++)
       {
         Serial.print(String(value[i]));
-        strValue += value[i];
       }
       Serial.println();
     }
   }
 };
+class ppgCallbackHandler: public BLECharacteristicCallbacks 
+{
+  void onWrite(BLECharacteristic *characteristic) 
+  {
+    std::string value = characteristic->getValue();
+    int len = value.length();
 
+    if (value.length() > 0) 
+    {
+      Serial.print("BLE: ppg: ");
+      for (int i = 0; i < value.length(); i++)
+      {
+        Serial.print(String(value[i]));
+      }
+      Serial.println();
+    }
+  }
+};
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
-void bleSend(bool * readyFlag, uint8_t * data, int lentgh, BLECharacteristic * chr)
+void bleSend(bool * readyFlag, uint8_t * data, int length, BLECharacteristic * chr)
 {
   if (*readyFlag){
-    chr->setValue(data, lentgh);
+    chr->setValue(data, length);
     chr->notify();
     *readyFlag = false;
   }
@@ -129,10 +148,6 @@ void bleSend(bool * readyFlag, uint8_t * data, int lentgh, BLECharacteristic * c
 
 void handleBLEstack(void)
 {
-  if(strValue == "\0")
-    bleSend(&ecgBufferReady,ecg_data_buff,18,datastream_Characteristic);
-  else if(strValue =="0spo2")
-    bleSend(&ppgBufferReady,ppg_data_buff,18,datastream_Characteristic);
  
   //send notifications if connected to a client
   if(HeartRate_prev != heart_rate)
@@ -141,7 +156,7 @@ void handleBLEstack(void)
     uint8_t hr_att_ble[2];
     hr_att_ble[0] = lead_flag;
     hr_att_ble[1] = (uint8_t)heart_rate;    
-    bleSend(&heart_rate_ready,hr_att_ble,2,heartRate_Characteristic);
+    bleSend(&heart_rate_ready,hr_att_ble,sizeof(hr_att_ble),heartRate_Characteristic);
     
     HeartRate_prev = heart_rate;
   }  
@@ -155,14 +170,17 @@ void handleBLEstack(void)
     SpO2_att_ble[2] = (uint8_t)(Sp02>>8);
     SpO2_att_ble[3] = 0;
     SpO2_att_ble[4] = 0;
-    bleSend(&SpO2_calc_done,SpO2_att_ble,5,SpO2_Characteristic);
+    bleSend(&SpO2_calc_done,SpO2_att_ble,sizeof(SpO2_att_ble),SpO2_Characteristic);
   }
 
-  bleSend(&hrvDataReady,hrv_array,13,hrv_Characteristic);
-  bleSend(&temperatureReady,&bodyTemperature,2,temperature_Characteristic);  
-  bleSend(&histogramReady,histogram_percent_bin,13,hist_Characteristic);  
-  bleSend(&batteryDataReady,&battery_percent,1,battery_Characteristic);  
- 
+  bleSend(&hrvDataReady,    hrv_array,          sizeof(hrv_array),        hrv_Characteristic);
+  bleSend(&histogramReady,  histogram_percent,  sizeof(histogram_percent),hist_Characteristic); 
+  bleSend(&batteryDataReady,&battery_percent,   sizeof(battery_percent),  battery_Characteristic);  
+  bleSend(&temperatureReady,(uint8_t *) &bodyTemperature,sizeof(bodyTemperature),temperature_Characteristic);  
+
+  bleSend(&ecgBufferReady,ecg_data_buff,ECG_BUFFER_SIZE,ecgStream_Characteristic);  //FIXME data length check
+  bleSend(&ppgBufferReady,ppg_data_buff,PPG_BUFFER_SIZE,ppgStream_Characteristic); //FIXME data length check
+     
   if (!deviceConnected && oldDeviceConnected)
   {
     delay(500); // give the bluetooth stack the chance to get things ready
@@ -218,8 +236,11 @@ void initBLE(void)
                                 HIST_CHARACTERISTIC_UUID,
                                 PROPERTY);
  
-  datastream_Characteristic   = datastreamService->createCharacteristic(
-                                DATASTREAM_CHARACTERISTIC_UUID,
+  ecgStream_Characteristic    = datastreamService->createCharacteristic(
+                                ECG_STREAM_CHARACTERISTIC_UUID,
+                                PROPERTY);
+  ppgStream_Characteristic    = datastreamService->createCharacteristic(
+                                PPG_STREAM_CHARACTERISTIC_UUID,
                                 PROPERTY);
                 
   heartRate_Characteristic  ->addDescriptor(new BLE2902());
@@ -228,8 +249,10 @@ void initBLE(void)
   battery_Characteristic    ->addDescriptor(new BLE2902());
   hist_Characteristic       ->addDescriptor(new BLE2902());
   hrv_Characteristic        ->addDescriptor(new BLE2902());
-  datastream_Characteristic ->addDescriptor(new BLE2902());
-  datastream_Characteristic ->setCallbacks (new MyCallbackHandler()); 
+  ecgStream_Characteristic  ->addDescriptor(new BLE2902());
+  ppgStream_Characteristic  ->addDescriptor(new BLE2902());
+  ecgStream_Characteristic  ->setCallbacks (new ecgCallbackHandler());
+  ppgStream_Characteristic  ->setCallbacks (new ppgCallbackHandler()); 
 
   // Start the service
   heartRateService  ->start();
@@ -252,3 +275,42 @@ void initBLE(void)
   BLEDevice::startAdvertising();
   Serial.println("BLE: adverting");     // wait for connection to notify
 }
+
+/*---------------------------------------------------------------------------------
+ fake ecg data for testing
+---------------------------------------------------------------------------------*/
+#if ECG_BLE_TEST
+const uint8_t fakeEcgSample[180] = { \
+223, 148, 148,  30, 178, 192, 214, 184, 180, 162, \
+168, 176, 229, 152, 182, 112, 184, 218, 231, 203, \
+185, 168, 177, 181, 225, 170,  99, 184, 201, 228, \
+207, 185, 164, 165, 170, 178, 241, 165, 122, 174, \
+189, 216, 203, 189, 172, 176, 184, 223, 165, 168, \
+104, 190, 222, 225, 200, 189, 194, 194, 246, 189, \
+160, 137, 241, 239, 238, 196, 174, 160, 161, 186, \
+153, 164,  43, 180, 205, 221, 185, 182, 166, 168, \
+178, 228, 170, 155,  40, 192, 205, 225, 185, 170, \
+147, 155, 164, 165, 186, 152,  69, 180, 190, 216, \
+193, 180, 162, 153, 161, 182, 148, 147,  12, 177, \
+194, 207, 168, 165, 146, 156, 160, 216, 142, 160, \
+ 79, 182, 208, 203, 188, 176, 176, 178, 211, 176, \
+177,  76, 211, 245, 222, 204, 189,  39, 169, 181, \
+148, 169, 182, 196, 194, 207, 205, 214, 209, 214, \
+209,  23, 197, 138, 215, 226, 246, 243, 226, 218, \
+190, 208, 211,  17, 203, 209, 151, 236,   3,  14, \
+223, 211, 197, 201, 204, 208, 216, 188,  94, 211, \
+};
+void getTestData(uint8_t *p, int len)
+{
+  static uint8_t index=0;
+
+  // build the data when the function called at the first time 
+  for(int i=0;i<len;i++)
+    {
+      p[i] = fakeEcgSample[index];
+      index++;
+      if (index == 180) 
+        index = 0;
+    }
+}
+#endif //ECG_BLE_TEST

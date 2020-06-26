@@ -31,12 +31,11 @@ def upload():
             r= os.system(shell_comand)
             if (r!=0):
                 
-                s = "upload failed! ("+ str(number) + ") of attempts"
+                s = "upload failed! try again"
                 print(s)
                 os.system(Say + s)      #voice alert
-
-                print("try again ...in 2 seconds")
-                time.sleep(2)  
+                print(s)
+                time.sleep(1)  
             else:
                 print(time.asctime(time.localtime(time.time())))
                 s = "congratulation, the uploading succeed!"
