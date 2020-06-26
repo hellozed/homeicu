@@ -681,27 +681,6 @@ shrink quad flat pack, square</description>
 </package3d>
 </packages3d>
 </library>
-<library name="testpad" urn="urn:adsk.eagle:library:385">
-<packages>
-<package name="B1,27" urn="urn:adsk.eagle:footprint:27900/1" library_version="3">
-<description>&lt;b&gt;TEST PAD&lt;/b&gt;</description>
-<wire x1="-0.635" y1="0" x2="0.635" y2="0" width="0.0024" layer="37"/>
-<wire x1="0" y1="0.635" x2="0" y2="-0.635" width="0.0024" layer="37"/>
-<smd name="TP" x="0" y="0" dx="1.27" dy="1.27" layer="1" roundness="100" cream="no"/>
-<text x="-0.635" y="1.016" size="1.27" layer="25" ratio="10">&gt;NAME</text>
-<text x="-0.635" y="-0.762" size="0.0254" layer="27">&gt;VALUE</text>
-<text x="-0.635" y="-1.905" size="1" layer="37">&gt;TP_SIGNAL_NAME</text>
-</package>
-</packages>
-<packages3d>
-<package3d name="B1,27" urn="urn:adsk.eagle:package:27944/2" type="box" library_version="3">
-<description>TEST PAD</description>
-<packageinstances>
-<packageinstance name="B1,27"/>
-</packageinstances>
-</package3d>
-</packages3d>
-</library>
 <library name="SparkFun">
 <packages>
 <package name="PAD.03X.03">
@@ -1180,39 +1159,6 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <smd name="37" x="9.25" y="5.73" dx="1.5" dy="1" layer="1"/>
 <smd name="38" x="9.25" y="7" dx="1.5" dy="1" layer="1"/>
 <smd name="GND" x="0.3" y="-0.7" dx="6" dy="6" layer="1"/>
-</package>
-</packages>
-</library>
-<library name="esp32-thing-temp">
-<packages>
-<package name="SC70-6">
-<description>&lt;h3&gt;SC-88/SC70-6/SOT-363 6-pin Package&lt;/h3&gt;
-&lt;p&gt;&lt;a href="http://www.onsemi.com/pub_link/Collateral/MBT3904DW1T1-D.PDF"&gt;Example Datasheet&lt;/a&gt;&lt;/p&gt;</description>
-<circle x="-1.3335" y="-1.016" radius="0.254" width="0" layer="21"/>
-<wire x1="1" y1="0.625" x2="-1" y2="0.625" width="0.127" layer="51"/>
-<wire x1="-1" y1="0.625" x2="-1" y2="-0.625" width="0.127" layer="51"/>
-<wire x1="-1" y1="-0.625" x2="1" y2="-0.625" width="0.127" layer="51"/>
-<wire x1="1" y1="-0.625" x2="1" y2="0.625" width="0.127" layer="51"/>
-<wire x1="-1.1176" y1="0.7493" x2="-1.1176" y2="-0.6223" width="0.2032" layer="21"/>
-<wire x1="1.1176" y1="-0.7493" x2="1.1176" y2="0.7493" width="0.2032" layer="21"/>
-<wire x1="-0.9779" y1="0.7493" x2="-1.1176" y2="0.7493" width="0.2032" layer="21"/>
-<wire x1="1.1176" y1="0.7493" x2="0.9779" y2="0.7493" width="0.2032" layer="21"/>
-<wire x1="-1.1176" y1="-0.6223" x2="-0.9779" y2="-0.7493" width="0.2032" layer="21"/>
-<wire x1="0.9779" y1="-0.7493" x2="1.1176" y2="-0.7493" width="0.2032" layer="21"/>
-<rectangle x1="-0.1016" y1="0.6858" x2="0.1016" y2="1.0414" layer="51"/>
-<rectangle x1="-0.1016" y1="-1.0414" x2="0.1016" y2="-0.6858" layer="51"/>
-<rectangle x1="0.5484" y1="0.6858" x2="0.7516" y2="1.0414" layer="51"/>
-<rectangle x1="-0.7516" y1="0.6858" x2="-0.5484" y2="1.0414" layer="51"/>
-<rectangle x1="-0.7516" y1="-1.0414" x2="-0.5484" y2="-0.6858" layer="51"/>
-<rectangle x1="0.5484" y1="-1.0414" x2="0.7516" y2="-0.6858" layer="51"/>
-<smd name="4" x="0.65" y="0.92" dx="0.3" dy="0.66" layer="1"/>
-<smd name="2" x="0" y="-0.92" dx="0.3" dy="0.66" layer="1" rot="R180"/>
-<smd name="1" x="-0.65" y="-0.92" dx="0.3" dy="0.66" layer="1" rot="R180"/>
-<smd name="3" x="0.65" y="-0.92" dx="0.3" dy="0.66" layer="1" rot="R180"/>
-<smd name="5" x="0" y="0.92" dx="0.3" dy="0.66" layer="1"/>
-<smd name="6" x="-0.65" y="0.92" dx="0.3" dy="0.66" layer="1"/>
-<text x="0" y="1.397" size="0.6096" layer="25" font="vector" ratio="20" align="bottom-center">&gt;NAME</text>
-<text x="0" y="-1.397" size="0.6096" layer="27" font="vector" ratio="20" align="top-center">&gt;VALUE</text>
 </package>
 </packages>
 </library>
@@ -1976,15 +1922,6 @@ design rules under a new name.</description>
 <attribute name="MPN" value="" x="31.5072" y="30.5892" size="1.778" layer="27" rot="R90" display="off"/>
 <attribute name="OC_NEWARK" value="unknown" x="31.5072" y="30.5892" size="1.778" layer="27" rot="R90" display="off"/>
 </element>
-<element name="TP1" library="testpad" library_urn="urn:adsk.eagle:library:385" package="B1,27" package3d_urn="urn:adsk.eagle:package:27944/2" value="TPSQB1,27" x="61.0172" y="11.8992" smashed="yes">
-<attribute name="MF" value="" x="61.0172" y="11.8992" size="1.778" layer="27" display="off"/>
-<attribute name="MPN" value="" x="61.0172" y="11.8992" size="1.778" layer="27" display="off"/>
-<attribute name="NAME" x="59.6822" y="9.9152" size="0.8128" layer="25" ratio="10"/>
-<attribute name="OC_NEWARK" value="unknown" x="61.0172" y="11.8992" size="1.778" layer="27" display="off"/>
-<attribute name="POPULARITY" value="0" x="61.0172" y="11.8992" size="1.778" layer="27" display="off"/>
-<attribute name="TP_SIGNAL_NAME" value="" x="60.3822" y="9.9942" size="1" layer="37"/>
-<attribute name="VALUE" x="60.3822" y="11.1372" size="0.0254" layer="27"/>
-</element>
 <element name="U$4" library="circuitects" package="ABM3" value="ABM3" x="26.0172" y="26.4992" smashed="yes" rot="R270">
 <attribute name="MF" value="" x="26.0172" y="26.4992" size="1.778" layer="27" rot="R270" display="off"/>
 <attribute name="MPN" value="" x="26.0172" y="26.4992" size="1.778" layer="27" rot="R270" display="off"/>
@@ -2006,14 +1943,6 @@ design rules under a new name.</description>
 <attribute name="NAME" x="22.4992" y="33.8228" size="0.8128" layer="25" rot="R180" align="center"/>
 <attribute name="OC_NEWARK" value="48AC8054" x="10.0992" y="42.8828" size="1.778" layer="27" rot="R90" display="off"/>
 <attribute name="VALUE" x="10.0992" y="36.3928" size="0.8128" layer="27" rot="R180" align="center"/>
-</element>
-<element name="Q2" library="esp32-thing-temp" package="SC70-6" value="MBT3904DW1T1" x="20.1172" y="24.9992" smashed="yes">
-<attribute name="MF" value="" x="20.1172" y="24.9992" size="1.778" layer="27" display="off"/>
-<attribute name="MPN" value="" x="20.1172" y="24.9992" size="1.778" layer="27" display="off"/>
-<attribute name="NAME" x="20.1172" y="22.5962" size="0.8128" layer="25" font="vector" ratio="20" align="bottom-center"/>
-<attribute name="OC_NEWARK" value="unknown" x="20.1172" y="24.9992" size="1.778" layer="27" display="off"/>
-<attribute name="PROD_ID" value="TRANS-13337" x="9.8172" y="42.7992" size="1.778" layer="27" display="off"/>
-<attribute name="VALUE" x="20.1172" y="23.6022" size="0.6096" layer="27" font="vector" ratio="20" align="top-center"/>
 </element>
 <element name="U5" library="SparkFun" package="SOT23-5" value="MCP73831" x="61.0172" y="26.1992" smashed="yes" rot="R90">
 <attribute name="MF" value="MICROCHIP" x="61.0172" y="26.1992" size="1.778" layer="27" rot="R90" display="off"/>
@@ -2276,15 +2205,6 @@ design rules under a new name.</description>
 <attribute name="SPICEPREFIX" value="C" x="29.8" y="6.6" size="1.778" layer="27" display="off"/>
 <attribute name="VALUE" x="28.53" y="4.06" size="1.27" layer="27"/>
 </element>
-<element name="R1" library="rcl" library_urn="urn:adsk.eagle:library:334" package="R0402" package3d_urn="urn:adsk.eagle:package:23547/3" value="10K" x="26.5" y="5.1" smashed="yes">
-<attribute name="MF" value="" x="26.5" y="5.1" size="1.778" layer="27" display="off"/>
-<attribute name="MPN" value="" x="26.5" y="5.1" size="1.778" layer="27" display="off"/>
-<attribute name="NAME" x="25.865" y="5.735" size="1.27" layer="25"/>
-<attribute name="OC_NEWARK" value="unknown" x="26.5" y="5.1" size="1.778" layer="27" display="off"/>
-<attribute name="POPULARITY" value="34" x="26.5" y="5.1" size="1.778" layer="27" display="off"/>
-<attribute name="SPICEPREFIX" value="R" x="26.5" y="5.1" size="1.778" layer="27" display="off"/>
-<attribute name="VALUE" x="25.865" y="3.195" size="1.27" layer="27"/>
-</element>
 <element name="R2" library="rcl" library_urn="urn:adsk.eagle:library:334" package="R0402" package3d_urn="urn:adsk.eagle:package:23547/3" value="10K" x="15.5" y="9.7" smashed="yes">
 <attribute name="MF" value="" x="15.5" y="9.7" size="1.778" layer="27" display="off"/>
 <attribute name="MPN" value="" x="15.5" y="9.7" size="1.778" layer="27" display="off"/>
@@ -2293,15 +2213,6 @@ design rules under a new name.</description>
 <attribute name="POPULARITY" value="34" x="15.5" y="9.7" size="1.778" layer="27" display="off"/>
 <attribute name="SPICEPREFIX" value="R" x="15.5" y="9.7" size="1.778" layer="27" display="off"/>
 <attribute name="VALUE" x="14.865" y="7.795" size="1.27" layer="27"/>
-</element>
-<element name="R3" library="rcl" library_urn="urn:adsk.eagle:library:334" package="R0402" package3d_urn="urn:adsk.eagle:package:23547/3" value="10K" x="17.4" y="5.7" smashed="yes">
-<attribute name="MF" value="" x="17.4" y="5.7" size="1.778" layer="27" display="off"/>
-<attribute name="MPN" value="" x="17.4" y="5.7" size="1.778" layer="27" display="off"/>
-<attribute name="NAME" x="16.765" y="6.335" size="1.27" layer="25"/>
-<attribute name="OC_NEWARK" value="unknown" x="17.4" y="5.7" size="1.778" layer="27" display="off"/>
-<attribute name="POPULARITY" value="34" x="17.4" y="5.7" size="1.778" layer="27" display="off"/>
-<attribute name="SPICEPREFIX" value="R" x="17.4" y="5.7" size="1.778" layer="27" display="off"/>
-<attribute name="VALUE" x="16.765" y="3.795" size="1.27" layer="27"/>
 </element>
 <element name="R26" library="rcl" library_urn="urn:adsk.eagle:library:334" package="R0402" package3d_urn="urn:adsk.eagle:package:23547/3" value="10K" x="21.1" y="5.1" smashed="yes">
 <attribute name="MF" value="" x="21.1" y="5.1" size="1.778" layer="27" display="off"/>
@@ -2558,7 +2469,6 @@ design rules under a new name.</description>
 <contactref element="U$8" pad="23"/>
 <contactref element="C35" pad="2"/>
 <contactref element="U$8" pad="14"/>
-<contactref element="TP1" pad="TP"/>
 <contactref element="U3" pad="5"/>
 <contactref element="U$10" pad="1"/>
 <contactref element="U$11" pad="1"/>
@@ -2594,7 +2504,6 @@ design rules under a new name.</description>
 <wire x1="33.9172" y1="35.0992" x2="33.3872" y2="39.3392" width="0" layer="19" extent="1-1"/>
 <wire x1="33.3872" y1="43.6392" x2="33.3872" y2="39.3392" width="0" layer="19" extent="1-1"/>
 <wire x1="35.4472" y1="43.7592" x2="33.3872" y2="43.6392" width="0" layer="19" extent="1-1"/>
-<wire x1="61.0172" y1="11.8992" x2="58.3492" y2="32.5328" width="0" layer="19" extent="1-1"/>
 <wire x1="6.9172" y1="23.7992" x2="33.9172" y2="35.0992" width="0" layer="19" extent="1-1"/>
 <wire x1="6.8172" y1="15.2992" x2="6.9172" y2="23.7992" width="0" layer="19" extent="1-1"/>
 <wire x1="10.1172" y1="12.3992" x2="6.8172" y2="15.2992" width="0" layer="19" extent="1-1"/>
@@ -2959,12 +2868,12 @@ design rules under a new name.</description>
 <wire x1="11.925" y1="11.95" x2="9.1172" y2="12.3992" width="0" layer="19" extent="1-1"/>
 <wire x1="6.8172" y1="14.2992" x2="9.1172" y2="12.3992" width="0" layer="19" extent="1-1"/>
 </signal>
-<signal name="CHIP_PU">
-<contactref element="Q2" pad="3"/>
+<signal name="RESET">
 <contactref element="U2" pad="3"/>
 <contactref element="R26" pad="1"/>
-<wire x1="20.7672" y1="24.0792" x2="20.6" y2="5.1" width="0" layer="19" extent="1-1"/>
-<wire x1="5.6392" y1="33.6328" x2="20.7672" y2="24.0792" width="0" layer="19" extent="1-1"/>
+<contactref element="J3" pad="1"/>
+<wire x1="5.6392" y1="33.6328" x2="42.4" y2="55.5" width="0" layer="19" extent="1-1"/>
+<wire x1="20.6" y1="5.1" x2="5.6392" y2="33.6328" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="U0RXD">
 <contactref element="U2" pad="34"/>
@@ -2975,30 +2884,6 @@ design rules under a new name.</description>
 <contactref element="U2" pad="35"/>
 <contactref element="J3" pad="3"/>
 <wire x1="6.9092" y1="52.1328" x2="47.48" y2="55.5" width="0" layer="19" extent="1-1"/>
-</signal>
-<signal name="DTR">
-<contactref element="Q2" pad="1"/>
-<contactref element="J3" pad="1"/>
-<contactref element="R1" pad="1"/>
-<wire x1="19.4672" y1="24.0792" x2="42.4" y2="55.5" width="0" layer="19" extent="1-1"/>
-<wire x1="26" y1="5.1" x2="19.4672" y2="24.0792" width="0" layer="19" extent="1-1"/>
-</signal>
-<signal name="RTS">
-<contactref element="Q2" pad="4"/>
-<contactref element="J3" pad="5"/>
-<contactref element="R3" pad="1"/>
-<wire x1="20.7672" y1="25.9192" x2="52.56" y2="55.5" width="0" layer="19" extent="1-1"/>
-<wire x1="16.9" y1="5.7" x2="20.7672" y2="25.9192" width="0" layer="19" extent="1-1"/>
-</signal>
-<signal name="N$5">
-<contactref element="Q2" pad="5"/>
-<contactref element="R1" pad="2"/>
-<wire x1="20.1172" y1="25.9192" x2="27" y2="5.1" width="0" layer="19" extent="1-1"/>
-</signal>
-<signal name="N$17">
-<contactref element="Q2" pad="2"/>
-<contactref element="R3" pad="2"/>
-<wire x1="20.1172" y1="24.0792" x2="17.9" y2="5.7" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="VBAT">
 <contactref element="U5" pad="3"/>
@@ -3112,11 +2997,11 @@ design rules under a new name.</description>
 <signal name="BOOT">
 <contactref element="U2" pad="25"/>
 <contactref element="R2" pad="1"/>
-<contactref element="Q2" pad="6"/>
 <contactref element="J7" pad="1"/>
-<wire x1="19.4672" y1="25.9192" x2="19.6092" y2="52.1328" width="0" layer="19" extent="1-1"/>
-<wire x1="15" y1="9.7" x2="19.4672" y2="25.9192" width="0" layer="19" extent="1-1"/>
-<wire x1="28.1" y1="55.8" x2="15" y2="9.7" width="0" layer="19" extent="1-1"/>
+<contactref element="J3" pad="5"/>
+<wire x1="28.1" y1="55.8" x2="52.56" y2="55.5" width="0" layer="19" extent="1-1"/>
+<wire x1="19.6092" y1="52.1328" x2="28.1" y2="55.8" width="0" layer="19" extent="1-1"/>
+<wire x1="15" y1="9.7" x2="19.6092" y2="52.1328" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$1">
 <contactref element="LED" pad="A"/>
