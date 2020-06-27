@@ -1,315 +1,132 @@
-//////////////////////////////////////////////////////////////////////////////////////////
-//
-//   Arduino Library for ADS1292R Shield/Breakout
-//
-//   Copyright (c) 2017 ProtoCentral
-//
-//   This software is licensed under the MIT License(http://opensource.org/licenses/MIT).
-//
-//   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//   NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-//   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-//   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-//   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
-//   Requires g4p_control graphing library for processing.  Built on V4.1
-//   Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
-//
-/////////////////////////////////////////////////////////////////////////////////////////
+/*---------------------------------------------------------------------------------
+  ADS1292 driver - hardware for ECG
+---------------------------------------------------------------------------------*/
 #include "Arduino.h"
-#include "ADS1292r.h"
 #include <SPI.h>
+#include "ADS1292r.h"
+#include "firmware.h" 
 
-volatile byte SPI_RX_Buff[15];
-volatile static int SPI_RX_Buff_Count = 0;
-volatile char *SPI_RX_Buff_Ptr;
-volatile bool ads1292dataReceived = false;
-volatile bool ads1292r_intr_flag  = false;
+volatile bool       ads1292dataReceived = false;
+volatile bool       ads1292r_intr_flag  = false;
 
-const int pwdn_pin = 27;
-const int start_pin = 14;
-const int chip_select = 17;
-
-unsigned long uecgtemp = 0;
-unsigned long resultTemp = 0;
-
-signed long secgtemp = 0;
-
-long status_byte=0;
-
-uint8_t LeadStatus=0;
-
-int j,i;
-
-void IRAM_ATTR ads1292r_interrupt_handler(void)
+void IRAM_ATTR ads1292_interrupt_handler(void)
 {
   portENTER_CRITICAL_ISR(&ads1292Mux);
   ads1292r_intr_flag = true;
   portEXIT_CRITICAL_ISR (&ads1292Mux);  
 }
 
-boolean ads1292r::getData(const int data_ready,const int chip_select,ads1292r_data *data_struct)
+//FIXME too many delays
+
+void ADS1292 :: init(void)
 {
+  SPI.setDataMode(SPI_MODE1);
+
+  // start the SPI library:
+  pin_high_time(ADS1292_PWDN_PIN,100);
+  pin_low_time (ADS1292_PWDN_PIN,100);
+  pin_high_time(ADS1292_PWDN_PIN,100);
   
-   if (ads1292r_intr_flag)      // Sampling rate is set to 125SPS ,DRDY ticks for every 8ms
-   {
-     portENTER_CRITICAL_ISR(&ads1292Mux);
-     ads1292r_intr_flag = false;
-     portEXIT_CRITICAL_ISR (&ads1292Mux);  
+  pin_low_time (ADS1292_START_PIN,20);       // disable Start
+  pin_high_time(ADS1292_START_PIN,20);       // enable Start
+  pin_low_time (ADS1292_START_PIN,100);      //  hard Stop 
+  
+  SendCommand(START); // Send 0x08, start data conv
+  SendCommand(STOP);  // Send 0x0A, soft stop
+  delay(50);
+  SendCommand(SDATAC);// Send 0x11, stop read data continuous
+  delay(300);
+  WriteRegister(ADS1292_REG_CONFIG1,      0x00);  //Set sampling rate to 125 SPS
+  WriteRegister(ADS1292_REG_CONFIG2,0b10100000);	//Lead-off comp off, test signal disabled
+  WriteRegister(ADS1292_REG_LOFF,   0b00010000);	//Lead-off defaults
+  WriteRegister(ADS1292_REG_CH1SET, 0b01000000);	//Ch 1 enabled, gain 6, connected to electrode in
+  WriteRegister(ADS1292_REG_CH2SET, 0b01100000);	//Ch 2 enabled, gain 6, connected to electrode in
+  WriteRegister(ADS1292_REG_RLDSENS,0b00101100);	//RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
+  WriteRegister(ADS1292_REG_LOFFSENS,     0x00);	//LOFF settings: all disabled
+  													                  //Skip register 8, LOFF Settings default
+  WriteRegister(ADS1292_REG_RESP1,  0b11110010);	//Respiration: MOD/DEMOD turned only, phase 0
+  WriteRegister(ADS1292_REG_RESP2,  0b00000011);	//Respiration: Calib OFF, respiration freq defaults
 
-     SPI_RX_Buff_Ptr = Read_Data(chip_select); // Read the data,point the data to a pointer
-     ads1292dataReceived = true;
-     uecgtemp = (unsigned long) (  ((unsigned long)SPI_RX_Buff_Ptr[3] << 16) | ( (unsigned long) SPI_RX_Buff_Ptr[4] << 8) |  (unsigned long) SPI_RX_Buff_Ptr[5]);
-     uecgtemp = (unsigned long) (uecgtemp << 8);
-     secgtemp = (signed long) (uecgtemp);
-     data_struct->raw_resp = secgtemp;
-     uecgtemp = (unsigned long) (  ((unsigned long)SPI_RX_Buff_Ptr[6] << 16) | ( (unsigned long) SPI_RX_Buff_Ptr[7] << 8) |  (unsigned long) SPI_RX_Buff_Ptr[8]);
-     uecgtemp = (unsigned long) (uecgtemp << 8);
-     secgtemp = (signed long) (uecgtemp);
-     secgtemp = (signed long) (secgtemp >> 8);
-     data_struct->raw_ecg = secgtemp;
-     status_byte = (long)((long)SPI_RX_Buff_Ptr[2] | ((long) SPI_RX_Buff_Ptr[1]) <<8 | ((long) SPI_RX_Buff_Ptr[0])<<16); // First 3 bytes represents the status
-     status_byte  = (status_byte & 0x0f8000) >> 15;  // bit15 gives the lead status
-     LeadStatus = (unsigned char ) status_byte ;
-     data_struct->status_reg = LeadStatus;
-     ads1292dataReceived = false;
-     SPI_RX_Buff_Count = 0;
-     return true;
-    }
-    else
-    {
+  SendCommand(RDATAC);					              // Send 0x10, Start Read Data Continuous
+  delay(10);
+
+  pin_high_time (ADS1292_START_PIN,20);                // enable Start
+}
+
+boolean ADS1292 :: getData(ads1292r_data *data_struct)
+{
+  uint8_t     LeadStatus  = 0;
+  signed long secgtemp    = 0;
+  long        status_byte = 0;
+
+  unsigned long uecgtemp  = 0;
+  unsigned long resultTemp= 0;
+
+  // Sampling rate is set to 125SPS ,DRDY ticks for every 8ms
+  if (ads1292r_intr_flag)      
+  {
+    SPI.setDataMode(SPI_MODE1);
+
+    portENTER_CRITICAL_ISR(&ads1292Mux);
+    ads1292r_intr_flag = false;
+    portEXIT_CRITICAL_ISR (&ads1292Mux);  
+
+    ReadToBuffer(); // Read the data to SPI_ReadBuffer
+
+    ads1292dataReceived = true;
+    uecgtemp = (unsigned long) (((unsigned long)SPI_ReadBuffer[3] << 16)|  \
+                                ((unsigned long)SPI_ReadBuffer[4] << 8) |  \
+                                 (unsigned long)SPI_ReadBuffer[5]);
+    uecgtemp = (unsigned long)(uecgtemp << 8);
+    secgtemp = (signed long)  (uecgtemp);
+    data_struct->raw_resp    = secgtemp;
+
+    uecgtemp = (unsigned long)(((unsigned  long)SPI_ReadBuffer[6] << 16) | \
+                                ((unsigned long)SPI_ReadBuffer[7] <<  8) | \
+                                 (unsigned long)SPI_ReadBuffer[8]);
+    
+    uecgtemp = (unsigned long)(uecgtemp << 8);
+    secgtemp = (signed long)  (uecgtemp);
+    secgtemp = (signed long)  (secgtemp >> 8);
+    data_struct->raw_ecg     = secgtemp;
+
+    status_byte = (long)((long)SPI_ReadBuffer[2] |      \ 
+                        ((long)SPI_ReadBuffer[1]) <<8 | \
+                        ((long) SPI_ReadBuffer[0])<<16); // First 3 bytes represents the status
+    
+    status_byte  = (status_byte & 0x0f8000) >> 15;  // bit15 gives the lead status
+    LeadStatus = (uint8_t ) status_byte ;
+    data_struct->status_reg = LeadStatus;
+    ads1292dataReceived = false;
+    return true;
+  }
+  else
     return false;
-    }
 }
 
-char* ads1292r::Read_Data(const int chip_select)
+void ADS1292 :: ReadToBuffer(void)
 {
-  static char SPI_Dummy_Buff[10];
-  digitalWrite(chip_select, LOW);
+  pin_low_time (ADS1292_CS_PIN,0);
 
   for (int i = 0; i < 9; ++i)
-  {
-    SPI_Dummy_Buff[i] = SPI.transfer(CONFIG_SPI_MASTER_DUMMY);
-  }
-
-  digitalWrite(chip_select, HIGH);
-  return SPI_Dummy_Buff;
+    SPI_ReadBuffer[i] = SPI.transfer(CONFIG_SPI_MASTER_DUMMY);
+  
+  pin_high_time(ADS1292_CS_PIN,0);
 }
-
-char* ads1292r::Read_Data()
+ 
+void ADS1292 :: SendCommand(uint8_t data_in)
 {
-  static char SPI_Dummy_Buff[10];
-  digitalWrite(chip_select, LOW);
+  pin_low_time (ADS1292_CS_PIN,2);
+  pin_high_time(ADS1292_CS_PIN,2);
+  pin_low_time (ADS1292_CS_PIN,2);
 
-  for (int i = 0; i < 9; ++i)
-  {
-    SPI_Dummy_Buff[i] = SPI.transfer(CONFIG_SPI_MASTER_DUMMY);
-  }
-
-  digitalWrite(chip_select, HIGH);
-  return SPI_Dummy_Buff;
-}
-
-void ads1292r::Init(const int chip_select,const int pwdn_pin,const int start_pin)
-{
-  // start the SPI library:
-  Reset(pwdn_pin);
-  delay(100);
-  Disable_Start(start_pin);
-  Enable_Start(start_pin);
-  Hard_Stop(start_pin);
-  Start_Data_Conv_Command(chip_select);
-  Soft_Stop(chip_select);
-  delay(50);
-  Stop_Read_Data_Continuous(chip_select);					// SDATAC command
-  delay(300);
-  Reg_Write(ADS1292_REG_CONFIG1, 0x00,chip_select); 		//Set sampling rate to 125 SPS
-  delay(10);
-  Reg_Write(ADS1292_REG_CONFIG2, 0b10100000,chip_select);	//Lead-off comp off, test signal disabled
-  delay(10);
-  Reg_Write(ADS1292_REG_LOFF, 0b00010000,chip_select);		//Lead-off defaults
-  delay(10);
-  Reg_Write(ADS1292_REG_CH1SET, 0b01000000,chip_select);	//Ch 1 enabled, gain 6, connected to electrode in
-  delay(10);
-  Reg_Write(ADS1292_REG_CH2SET, 0b01100000,chip_select);	//Ch 2 enabled, gain 6, connected to electrode in
-  delay(10);
-  Reg_Write(ADS1292_REG_RLDSENS, 0b00101100,chip_select);	//RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
-  delay(10);
-  Reg_Write(ADS1292_REG_LOFFSENS, 0x00,chip_select);		//LOFF settings: all disabled
-  delay(10);													//Skip register 8, LOFF Settings default
-  Reg_Write(ADS1292_REG_RESP1, 0b11110010,chip_select);		//Respiration: MOD/DEMOD turned only, phase 0
-  delay(10);
-  Reg_Write(ADS1292_REG_RESP2, 0b00000011,chip_select);		//Respiration: Calib OFF, respiration freq defaults
-  delay(10);
-  Start_Read_Data_Continuous(chip_select);
-  delay(10);
-  Enable_Start(start_pin); 
-}
-
-void ads1292r::Init()
-{
-  // start the SPI library:
-  Reset();
-  delay(100);
-  Disable_Start();
-  Enable_Start();
-  Hard_Stop();
-  Start_Data_Conv_Command();
-  Soft_Stop();
-  delay(50);
-  Stop_Read_Data_Continuous();         // SDATAC command
-  delay(300);
-  Reg_Write(ADS1292_REG_CONFIG1, 0x00);     //Set sampling rate to 125 SPS
-  delay(10);
-  Reg_Write(ADS1292_REG_CONFIG2, 0b10100000); //Lead-off comp off, test signal disabled
-  delay(10);
-  Reg_Write(ADS1292_REG_LOFF, 0b00010000);    //Lead-off defaults
-  delay(10);
-  Reg_Write(ADS1292_REG_CH1SET, 0b01000000);  //Ch 1 enabled, gain 6, connected to electrode in
-  delay(10);
-  Reg_Write(ADS1292_REG_CH2SET, 0b01100000);  //Ch 2 enabled, gain 6, connected to electrode in
-  delay(10);
-  Reg_Write(ADS1292_REG_RLDSENS, 0b00101100); //RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
-  delay(10);
-  Reg_Write(ADS1292_REG_LOFFSENS, 0x00);    //LOFF settings: all disabled
-  delay(10);                          //Skip register 8, LOFF Settings default
-  Reg_Write(ADS1292_REG_RESP1, 0b11110010);   //Respiration: MOD/DEMOD turned only, phase 0
-  delay(10);
-  Reg_Write(ADS1292_REG_RESP2, 0b00000011);   //Respiration: Calib OFF, respiration freq defaults
-  delay(10);
-  Start_Read_Data_Continuous();
-  delay(10);
-  Enable_Start(); 
-}
-
-void ads1292r::Reset(const int pwdn_pin)
-{
-  digitalWrite(pwdn_pin, HIGH);
-  delay(100);					// Wait 100 mSec
-  digitalWrite(pwdn_pin, LOW);
-  delay(100);
-  digitalWrite(pwdn_pin, HIGH);
-  delay(100);
-}
-
-void ads1292r::Reset()
-{
-  digitalWrite(pwdn_pin, HIGH);
-  delay(100);         // Wait 100 mSec
-  digitalWrite(pwdn_pin, LOW);
-  delay(100);
-  digitalWrite(pwdn_pin, HIGH);
-  delay(100);
-}
-
-void ads1292r::Disable_Start(const int start_pin)
-{
-  digitalWrite(start_pin, LOW);
-  delay(20);
-}
-
-void ads1292r::Disable_Start()
-{
-  digitalWrite(start_pin, LOW);
-  delay(20);
-}
-
-void ads1292r::Enable_Start(const int start_pin)
-{
-  digitalWrite(start_pin, HIGH);
-  delay(20);
-}
-
-void ads1292r::Enable_Start()
-{
-  digitalWrite(start_pin, HIGH);
-  delay(20);
-}
-
-void ads1292r::Hard_Stop (const int start_pin)
-{
-  digitalWrite(start_pin, LOW);
-  delay(100);
-}
-
-void ads1292r::Hard_Stop ()
-{
-  digitalWrite(start_pin, LOW);
-  delay(100);
-}
-
-void ads1292r::Start_Data_Conv_Command (const int chip_select)
-{
-  SPI_Command_Data(START,chip_select);					// Send 0x08 to the ADS1x9x
-}
-
-void ads1292r::Start_Data_Conv_Command ()
-{
-  SPI_Command_Data(START,chip_select);          // Send 0x08 to the ADS1x9x
-}
-
-void ads1292r::Soft_Stop (const int chip_select)
-{
-  SPI_Command_Data(STOP,chip_select);                   // Send 0x0A to the ADS1x9x
-}
-
-void ads1292r::Soft_Stop ()
-{
-  SPI_Command_Data(STOP,chip_select);                   // Send 0x0A to the ADS1x9x
-}
-
-void ads1292r::Start_Read_Data_Continuous (const int chip_select)
-{
-  SPI_Command_Data(RDATAC,chip_select);					// Send 0x10 to the ADS1x9x
-}
-
-void ads1292r::Start_Read_Data_Continuous ()
-{
-  SPI_Command_Data(RDATAC,chip_select);         // Send 0x10 to the ADS1x9x
-}
-
-void ads1292r::Stop_Read_Data_Continuous (const int chip_select)
-{
-  SPI_Command_Data(SDATAC,chip_select);					// Send 0x11 to the ADS1x9x
-}
-
-void ads1292r::Stop_Read_Data_Continuous ()
-{
-  SPI_Command_Data(SDATAC,chip_select);         // Send 0x11 to the ADS1x9x
-}
-
-
-void ads1292r::SPI_Command_Data(unsigned char data_in,const int chip_select)
-{
-  byte data[1];
-  digitalWrite(chip_select, LOW);
-  delay(2);
-  digitalWrite(chip_select, HIGH);
-  delay(2);
-  digitalWrite(chip_select, LOW);
-  delay(2);
   SPI.transfer(data_in);
-  delay(2);
-  digitalWrite(chip_select, HIGH);
+  
+  pin_high_time(ADS1292_CS_PIN,2);
 }
 
-void ads1292r::SPI_Command_Data(unsigned char data_in)
+void ADS1292 :: WriteRegister(uint8_t READ_WRITE_ADDRESS, uint8_t DATA)
 {
-  byte data[1];
-  digitalWrite(chip_select, LOW);
-  delay(2);
-  digitalWrite(chip_select, HIGH);
-  delay(2);
-  digitalWrite(chip_select, LOW);
-  delay(2);
-  SPI.transfer(data_in);
-  delay(2);
-  digitalWrite(chip_select, HIGH);
-}
-
-void ads1292r::Reg_Write (unsigned char READ_WRITE_ADDRESS, unsigned char DATA,const int chip_select)
-{
-
   switch (READ_WRITE_ADDRESS)
   {
     case 1:
@@ -342,71 +159,27 @@ void ads1292r::Reg_Write (unsigned char READ_WRITE_ADDRESS, unsigned char DATA,c
     default:
             break;
   }
-  // now combine the register address and the command into one byte:
-  byte dataToSend = READ_WRITE_ADDRESS | WREG;
-  digitalWrite(chip_select, LOW);
+  pin_low_time (ADS1292_CS_PIN,2);
+  pin_high_time(ADS1292_CS_PIN,2);
+
+  pin_low_time (ADS1292_CS_PIN,2);    // select the device
+
+  SPI.transfer(uint8_t (READ_WRITE_ADDRESS | WREG)); //Send register location
+  SPI.transfer(0x00);		    //number of register to wr
+  SPI.transfer(DATA);		    //Send value to record into register
   delay(2);
-  digitalWrite(chip_select, HIGH);
-  delay(2);
-  // take the chip select low to select the device:
-  digitalWrite(chip_select, LOW);
-  delay(2);
-  SPI.transfer(dataToSend); //Send register location
-  SPI.transfer(0x00);		//number of register to wr
-  SPI.transfer(DATA);		//Send value to record into register
-  delay(2);
-  // take the chip select high to de-select:
-  digitalWrite(chip_select, HIGH);
+
+  pin_high_time (ADS1292_CS_PIN,10);  // de-select the device
 }
 
-void ads1292r::Reg_Write (unsigned char READ_WRITE_ADDRESS, unsigned char DATA)
+void ADS1292 :: pin_high_time(int pin, uint32_t ms)
 {
+  digitalWrite(pin, HIGH);
+  delay(ms);
+}
 
-  switch (READ_WRITE_ADDRESS)
-  {
-    case 1:
-            DATA = DATA & 0x87;
-            break;
-    case 2:
-            DATA = DATA & 0xFB;
-            DATA |= 0x80;
-            break;
-    case 3:
-            DATA = DATA & 0xFD;
-            DATA |= 0x10;
-            break;
-    case 7:
-            DATA = DATA & 0x3F;
-            break;
-    case 8:
-            DATA = DATA & 0x5F;
-            break;
-    case 9:
-            DATA |= 0x02;
-            break;
-    case 10:
-            DATA = DATA & 0x87;
-            DATA |= 0x01;
-            break;
-    case 11:
-            DATA = DATA & 0x0F;
-            break;
-    default:
-            break;
-  }
-  // now combine the register address and the command into one byte:
-  byte dataToSend = READ_WRITE_ADDRESS | WREG;
-  digitalWrite(chip_select, LOW);
-  delay(2);
-  digitalWrite(chip_select, HIGH);
-  delay(2);
-  // take the chip select low to select the device:
-  digitalWrite(chip_select, LOW);
-  delay(2);
-  SPI.transfer(dataToSend); //Send register location
-  SPI.transfer(0x00);   //number of register to wr
-  SPI.transfer(DATA);   //Send value to record into register
-  delay(2);
-  // take the chip select high to de-select:
-  digitalWrite(chip_select, HIGH);
+void ADS1292 :: pin_low_time(int pin, uint32_t ms)
+{
+  digitalWrite(pin, LOW);
+  delay(ms);
 }

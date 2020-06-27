@@ -79,16 +79,17 @@ typedef struct afe44xx_Record{
   boolean buffer_count_overflow = false;
 }afe44xx_data;
 
+void    afe4490_interrupt_handler(void);
+extern  portMUX_TYPE AFE4490Mux;
+
 class AFE4490
 {
   public:
-    void Init (const int chip_select,const int data_ready);
-    void Init ();
-    void writeData (uint8_t address, uint32_t data,const int chip_select);
-    void writeData (uint8_t address,uint32_t data);
-    unsigned long readData (uint8_t address,const int chip_select);
-    unsigned long readData (uint8_t address);
-    boolean getData (afe44xx_data *afe44xx_raw_data,const int chip_select,const int data_ready);
+    void    init(void);
     boolean getData (afe44xx_data *afe44xx_raw_data);
+
+  private:  
+  void          writeData(uint8_t address, uint32_t data);
+  unsigned long readData (uint8_t address);
 };
 #endif

@@ -18819,7 +18819,7 @@ afe44xx connector change to other type</text>
 <instance part="GND28" gate="1" x="40.64" y="198.12" smashed="yes">
 <attribute name="VALUE" x="38.1" y="195.58" size="1.778" layer="96"/>
 </instance>
-<instance part="GND29" gate="1" x="81.28" y="177.8" smashed="yes"/>
+<instance part="GND29" gate="1" x="91.44" y="170.18" smashed="yes"/>
 <instance part="GND30" gate="1" x="140.97" y="222.25" smashed="yes">
 <attribute name="VALUE" x="138.43" y="219.71" size="1.778" layer="96"/>
 </instance>
@@ -18945,15 +18945,15 @@ afe44xx connector change to other type</text>
 <instance part="+3V8" gate="G$1" x="151.13" y="240.03" smashed="yes">
 <attribute name="VALUE" x="148.59" y="234.95" size="1.778" layer="96" rot="R90"/>
 </instance>
-<instance part="R31" gate="G$1" x="118.11" y="144.78" smashed="yes" rot="R90">
-<attribute name="NAME" x="116.6114" y="140.97" size="1.778" layer="95" rot="R90"/>
-<attribute name="VALUE" x="121.412" y="140.97" size="1.778" layer="96" rot="R90"/>
-<attribute name="OC_NEWARK" x="118.11" y="144.78" size="1.778" layer="96" display="off"/>
-<attribute name="MF" x="118.11" y="144.78" size="1.778" layer="96" display="off"/>
-<attribute name="MPN" x="118.11" y="144.78" size="1.778" layer="96" display="off"/>
+<instance part="R31" gate="G$1" x="80.01" y="162.56" smashed="yes" rot="R90">
+<attribute name="NAME" x="78.5114" y="158.75" size="1.778" layer="95" rot="R90"/>
+<attribute name="VALUE" x="83.312" y="158.75" size="1.778" layer="96" rot="R90"/>
+<attribute name="OC_NEWARK" x="80.01" y="162.56" size="1.778" layer="96" display="off"/>
+<attribute name="MF" x="80.01" y="162.56" size="1.778" layer="96" display="off"/>
+<attribute name="MPN" x="80.01" y="162.56" size="1.778" layer="96" display="off"/>
 </instance>
-<instance part="+3V7" gate="G$1" x="118.11" y="154.94" smashed="yes">
-<attribute name="VALUE" x="115.57" y="149.86" size="1.778" layer="96" rot="R90"/>
+<instance part="+3V7" gate="G$1" x="80.01" y="172.72" smashed="yes">
+<attribute name="VALUE" x="77.47" y="167.64" size="1.778" layer="96" rot="R90"/>
 </instance>
 <instance part="S1" gate="G$1" x="38.1" y="49.53" smashed="yes">
 <attribute name="NAME" x="37.36" y="58.258" size="1.778" layer="95"/>
@@ -18981,15 +18981,15 @@ afe44xx connector change to other type</text>
 <attribute name="VALUE" x="347.98" y="88.9" size="1.778" layer="96" rot="R90"/>
 </instance>
 <instance part="R7" gate="G$1" x="294.64" y="82.55" smashed="yes" rot="R270">
-<attribute name="NAME" x="296.1386" y="86.36" size="1.778" layer="95" rot="R270"/>
-<attribute name="VALUE" x="291.338" y="86.36" size="1.778" layer="96" rot="R270"/>
+<attribute name="NAME" x="291.0586" y="86.36" size="1.778" layer="95" rot="R270"/>
+<attribute name="VALUE" x="291.338" y="81.28" size="1.778" layer="96" rot="R270"/>
 <attribute name="OC_NEWARK" x="294.64" y="82.55" size="1.778" layer="96" display="off"/>
 <attribute name="MF" x="294.64" y="82.55" size="1.778" layer="96" display="off"/>
 <attribute name="MPN" x="294.64" y="82.55" size="1.778" layer="96" display="off"/>
 </instance>
 <instance part="R33" gate="G$1" x="298.45" y="82.55" smashed="yes" rot="R270">
 <attribute name="NAME" x="299.9486" y="86.36" size="1.778" layer="95" rot="R270"/>
-<attribute name="VALUE" x="295.148" y="86.36" size="1.778" layer="96" rot="R270"/>
+<attribute name="VALUE" x="300.228" y="81.28" size="1.778" layer="96" rot="R270"/>
 <attribute name="OC_NEWARK" x="298.45" y="82.55" size="1.778" layer="96" display="off"/>
 <attribute name="MF" x="298.45" y="82.55" size="1.778" layer="96" display="off"/>
 <attribute name="MPN" x="298.45" y="82.55" size="1.778" layer="96" display="off"/>
@@ -19157,11 +19157,6 @@ afe44xx connector change to other type</text>
 <pinref part="C14" gate="G$1" pin="2"/>
 </segment>
 <segment>
-<pinref part="GND29" gate="1" pin="GND"/>
-<pinref part="U2" gate="G$1" pin="GND@2"/>
-<wire x1="81.28" y1="180.34" x2="96.52" y2="180.34" width="0.1524" layer="91"/>
-</segment>
-<segment>
 <pinref part="C64" gate="G$1" pin="2"/>
 <pinref part="GND72" gate="1" pin="GND"/>
 <wire x1="62.23" y1="85.09" x2="62.23" y2="87.63" width="0.1524" layer="91"/>
@@ -19302,6 +19297,12 @@ afe44xx connector change to other type</text>
 <pinref part="GND42" gate="1" pin="GND"/>
 <wire x1="146.05" y1="147.32" x2="146.05" y2="149.86" width="0.1524" layer="91"/>
 </segment>
+<segment>
+<pinref part="GND29" gate="1" pin="GND"/>
+<wire x1="91.44" y1="172.72" x2="91.44" y2="180.34" width="0.1524" layer="91"/>
+<pinref part="U2" gate="G$1" pin="GND@2"/>
+<wire x1="91.44" y1="180.34" x2="96.52" y2="180.34" width="0.1524" layer="91"/>
+</segment>
 </net>
 <net name="+3V3" class="0">
 <segment>
@@ -19345,7 +19346,7 @@ afe44xx connector change to other type</text>
 <segment>
 <pinref part="R31" gate="G$1" pin="2"/>
 <pinref part="+3V7" gate="G$1" pin="+3V3"/>
-<wire x1="118.11" y1="152.4" x2="118.11" y2="149.86" width="0.1524" layer="91"/>
+<wire x1="80.01" y1="170.18" x2="80.01" y2="167.64" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <wire x1="312.42" y1="67.31" x2="302.26" y2="67.31" width="0.1524" layer="91"/>
@@ -19369,7 +19370,7 @@ afe44xx connector change to other type</text>
 <pinref part="J1" gate="J1" pin="VCC"/>
 </segment>
 </net>
-<net name="TMP_SCL" class="0">
+<net name="I2C_SCL" class="0">
 <segment>
 <wire x1="132.08" y1="213.36" x2="154.94" y2="213.36" width="0.1524" layer="91"/>
 <label x="154.94" y="213.36" size="1.4224" layer="95" xref="yes"/>
@@ -19395,7 +19396,7 @@ afe44xx connector change to other type</text>
 <pinref part="U6" gate="G$1" pin="SCL"/>
 </segment>
 </net>
-<net name="TMP_SDA" class="0">
+<net name="I2C_SDA" class="0">
 <segment>
 <label x="83.82" y="195.58" size="1.4224" layer="95" rot="R180" xref="yes"/>
 <pinref part="U2" gate="G$1" pin="IO25"/>
@@ -19527,16 +19528,14 @@ afe44xx connector change to other type</text>
 </net>
 <net name="ECG_CS" class="0">
 <segment>
-<wire x1="106.68" y1="160.02" x2="106.68" y2="139.7" width="0.1524" layer="91"/>
-<label x="104.14" y="139.7" size="1.4224" layer="95" rot="MR0" xref="yes"/>
+<label x="83.82" y="177.8" size="1.4224" layer="95" rot="MR0" xref="yes"/>
 <pinref part="R31" gate="G$1" pin="1"/>
-<wire x1="106.68" y1="139.7" x2="104.14" y2="139.7" width="0.1524" layer="91"/>
-<wire x1="118.11" y1="139.7" x2="106.68" y2="139.7" width="0.1524" layer="91"/>
-<junction x="106.68" y="139.7"/>
+<wire x1="86.36" y1="177.8" x2="86.36" y2="157.48" width="0.1524" layer="91"/>
 <pinref part="U2" gate="G$1" pin="IO13"/>
-<wire x1="96.52" y1="177.8" x2="88.9" y2="177.8" width="0.1524" layer="91"/>
-<wire x1="88.9" y1="177.8" x2="88.9" y2="160.02" width="0.1524" layer="91"/>
-<wire x1="88.9" y1="160.02" x2="106.68" y2="160.02" width="0.1524" layer="91"/>
+<wire x1="96.52" y1="177.8" x2="86.36" y2="177.8" width="0.1524" layer="91"/>
+<wire x1="80.01" y1="157.48" x2="86.36" y2="157.48" width="0.1524" layer="91"/>
+<wire x1="83.82" y1="177.8" x2="86.36" y2="177.8" width="0.1524" layer="91"/>
+<junction x="86.36" y="177.8"/>
 </segment>
 </net>
 <net name="ECG_!DRDY" class="0">
@@ -21193,14 +21192,14 @@ from piezo-electric effects (microphonic noise)</text>
 <junction x="246.38" y="210.82"/>
 </segment>
 </net>
-<net name="TMP_SDA" class="0">
+<net name="I2C_SDA" class="0">
 <segment>
 <wire x1="284.48" y1="208.28" x2="276.86" y2="208.28" width="0.1524" layer="91"/>
 <label x="284.48" y="208.28" size="1.27" layer="95" xref="yes"/>
 <pinref part="U7" gate="G$1" pin="SDA"/>
 </segment>
 </net>
-<net name="TMP_SCL" class="0">
+<net name="I2C_SCL" class="0">
 <segment>
 <wire x1="284.48" y1="205.74" x2="276.86" y2="205.74" width="0.1524" layer="91"/>
 <label x="284.48" y="205.74" size="1.27" layer="95" xref="yes"/>

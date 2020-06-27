@@ -2341,7 +2341,6 @@ design rules under a new name.</description>
 <contactref element="D1" pad="2"/>
 <contactref element="D2" pad="2"/>
 <contactref element="U3" pad="2"/>
-<contactref element="U2" pad="15"/>
 <contactref element="U2" pad="GND"/>
 <contactref element="C64" pad="2"/>
 <contactref element="C65" pad="2"/>
@@ -2377,6 +2376,7 @@ design rules under a new name.</description>
 <contactref element="C51" pad="2"/>
 <contactref element="J7" pad="2"/>
 <contactref element="R5" pad="1"/>
+<contactref element="U2" pad="15"/>
 <wire x1="52.7972" y1="49.1192" x2="58.6172" y2="49.4992" width="0" layer="19" extent="1-1"/>
 <wire x1="51.2172" y1="49.0792" x2="52.7972" y2="49.1192" width="0" layer="19" extent="1-1"/>
 <wire x1="51.9972" y1="45.1192" x2="51.2172" y2="49.0792" width="0" layer="19" extent="1-1"/>
@@ -2842,7 +2842,7 @@ design rules under a new name.</description>
 <wire x1="33.9072" y1="29.9142" x2="32.9172" y2="35.0992" width="0" layer="19" extent="1-1"/>
 <wire x1="9.4492" y1="52.1328" x2="32.9172" y2="35.0992" width="0" layer="19" extent="1-1"/>
 </signal>
-<signal name="TMP_SCL">
+<signal name="I2C_SCL">
 <contactref element="U2" pad="36"/>
 <contactref element="J2" pad="4"/>
 <contactref element="R7" pad="2"/>
@@ -2855,7 +2855,7 @@ design rules under a new name.</description>
 <wire x1="9.0172" y1="10.8992" x2="6.8172" y2="13.2992" width="0" layer="19" extent="1-1"/>
 <wire x1="13.875" y1="11.95" x2="9.0172" y2="10.8992" width="0" layer="19" extent="1-1"/>
 </signal>
-<signal name="TMP_SDA">
+<signal name="I2C_SDA">
 <contactref element="U2" pad="10"/>
 <contactref element="J2" pad="3"/>
 <contactref element="R33" pad="2"/>

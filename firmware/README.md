@@ -82,6 +82,14 @@ Note: The binary of IDE and VSCode is located in a different folder.
 # Debug
 In the IDE interface, choose "Verbose" in "Tools/Core Debug Level" to see more debug information.
 
+## Debug Crash
+How to view the stack trace and restart log to debug the crach reason, check this [link]  
+(https://arduino-esp8266.readthedocs.io/en/latest/faq/a02-my-esp-crashes.html)
+
+Python Script to decode exceptions.[Link](https://github.com/janLo/EspArduinoExceptionDecoder)
+
+Arduino plugin which lets you get a more meaningful explanation of the stack traces you get on ESP8266/ESP32. [Link](https://github.com/me-no-dev/EspExceptionDecoder)
+
 # OTA command and partition
 otatool.py is the more advanced tool for programming binary by OTA.
 the basic version is espota.py

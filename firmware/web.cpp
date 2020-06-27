@@ -265,7 +265,7 @@ The problem is that ESP32 only use 2.4G Hz, might confuse consumer.
 It is better not to turn this feature on.
 
 void setupSmartConfig() {
-  //Init WiFi as Station, start SmartConfig
+  //init WiFi as Station, start SmartConfig
   WiFi.mode(WIFI_AP_STA);
   WiFi.beginSmartConfig();
 

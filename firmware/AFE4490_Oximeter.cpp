@@ -1,46 +1,33 @@
-//////////////////////////////////////////////////////////////////////////////////////////
-//
-//    Arduino library for the AFE4490 Pulse Oxiometer Shield
-//
-//    This software is licensed under the MIT License(http://opensource.org/licenses/MIT).
-//
-//   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//   NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-//   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-//   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-//   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
-//   For information on how to use, visit https://github.com/Protocentral/AFE4490_Oximeter
-/////////////////////////////////////////////////////////////////////////////////////////
+/*---------------------------------------------------------------------------------
+  AFE4490 driver - hardware for SpO2 and PPG
+---------------------------------------------------------------------------------*/
 #include "Arduino.h"
 #include <SPI.h>
 #include <string.h>
 #include <math.h>
 #include "AFE4490_Oximeter.h"
 #include "spo2_algorithm.h"
+#include "firmware.h"
 
 static  int32_t an_x[ BUFFER_SIZE];
 static  int32_t an_y[ BUFFER_SIZE];
 
-volatile boolean afe44xx_data_ready = false;
-volatile int8_t n_buffer_count; //data length
-
-const int chip_select = 21;
-const int data_ready = 39;
-const int reset_pin = 4;
+volatile bool     AFE4490_intr_flag  = false;
+volatile boolean  afe44xx_data_ready = false;
+volatile int8_t   n_buffer_count; //data length
 
 int dec=0;
 
 unsigned long IRtemp,REDtemp;
 
-int32_t n_spo2;  //SPO2 value
-int32_t n_heart_rate; //heart rate value
+int32_t n_spo2;               //SPO2 value
+int32_t n_heart_rate;         //heart rate value
 
-uint16_t aun_ir_buffer[100]; //infrared LED sensor data
-uint16_t aun_red_buffer[100];  //red LED sensor data
+uint16_t aun_ir_buffer [100]; //infrared LED sensor data
+uint16_t aun_red_buffer[100]; //red LED sensor data
 
-int8_t ch_spo2_valid;  //indicator to show if the SPO2 calculation is valid
-int8_t  ch_hr_valid;  //indicator to show if the heart rate calculation is valid
+int8_t ch_spo2_valid;         //indicator to show if the SPO2 calculation is valid
+int8_t ch_hr_valid;           //indicator to show if the heart rate calculation is valid
 
 const uint8_t uch_spo2_table[184]={ 95, 95, 95, 96, 96, 96, 97, 97, 97, 97, 97, 98, 98, 98, 98, 98, 99, 99, 99, 99,
                                     99, 99, 99, 99, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
@@ -53,213 +40,126 @@ const uint8_t uch_spo2_table[184]={ 95, 95, 95, 96, 96, 96, 97, 97, 97, 97, 97, 
                                     28, 27, 26, 25, 23, 22, 21, 20, 19, 17, 16, 15, 14, 12, 11, 10, 9, 7, 6, 5,
                                     3,   2,  1  } ;
 
-spo2_algorithm Spo2;
+spo2_algorithm spo2;
 
-boolean AFE4490 :: getData (afe44xx_data *afe44xx_raw_data,const int chip_select,const int data_ready)
+void IRAM_ATTR afe4490_interrupt_handler(void)
 {
-  writeData(CONTROL0, 0x000001,chip_select);
-  IRtemp = readData(LED1VAL,chip_select);
-  writeData(CONTROL0, 0x000001,chip_select);
-  REDtemp = readData(LED2VAL,chip_select);
-  afe44xx_data_ready = true;
-  IRtemp = (unsigned long) (IRtemp << 10);
-  afe44xx_raw_data->IR_data = (signed long) (IRtemp);
-  afe44xx_raw_data->IR_data = (signed long) ((afe44xx_raw_data->IR_data) >> 10);
-  REDtemp = (unsigned long) (REDtemp << 10);
-  afe44xx_raw_data->RED_data = (signed long) (REDtemp);
-  afe44xx_raw_data->RED_data = (signed long) ((afe44xx_raw_data->RED_data) >> 10);
-
-  if (dec == 20)
-  {
-    aun_ir_buffer[n_buffer_count] = (uint16_t) ((afe44xx_raw_data->IR_data) >> 4);
-    aun_red_buffer[n_buffer_count] = (uint16_t) ((afe44xx_raw_data->RED_data) >> 4);
-    n_buffer_count++;
-    dec = 0;
-  }
-
-  dec++;
-
-  if (n_buffer_count > 99)
-  {
-    Spo2.estimate_spo2(aun_ir_buffer, 100, aun_red_buffer, &n_spo2, &ch_spo2_valid, &n_heart_rate, &ch_hr_valid);
-    afe44xx_raw_data->spo2 = n_spo2;
-    afe44xx_raw_data->heart_rate = n_heart_rate;
-    n_buffer_count = 0;
-    afe44xx_raw_data->buffer_count_overflow = true;
-  }
-
-  afe44xx_data_ready = false;
-  return true;
+  portENTER_CRITICAL_ISR(&AFE4490Mux);
+  AFE4490_intr_flag = true;
+  portEXIT_CRITICAL_ISR (&AFE4490Mux);  
 }
 
-boolean AFE4490 :: getData (afe44xx_data *afe44xx_raw_data)
+boolean AFE4490 :: getData(afe44xx_data *afe44xx_raw_data)
 {
-  writeData(CONTROL0, 0x000001);
-  IRtemp = readData(LED1VAL);
-  writeData(CONTROL0, 0x000001);
-  REDtemp = readData(LED2VAL);
-  afe44xx_data_ready = true;
-  IRtemp = (unsigned long) (IRtemp << 10);
-  afe44xx_raw_data->IR_data = (signed long) (IRtemp);
-  afe44xx_raw_data->IR_data = (signed long) ((afe44xx_raw_data->IR_data) >> 10);
-  REDtemp = (unsigned long) (REDtemp << 10);
-  afe44xx_raw_data->RED_data = (signed long) (REDtemp);
-  afe44xx_raw_data->RED_data = (signed long) ((afe44xx_raw_data->RED_data) >> 10);
-
-  if (dec == 20)
+  if (AFE4490_intr_flag) 
   {
-    aun_ir_buffer[n_buffer_count] = (uint16_t) ((afe44xx_raw_data->IR_data) >> 4);
-    aun_red_buffer[n_buffer_count] = (uint16_t) ((afe44xx_raw_data->RED_data) >> 4);
-    n_buffer_count++;
-    dec = 0;
+    SPI.setDataMode(SPI_MODE0); 
+    portENTER_CRITICAL_ISR(&AFE4490Mux);
+    AFE4490_intr_flag = false;
+    portEXIT_CRITICAL_ISR (&AFE4490Mux);  
+
+    writeData(CONTROL0, 0x000001);
+    IRtemp = readData(LED1VAL);
+    writeData(CONTROL0, 0x000001);
+    REDtemp = readData(LED2VAL);
+    afe44xx_data_ready = true;
+    IRtemp = (unsigned long) (IRtemp << 10);
+    afe44xx_raw_data->IR_data = (signed long) (IRtemp);
+    afe44xx_raw_data->IR_data = (signed long) ((afe44xx_raw_data->IR_data) >> 10);
+    REDtemp = (unsigned long) (REDtemp << 10);
+    afe44xx_raw_data->RED_data = (signed long) (REDtemp);
+    afe44xx_raw_data->RED_data = (signed long) ((afe44xx_raw_data->RED_data) >> 10);
+
+    if (dec == 20)
+    {
+      aun_ir_buffer[n_buffer_count] = (uint16_t) ((afe44xx_raw_data->IR_data) >> 4);
+      aun_red_buffer[n_buffer_count] = (uint16_t) ((afe44xx_raw_data->RED_data) >> 4);
+      n_buffer_count++;
+      dec = 0;
+    }
+
+    dec++;
+
+    if (n_buffer_count > 99)
+    {
+      spo2.estimate_spo2(aun_ir_buffer, 100, aun_red_buffer, &n_spo2, &ch_spo2_valid, &n_heart_rate, &ch_hr_valid);
+      afe44xx_raw_data->spo2 = n_spo2;
+      afe44xx_raw_data->heart_rate = n_heart_rate;
+      n_buffer_count = 0;
+      afe44xx_raw_data->buffer_count_overflow = true;
+    }
+    afe44xx_data_ready = false;
+    return true;
   }
-
-  dec++;
-
-  if (n_buffer_count > 99)
-  {
-    Spo2.estimate_spo2(aun_ir_buffer, 100, aun_red_buffer, &n_spo2, &ch_spo2_valid, &n_heart_rate, &ch_hr_valid);
-    afe44xx_raw_data->spo2 = n_spo2;
-    afe44xx_raw_data->heart_rate = n_heart_rate;
-    n_buffer_count = 0;
-    afe44xx_raw_data->buffer_count_overflow = true;
-  }
-
-  afe44xx_data_ready = false;
-  return true;
+  else 
+    return false;
 }
 
-
-void AFE4490 :: Init (const int chip_select,const int reset_pin)
+void AFE4490 :: init(void)
 {
-  digitalWrite(reset_pin, LOW);
+  SPI.setDataMode(SPI_MODE0); 
+  digitalWrite(AFE4490_PWDN_PIN, LOW);
   delay(500);
-  digitalWrite(reset_pin, HIGH);
+  digitalWrite(AFE4490_PWDN_PIN, HIGH);
   delay(500);
-  writeData(CONTROL0, 0x000000,chip_select);
-  writeData(CONTROL0, 0x000008,chip_select);
-  writeData(TIAGAIN, 0x000000,chip_select); // CF = 5pF, RF = 500kR
-  writeData(TIA_AMB_GAIN, 0x000001,chip_select);
-  writeData(LEDCNTRL, 0x001414,chip_select);
-  writeData(CONTROL2, 0x000000,chip_select); // LED_RANGE=100mA, LED=50mA
-  writeData(CONTROL1, 0x010707,chip_select); // Timers ON, average 3 samples
-  writeData(PRPCOUNT, 0X001F3F,chip_select);
-  writeData(LED2STC, 0X001770,chip_select);
-  writeData(LED2ENDC, 0X001F3E,chip_select);
-  writeData(LED2LEDSTC, 0X001770,chip_select);
-  writeData(LED2LEDENDC, 0X001F3F,chip_select);
-  writeData(ALED2STC, 0X000000,chip_select);
-  writeData(ALED2ENDC, 0X0007CE,chip_select);
-  writeData(LED2CONVST, 0X000002,chip_select);
-  writeData(LED2CONVEND, 0X0007CF,chip_select);
-  writeData(ALED2CONVST, 0X0007D2,chip_select);
-  writeData(ALED2CONVEND, 0X000F9F,chip_select);
-  writeData(LED1STC, 0X0007D0,chip_select);
-  writeData(LED1ENDC, 0X000F9E,chip_select);
-  writeData(LED1LEDSTC, 0X0007D0,chip_select);
-  writeData(LED1LEDENDC, 0X000F9F,chip_select);
-  writeData(ALED1STC, 0X000FA0,chip_select);
-  writeData(ALED1ENDC, 0X00176E,chip_select);
-  writeData(LED1CONVST, 0X000FA2,chip_select);
-  writeData(LED1CONVEND, 0X00176F,chip_select);
-  writeData(ALED1CONVST, 0X001772,chip_select);
-  writeData(ALED1CONVEND, 0X001F3F,chip_select);
-  writeData(ADCRSTCNT0, 0X000000,chip_select);
-  writeData(ADCRSTENDCT0, 0X000000,chip_select);
-  writeData(ADCRSTCNT1, 0X0007D0,chip_select);
-  writeData(ADCRSTENDCT1, 0X0007D0,chip_select);
-  writeData(ADCRSTCNT2, 0X000FA0,chip_select);
-  writeData(ADCRSTENDCT2, 0X000FA0,chip_select);
-  writeData(ADCRSTCNT3, 0X001770,chip_select);
-  writeData(ADCRSTENDCT3, 0X001770,chip_select);
-  delay(1000);
-}
-
-void AFE4490 :: Init ()
-{
-  digitalWrite(reset_pin, LOW);
-  delay(500);
-  digitalWrite(reset_pin, HIGH);
-  delay(500);
-  writeData(CONTROL0, 0x000000);
-  writeData(CONTROL0, 0x000008);
-  writeData(TIAGAIN, 0x000000); // CF = 5pF, RF = 500kR
+  writeData(CONTROL0,     0x000000);
+  writeData(CONTROL0,     0x000008);
+  writeData(TIAGAIN,      0x000000); // CF = 5pF, RF = 500kR
   writeData(TIA_AMB_GAIN, 0x000001);
-  writeData(LEDCNTRL, 0x001414);
-  writeData(CONTROL2, 0x000000); // LED_RANGE=100mA, LED=50mA
-  writeData(CONTROL1, 0x010707); // Timers ON, average 3 samples
-  writeData(PRPCOUNT, 0X001F3F);
-  writeData(LED2STC, 0X001770);
-  writeData(LED2ENDC, 0X001F3E);
-  writeData(LED2LEDSTC, 0X001770);
-  writeData(LED2LEDENDC, 0X001F3F);
-  writeData(ALED2STC, 0X000000);
-  writeData(ALED2ENDC, 0X0007CE);
-  writeData(LED2CONVST, 0X000002);
-  writeData(LED2CONVEND, 0X0007CF);
-  writeData(ALED2CONVST, 0X0007D2);
+  writeData(LEDCNTRL,     0x001414);
+  writeData(CONTROL2,     0x000000); // LED_RANGE=100mA, LED=50mA
+  writeData(CONTROL1,     0x010707); // Timers ON, average 3 samples
+  writeData(PRPCOUNT,     0X001F3F);
+  writeData(LED2STC,      0X001770);
+  writeData(LED2ENDC,     0X001F3E);
+  writeData(LED2LEDSTC,   0X001770);
+  writeData(LED2LEDENDC,  0X001F3F);
+  writeData(ALED2STC,     0X000000);
+  writeData(ALED2ENDC,    0X0007CE);
+  writeData(LED2CONVST,   0X000002);
+  writeData(LED2CONVEND,  0X0007CF);
+  writeData(ALED2CONVST,  0X0007D2);
   writeData(ALED2CONVEND, 0X000F9F);
-  writeData(LED1STC, 0X0007D0);
-  writeData(LED1ENDC, 0X000F9E);
-  writeData(LED1LEDSTC, 0X0007D0);
-  writeData(LED1LEDENDC, 0X000F9F);
-  writeData(ALED1STC, 0X000FA0);
-  writeData(ALED1ENDC, 0X00176E);
-  writeData(LED1CONVST, 0X000FA2);
-  writeData(LED1CONVEND, 0X00176F);
-  writeData(ALED1CONVST, 0X001772);
+  writeData(LED1STC,      0X0007D0);
+  writeData(LED1ENDC,     0X000F9E);
+  writeData(LED1LEDSTC,   0X0007D0);
+  writeData(LED1LEDENDC,  0X000F9F);
+  writeData(ALED1STC,     0X000FA0);
+  writeData(ALED1ENDC,    0X00176E);
+  writeData(LED1CONVST,   0X000FA2);
+  writeData(LED1CONVEND,  0X00176F);
+  writeData(ALED1CONVST,  0X001772);
   writeData(ALED1CONVEND, 0X001F3F);
-  writeData(ADCRSTCNT0, 0X000000);
+  writeData(ADCRSTCNT0,   0X000000);
   writeData(ADCRSTENDCT0, 0X000000);
-  writeData(ADCRSTCNT1, 0X0007D0);
+  writeData(ADCRSTCNT1,   0X0007D0);
   writeData(ADCRSTENDCT1, 0X0007D0);
-  writeData(ADCRSTCNT2, 0X000FA0);
+  writeData(ADCRSTCNT2,   0X000FA0);
   writeData(ADCRSTENDCT2, 0X000FA0);
-  writeData(ADCRSTCNT3, 0X001770);
+  writeData(ADCRSTCNT3,   0X001770);
   writeData(ADCRSTENDCT3, 0X001770);
   delay(1000);
 }
 
-void AFE4490 :: writeData (uint8_t address, uint32_t data,const int chip_select)
-{
-  digitalWrite (chip_select, LOW); // enable device
-  SPI.transfer (address); // send address to device
-  SPI.transfer ((data >> 16) & 0xFF); // write top 8 bits
-  SPI.transfer ((data >> 8) & 0xFF); // write middle 8 bits
-  SPI.transfer (data & 0xFF); // write bottom 8 bits
-  digitalWrite (chip_select, HIGH); // disable device
-}
-
 void AFE4490 :: writeData (uint8_t address, uint32_t data)
 {
-  digitalWrite (chip_select, LOW); // enable device
-  SPI.transfer (address); // send address to device
+  digitalWrite (AFE4490_CS_PIN, LOW);    // enable device
+  SPI.transfer (address);             // send address to device
   SPI.transfer ((data >> 16) & 0xFF); // write top 8 bits
-  SPI.transfer ((data >> 8) & 0xFF); // write middle 8 bits
-  SPI.transfer (data & 0xFF); // write bottom 8 bits
-  digitalWrite (chip_select, HIGH); // disable device
+  SPI.transfer ((data >> 8)  & 0xFF); // write middle 8 bits
+  SPI.transfer (data & 0xFF);         // write bottom 8 bits
+  digitalWrite (AFE4490_CS_PIN, HIGH);   // disable device
 }
-
-unsigned long AFE4490 :: readData (uint8_t address,const int chip_select)
-{
-  unsigned long data = 0;
-  digitalWrite (chip_select, LOW); // enable device
-  SPI.transfer (address); // send address to device
-  data |= ((unsigned long)SPI.transfer (0) << 16); // read top 8 bits data
-  data |= ((unsigned long)SPI.transfer (0) << 8); // read middle 8 bits  data
-  data |= SPI.transfer (0); // read bottom 8 bits data
-  digitalWrite (chip_select, HIGH); // disable device
-  return data; // return with 24 bits of read data
-}
-
+ 
 unsigned long AFE4490 :: readData (uint8_t address)
 {
   unsigned long data = 0;
-  digitalWrite (chip_select, LOW); // enable device
-  SPI.transfer (address); // send address to device
+  digitalWrite (AFE4490_CS_PIN, LOW);    // enable device
+  SPI.transfer (address);             // send address to device
   data |= ((unsigned long)SPI.transfer (0) << 16); // read top 8 bits data
   data |= ((unsigned long)SPI.transfer (0) << 8); // read middle 8 bits  data
-  data |= SPI.transfer (0); // read bottom 8 bits data
-  digitalWrite (chip_select, HIGH); // disable device
-  return data; // return with 24 bits of read data
+  data |= SPI.transfer (0);           // read bottom 8 bits data
+  digitalWrite (AFE4490_CS_PIN, HIGH);   // disable device
+  return data;                        // return with 24 bits of read data
 }
+ 

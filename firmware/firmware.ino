@@ -46,27 +46,15 @@ void getTestData(uint8_t *p, int len);
 #define TEMP_SENSOR_MAX30325  false
 #define TEMP_SENSOR_TMP117    false  
 
-/*---------------------------------------------------------------------------------
-  PIN number defined by ESP-WROOM-32 IO port number
----------------------------------------------------------------------------------*/
-const int ADS1292_DRDY_PIN  = 26;
-const int ADS1292_CS_PIN    = 13;
-const int ADS1292_START_PIN = 14;
-const int ADS1292_PWDN_PIN  = 27;
-const int PUSH_BUTTON_PIN   = 0;
-const int AFE4490_CS_PIN    = 21; 
-const int AFE4490_DRDY_PIN  = 39; 
-const int AFE4490_PWDN_PIN  = 4;
-const int LED_PIN           = 2;
-const int SENSOR_VP_PIN     = 36;   //GPIO36, ADC1_CH0
+
 
 #if JOY_TEST
-const int JOYX_PIN          = 39;   //GPIO39, ADC3_CH0
-const int JOYY_PIN          = 34;   //GPIO34, ADC6_CH0
+const int JOYX_PIN          = 13;   //GPIO12 ADC //??? FIXME
+const int JOYY_PIN          = 34;   //GPIO34 ADC
 #endif
 
 #if SIM_TEMPERATURE
-const int SENSOR_TEMP       = 35;   //GPIO35, ADC6_CH0
+const int SENSOR_TEMP       = 35;   //GPIO35 ADC
 #endif
 /*---------------------------------------------------------------------------------
  constant and global variables
@@ -87,14 +75,14 @@ hw_timer_t * timer = NULL;
 
 portMUX_TYPE buttonMux  = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE ads1292Mux = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE AFE4490Mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE timerMux   = portMUX_INITIALIZER_UNLOCKED;
 
 
 uint8_t ecg_data_buff[ECG_BUFFER_SIZE];
-uint8_t resp_data_buff[2];  //FIXME add respiration rate send to ble
 uint8_t ppg_data_buff[PPG_BUFFER_SIZE];
-uint8_t lead_flag = 0x04;
-uint8_t Sp02;
+uint8_t lead_flag = 0;
+uint8_t SpO2Level;
 
 int16_t ecg_wave_sample,  ecg_filterout;
 int16_t res_wave_sample,  resp_filterout;
@@ -105,21 +93,22 @@ uint16_t ppg_wave_ir;
 
 bool histogramReady     = false;
 bool temperatureReady   = false;
-bool SpO2_calc_done     = false;
+bool SpO2Ready          = false;
 bool ecgBufferReady     = false;
 bool ppgBufferReady     = false;
 bool hrvDataReady       = false;
 bool batteryDataReady   = false;
 
 uint8_t battery_percent = 100;
-float bodyTemperature;
+
+union FloatByte bodyTemperature;
 
 const int freq = 5000;
 const int ledChannel = 0;
 const int resolution = 8;
 
-ads1292r        ADS1292R;                      // define class ads1292r
-ads1292r_processing ECG_RESPIRATION_ALGORITHM; // define class ecg_algorithm
+ADS1292         ads1292;                      
+ads1292r_processing ECG_RESPIRATION_ALGORITHM; 
 AFE4490         afe4490;
 spo2_algorithm  spo2;
 ads1292r_data   ads1292r_raw_data;
@@ -251,16 +240,12 @@ void doTimer()
     int x, y;
     x = analogRead(JOYX_PIN);
     y = analogRead(JOYY_PIN);
-    //Serial.printf("%05d %05d %03d\r", x,y);
+    Serial.printf("           %05d %05d\r", x,y);
     }
     #endif 
 
 
     #if ECG_BLE_TEST
-
-    // TIMER_MICRO_SECONDS
-    // ECG_SAMPLE_RATE
-
     if (ecgBufferReady == false )     // refill the data
       getTestData(ecg_data_buff, ECG_BUFFER_SIZE); // 125 Sample rate, 0.2s
       ecgBufferReady = true; 
@@ -294,7 +279,7 @@ void read_battery_value()
   // shift adc sample into buffer      
   for (i=BAT_SAMPLE-1; i>0; i--)
     adcSample[i] = adcSample[i-1];
-  adcSample[0] = analogRead(SENSOR_VP_PIN);     // FIXME may use ADC IC to do so
+  adcSample[0] = analogRead(SENSOR_VP_PIN);
 
   // sum sample data together   
   for (i=0; i<BAT_SAMPLE; i++)
@@ -355,18 +340,18 @@ void read_temperature_value()
     LastReadTime = millis();     
 
     #if TEMP_SENSOR_MAX30325
-    bodyTemperature = tempSensor.getTemperature()*100;    // °C 
+    bodyTemperature.f = tempSensor.getTemperature()*100;    // °C 
     #endif
 
     #if TEMP_SENSOR_TMP117
     // Data Ready is a flag for the conversion modes
     // the dataReady flag should always be high in continuous conversion 
     if (tempSensor.dataReady()) 
-      bodyTemperature = tempSensor.readTempC();;
+      bodyTemperature.f = tempSensor.readTempC();;
     #endif 
     
     #if SIM_TEMPERATURE
-    bodyTemperature =  (float)analogRead(SENSOR_TEMP)*100/4096;
+    bodyTemperature.f =  (float)analogRead(SENSOR_TEMP)*100/4096;
     #endif
   
     temperatureReady = true;
@@ -383,21 +368,19 @@ void read_temperature_value()
  SPI	  MOSI	  MISO	  CLK	    CS
  VSPI	GPIO23	GPIO19	GPIO18	GPIO5
  HSPI	GPIO13	GPIO12	GPIO14	GPIO15
- FIXME This design only uses VSPI, the default CS pin is IO5, but this design use IO21.
- IDE provides another example of the SPI code.
+
+ This design only uses VSPI, the default CS pin is IO5.
+ 
+ This design use SPI control ADS1292 and AFE4490.
+ These two devices are  with different CS pin and SPI mode.
+	
 ---------------------------------------------------------------------------------*/
 void initSPI()
 {
   SPI.begin();
-  Wire.begin(25,22);  //FIXME test this line
   SPI.setClockDivider (SPI_CLOCK_DIV16);
   SPI.setBitOrder     (MSBFIRST);
-  SPI.setDataMode     (SPI_MODE0);
-  delay(10);        //delay 10ms
-  afe4490.Init (AFE4490_CS_PIN,AFE4490_PWDN_PIN);
-  delay(10); 
-  SPI.setDataMode (SPI_MODE1);          //Set SPI mode as 1
-  delay(10);
+   
 }
 /*---------------------------------------------------------------------------------
 The setup() function is called when a sketch starts. Use it to initialize variables, 
@@ -435,23 +418,29 @@ void setup()
  
   setupTimer();               
 
-  initBLE();                  //low energy blue tooth 
+  initBLE();                  // low energy blue tooth 
    
-  initSPI();                  //initialize SPI
+  initSPI();                  // initialize SPI
+  delay(10);                  //delay 10ms
+  
+  afe4490.init();
 
-  setupBasicOTA();            //Over The Air for code uploading
+  Wire.begin(25,22);          // initialize I2C. SDA=25pin SCL=22pin
+  
+  setupBasicOTA();            // uploading by Over The Air code
   #if WEB_UPDATE
-  setupWebServer();           //Web server for code uploading
+  setupWebServer();           // uploading by Web server
   #endif 
 
   //initialize ADS1292 slave
-  ADS1292R.Init(ADS1292_CS_PIN,ADS1292_PWDN_PIN,ADS1292_START_PIN);  
+  ads1292.init();  
    
   delay(10); 
   
-  // Digital2 is attached to Data ready pin of AFE is interrupt0 in ARduino
-  attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING ); 
-  
+  // data ready for reading for ADS1292 and AFE4490
+  attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292_interrupt_handler, FALLING ); 
+  attachInterrupt(digitalPinToInterrupt(AFE4490_DRDY_PIN),afe4490_interrupt_handler,  RISING ); 
+
   #if (TEMP_SENSOR_MAX30325 | TEMP_SENSOR_TMP117)
   if (tempSensor.begin()) 
     Serial.println("Temperature sensor: OK.");
@@ -480,8 +469,9 @@ void loop()
   handleBLEstack();           // handle bluetooth low energy
 
   // handle ADS1292/ECG/RESP
-#if 0  //FIXME
-  result = ADS1292R.getData(ADS1292_DRDY_PIN,ADS1292_CS_PIN,&ads1292r_raw_data);
+#if 1  //FIXME
+delay(2000);
+  result = ads1292.getData(&ads1292r_raw_data);
   if (result == true)
   {  
     // ignore the lower 8 bits out of 24bits 
@@ -490,13 +480,13 @@ void loop()
   
     if (!((ads1292r_raw_data.status_reg & 0x1f) == 0))
     { // measure lead is OFF the body 
-      lead_flag         = 0x04;
+      lead_flag         = 0;
       ecg_filterout     = 0;
       resp_filterout    = 0;      
     }  
     else
     { // the measure lead is ON the body 
-      lead_flag         = 0x06;
+      lead_flag         = 1;
       // filter out the line noise @40Hz cutoff 161 order
       ECG_RESPIRATION_ALGORITHM.Filter_CurrentECG_sample  (&ecg_wave_sample,&ecg_filterout);   
       ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate       (ecg_filterout,   &heart_rate,&npeakflag); 
@@ -520,9 +510,8 @@ void loop()
     }
   }
 
-  // SpO2 PPG 
-  SPI.setDataMode (SPI_MODE0);
-  afe4490.getData(&afe44xx_raw_data,AFE4490_CS_PIN,AFE4490_DRDY_PIN);
+  // SpO2Level PPG 
+  afe4490.getData(&afe44xx_raw_data);
   ppg_wave_ir = (uint16_t)(afe44xx_raw_data.IR_data>>8);
   ppg_wave_ir = ppg_wave_ir;
   
@@ -531,6 +520,7 @@ void loop()
 
   if(ppg_stream_cnt >=PPG_BUFFER_SIZE)
   {
+Serial.println("B1");        
     ppgBufferReady = true;
     ppg_stream_cnt = 0;
   }
@@ -538,21 +528,16 @@ void loop()
   if( afe44xx_raw_data.buffer_count_overflow)
   {
     if (afe44xx_raw_data.spo2 == -999)
-    {
-      Sp02 = 0;
-    }
+      SpO2Level = 0;
     else
     {
-      Sp02 = (uint8_t)afe44xx_raw_data.spo2;       
+      SpO2Level = (uint8_t)afe44xx_raw_data.spo2;       
+      SpO2Ready = true;
     }
-    SpO2_calc_done = true;
     afe44xx_raw_data.buffer_count_overflow = false;
   }
-
-  SPI.setDataMode (SPI_MODE1);
 #endif //0 //FIXME
   // temperature, battery
   read_temperature_value();
   read_battery_value();
-
 }

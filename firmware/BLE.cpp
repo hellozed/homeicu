@@ -61,7 +61,7 @@ bool deviceConnected    = false;
 bool oldDeviceConnected = false;
 
 extern bool     temperatureReady;
-extern bool     SpO2_calc_done;
+extern bool     SpO2Ready;
 extern bool     ecgBufferReady;
 extern bool     ppgBufferReady;
 extern bool     hrvDataReady;
@@ -71,9 +71,9 @@ extern uint8_t  ecg_data_buff[ECG_BUFFER_SIZE];
 extern uint8_t  ppg_data_buff[PPG_BUFFER_SIZE];
 extern uint8_t  lead_flag;
 extern uint8_t  hrv_array[HVR_ARRAY_SIZE];
-extern uint8_t  Sp02;
-extern float    bodyTemperature;
+extern uint8_t  SpO2Level;
 extern uint8_t  battery_percent;
+extern union    FloatByte bodyTemperature;
 
 extern volatile uint8_t heart_rate;
 extern volatile uint8_t HeartRate_prev;
@@ -161,25 +161,13 @@ void handleBLEstack(void)
     HeartRate_prev = heart_rate;
   }  
   
-  if(SpO2_calc_done)
-  {
-    // afe44xx_raw_data.buffer_count_overflow = false;
-    uint8_t SpO2_att_ble[5];
-    SpO2_att_ble[0] = 0x00;
-    SpO2_att_ble[1] = (uint8_t) Sp02;
-    SpO2_att_ble[2] = (uint8_t)(Sp02>>8);
-    SpO2_att_ble[3] = 0;
-    SpO2_att_ble[4] = 0;
-    bleSend(&SpO2_calc_done,SpO2_att_ble,sizeof(SpO2_att_ble),SpO2_Characteristic);
-  }
-
   bleSend(&hrvDataReady,    hrv_array,          sizeof(hrv_array),        hrv_Characteristic);
   bleSend(&histogramReady,  histogram_percent,  sizeof(histogram_percent),hist_Characteristic); 
   bleSend(&batteryDataReady,&battery_percent,   sizeof(battery_percent),  battery_Characteristic);  
-  bleSend(&temperatureReady,(uint8_t *) &bodyTemperature,sizeof(bodyTemperature),temperature_Characteristic);  
-
-  bleSend(&ecgBufferReady,ecg_data_buff,ECG_BUFFER_SIZE,ecgStream_Characteristic);  //FIXME data length check
-  bleSend(&ppgBufferReady,ppg_data_buff,PPG_BUFFER_SIZE,ppgStream_Characteristic); //FIXME data length check
+  bleSend(&SpO2Ready,       &SpO2Level,         sizeof(SpO2Level),        SpO2_Characteristic);
+  bleSend(&temperatureReady,bodyTemperature.b,  sizeof(bodyTemperature.b),temperature_Characteristic);  
+  bleSend(&ecgBufferReady,  ecg_data_buff,      sizeof(ecg_data_buff),    ecgStream_Characteristic);  
+  bleSend(&ppgBufferReady,  ppg_data_buff,      sizeof(ppg_data_buff),    ppgStream_Characteristic); 
      
   if (!deviceConnected && oldDeviceConnected)
   {
