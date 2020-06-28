@@ -20,10 +20,10 @@
 /*---------------------------------------------------------------------------------
   PIN number defined by ESP-WROOM-32 IO port number
 ---------------------------------------------------------------------------------*/
-const int ADS1292_CS_PIN    = 13;
-const int ADS1292_START_PIN = 14;
-const int ADS1292_DRDY_PIN  = 26;
-const int ADS1292_PWDN_PIN  = 27;
+const int ADS1292R_CS_PIN    = 13;
+const int ADS1292R_START_PIN = 14;
+const int ADS1292R_DRDY_PIN  = 26;
+const int ADS1292R_PWDN_PIN  = 27;
 
 const int AFE4490_CS_PIN    = 21; 
 const int AFE4490_DRDY_PIN  = 39; 

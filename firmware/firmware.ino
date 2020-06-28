@@ -33,7 +33,7 @@
 #include "MAX30205.h"
 
 class AFE4490 afe4490;
-class ADS1292 ads1292;
+class ADS1292R ads1292r;
 void initBLE();
 void handleBLEstack();
 void handleWebClient();
@@ -55,7 +55,7 @@ volatile SemaphoreHandle_t timerSemaphore;
 hw_timer_t * timer = NULL;
 
 portMUX_TYPE buttonMux  = portMUX_INITIALIZER_UNLOCKED;
-portMUX_TYPE ads1292Mux = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE ads1292rMux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE AFE4490Mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE timerMux   = portMUX_INITIALIZER_UNLOCKED;
 
@@ -196,7 +196,7 @@ void doTimer()
     #endif 
 
     #if ECG_BLE_TEST
-    ads1292.getTestData();
+    ads1292r.getTestData();
     #endif 
     
     #if SIM_PPG
@@ -355,10 +355,10 @@ void setup()
 
   // initialize the data ready and chip select pins:
   // Pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
-  pinMode(ADS1292_DRDY_PIN,   INPUT);  
-  pinMode(ADS1292_CS_PIN,     OUTPUT);    
-  pinMode(ADS1292_START_PIN,  OUTPUT);
-  pinMode(ADS1292_PWDN_PIN,   OUTPUT);  
+  pinMode(ADS1292R_DRDY_PIN,   INPUT);  
+  pinMode(ADS1292R_CS_PIN,     OUTPUT);    
+  pinMode(ADS1292R_START_PIN,  OUTPUT);
+  pinMode(ADS1292R_PWDN_PIN,   OUTPUT);  
   pinMode(LED_PIN,            OUTPUT); 
   pinMode(AFE4490_PWDN_PIN,   OUTPUT);
   pinMode(AFE4490_CS_PIN,     OUTPUT);  // slave select
@@ -372,8 +372,8 @@ void setup()
   initBLE();                  // low energy blue tooth 
    
   initSPI();                  // initialize SPI
-  afe4490.init();             // SPI controls ADS1292 and AFE4490,
-  ads1292.init();             // with different CS pin and SPI mode.
+  afe4490.init();             // SPI controls ADS1292R and AFE4490,
+  ads1292r.init();             // with different CS pin and SPI mode.
    
   Wire.begin(25,22);          // initialize I2C, SDA=25pin SCL=22pin
   
@@ -382,8 +382,8 @@ void setup()
   setupWebServer();           // uploading by Web server
   #endif 
   
-  // data ready for reading for ADS1292 and AFE4490
-  attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292_interrupt_handler, FALLING); 
+  // data ready for reading for ADS1292R and AFE4490
+  attachInterrupt(digitalPinToInterrupt(ADS1292R_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
   attachInterrupt(digitalPinToInterrupt(AFE4490_DRDY_PIN),afe4490_interrupt_handler, RISING ); 
 
   #if (TEMP_SENSOR_MAX30325 | TEMP_SENSOR_TMP117)
@@ -408,7 +408,7 @@ void loop()
 
   handleBLEstack();           // handle bluetooth low energy
 
-  ads1292.getData();          // handle ECG and RESP
+  ads1292r.getData();          // handle ECG and RESP
   
   afe4490.getData();          // handle SpO2 and PPG 
   

@@ -58,7 +58,7 @@ Wi-Fi and Access Point (AP) mode
 BLE (Bluetooth Low Energy).
 
 * Sensors: 
-ECG and respiration: TI ADS1292R
+ECG and respiration: TI ADS1292RR
 Pulse oximetry: TI AFE4400
 Temperature sensor: Maxim MAX30205
 Accelerometer: MMA8452Q

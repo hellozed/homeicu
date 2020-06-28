@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 //
-//   Arduino Library for ADS1292R Shield/Breakout
+//   Arduino Library for ADS1292RR Shield/Breakout
 //
 //   Copyright (c) 2017 ProtoCentral
 //
@@ -16,8 +16,8 @@
 //   Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
 //
 /////////////////////////////////////////////////////////////////////////////////////////
-#ifndef ads1292_h
-#define ads1292_h
+#ifndef ads1292r_h
+#define ads1292r_h
 
 #include "Arduino.h"
 
@@ -37,32 +37,32 @@
 #define RDATA   0x12    //Read data by command; supports multiple read back.
 
 //register address
-#define ADS1292_REG_ID        0x00
-#define ADS1292_REG_CONFIG1   0x01
-#define ADS1292_REG_CONFIG2   0x02
-#define ADS1292_REG_LOFF      0x03
-#define ADS1292_REG_CH1SET    0x04
-#define ADS1292_REG_CH2SET    0x05
-#define ADS1292_REG_RLDSENS   0x06
-#define ADS1292_REG_LOFFSENS  0x07
-#define ADS1292_REG_LOFFSTAT  0x08
-#define ADS1292_REG_RESP1     0x09
-#define ADS1292_REG_RESP2     0x0A
+#define ADS1292R_REG_ID        0x00
+#define ADS1292R_REG_CONFIG1   0x01
+#define ADS1292R_REG_CONFIG2   0x02
+#define ADS1292R_REG_LOFF      0x03
+#define ADS1292R_REG_CH1SET    0x04
+#define ADS1292R_REG_CH2SET    0x05
+#define ADS1292R_REG_RLDSENS   0x06
+#define ADS1292R_REG_LOFFSENS  0x07
+#define ADS1292R_REG_LOFFSTAT  0x08
+#define ADS1292R_REG_RESP1     0x09
+#define ADS1292R_REG_RESP2     0x0A
 
-typedef struct ads1292_Record
+typedef struct ads1292r_Record
 {
   signed long raw_ecg;
   signed long raw_resp;
   uint32_t    status_reg;
-} ads1292_data;
+} ads1292r_data;
 
-void    ads1292_interrupt_handler(void);
-extern  portMUX_TYPE  ads1292Mux;
+void    ads1292r_interrupt_handler(void);
+extern  portMUX_TYPE  ads1292rMux;
 extern  bool          ecgBufferReady;
 extern  bool          hrvDataReady  ;
 extern  bool          histogramReady;
 
-class ADS1292
+class ADS1292R
 {
 public:
   void      init(void);
