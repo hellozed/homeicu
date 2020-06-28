@@ -28,7 +28,7 @@
 
 #define DATASTREAM_SERVICE_UUID         (uint16_t(0x1122)) 
 #define ECG_STREAM_CHARACTERISTIC_UUID  (uint16_t(0x1424))
-#define PPG_STREAM_CHARACTERISTIC_UUID  (uint16_t(0x1425))  //FIXME config this uuid
+#define PPG_STREAM_CHARACTERISTIC_UUID  (uint16_t(0x1425)) 
 
 #define TEMP_SERVICE_UUID               (uint16_t(0x1809)) 
 #define TEMP_CHARACTERISTIC_UUID        (uint16_t(0x2a6e))
@@ -55,7 +55,7 @@ BLECharacteristic *hist_Characteristic        = NULL;
 BLECharacteristic *hrv_Characteristic         = NULL;
 
 /*---------------------------------------------------------------------------------
- FIXME: These global variables must be checked for interrupt access conflict
+ FIXME: global variables need checked for interrupt conflict
 ---------------------------------------------------------------------------------*/
 bool deviceConnected    = false;
 bool oldDeviceConnected = false;
@@ -67,10 +67,10 @@ extern bool     ppgBufferReady;
 extern bool     hrvDataReady;
 extern bool     batteryDataReady;
 
+extern uint8_t  hrv_array[HVR_ARRAY_SIZE];
 extern uint8_t  ecg_data_buff[ECG_BUFFER_SIZE];
 extern uint8_t  ppg_data_buff[PPG_BUFFER_SIZE];
 extern uint8_t  lead_flag;
-extern uint8_t  hrv_array[HVR_ARRAY_SIZE];
 extern uint8_t  SpO2Level;
 extern uint8_t  battery_percent;
 extern union    FloatByte bodyTemperature;
@@ -148,7 +148,6 @@ void bleSend(bool * readyFlag, uint8_t * data, int length, BLECharacteristic * c
 
 void handleBLEstack(void)
 {
- 
   //send notifications if connected to a client
   if(HeartRate_prev != heart_rate)
   {
@@ -264,41 +263,3 @@ void initBLE(void)
   Serial.println("BLE: adverting");     // wait for connection to notify
 }
 
-/*---------------------------------------------------------------------------------
- fake ecg data for testing
----------------------------------------------------------------------------------*/
-#if ECG_BLE_TEST
-const uint8_t fakeEcgSample[180] = { \
-223, 148, 148,  30, 178, 192, 214, 184, 180, 162, \
-168, 176, 229, 152, 182, 112, 184, 218, 231, 203, \
-185, 168, 177, 181, 225, 170,  99, 184, 201, 228, \
-207, 185, 164, 165, 170, 178, 241, 165, 122, 174, \
-189, 216, 203, 189, 172, 176, 184, 223, 165, 168, \
-104, 190, 222, 225, 200, 189, 194, 194, 246, 189, \
-160, 137, 241, 239, 238, 196, 174, 160, 161, 186, \
-153, 164,  43, 180, 205, 221, 185, 182, 166, 168, \
-178, 228, 170, 155,  40, 192, 205, 225, 185, 170, \
-147, 155, 164, 165, 186, 152,  69, 180, 190, 216, \
-193, 180, 162, 153, 161, 182, 148, 147,  12, 177, \
-194, 207, 168, 165, 146, 156, 160, 216, 142, 160, \
- 79, 182, 208, 203, 188, 176, 176, 178, 211, 176, \
-177,  76, 211, 245, 222, 204, 189,  39, 169, 181, \
-148, 169, 182, 196, 194, 207, 205, 214, 209, 214, \
-209,  23, 197, 138, 215, 226, 246, 243, 226, 218, \
-190, 208, 211,  17, 203, 209, 151, 236,   3,  14, \
-223, 211, 197, 201, 204, 208, 216, 188,  94, 211, \
-};
-void getTestData(uint8_t *p, int len)
-{
-  static uint8_t index=0;
-
-  // build the data when the function called at the first time 
-  for(int i=0;i<len;i++)
-    {
-      p[i] = fakeEcgSample[index];
-      index++;
-      if (index == 180) 
-        index = 0;
-    }
-}
-#endif //ECG_BLE_TEST

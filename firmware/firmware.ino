@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------
-  Main code of the HomeICU project.
+  main code of the HomeICU project.
 
   Arduino IDE and VSCode is needed to build/download into boards. 
 
@@ -32,41 +32,22 @@
 #include "TMP117.h"
 #include "MAX30205.h"
 
+class AFE4490 afe4490;
+class ADS1292 ads1292;
 void initBLE();
 void handleBLEstack();
 void handleWebClient();
 void setupWebServer();
 void setupBasicOTA();
-void add_heart_rate_histogram(uint8_t hr);
-uint8_t *read_send_data(uint8_t peakvalue,uint8_t respirationRate);
-void getTestData(uint8_t *p, int len);
+void getTestData(void);
 /*---------------------------------------------------------------------------------
  Temperature sensor (ONLY turn on one of them)
 ---------------------------------------------------------------------------------*/
 #define TEMP_SENSOR_MAX30325  false
 #define TEMP_SENSOR_TMP117    false  
-
-
-
-#if JOY_TEST
-const int JOYX_PIN          = 13;   //GPIO12 ADC //??? FIXME
-const int JOYY_PIN          = 34;   //GPIO34 ADC
-#endif
-
-#if SIM_TEMPERATURE
-const int SENSOR_TEMP       = 35;   //GPIO35 ADC
-#endif
 /*---------------------------------------------------------------------------------
  constant and global variables
 ---------------------------------------------------------------------------------*/
- 
-volatile uint8_t  heart_rate = 0;
-volatile uint8_t  HeartRate_prev = 0;
-volatile uint8_t  RespirationRate=0;
-volatile uint8_t  RespirationRate_prev = 0;
-volatile uint8_t  npeakflag = 0;
-volatile long     time_count=0;
-
 volatile uint32_t buttonInterruptTime = 0;
 volatile int      buttonEventPending = false;
 
@@ -78,41 +59,12 @@ portMUX_TYPE ads1292Mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE AFE4490Mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE timerMux   = portMUX_INITIALIZER_UNLOCKED;
 
-
-uint8_t ecg_data_buff[ECG_BUFFER_SIZE];
-uint8_t ppg_data_buff[PPG_BUFFER_SIZE];
-uint8_t lead_flag = 0;
-uint8_t SpO2Level;
-
-int16_t ecg_wave_sample,  ecg_filterout;
-int16_t res_wave_sample,  resp_filterout;
-
-uint16_t ecg_stream_cnt = 0;
-uint16_t ppg_stream_cnt = 0;
-uint16_t ppg_wave_ir;
-
-bool histogramReady     = false;
 bool temperatureReady   = false;
-bool SpO2Ready          = false;
-bool ecgBufferReady     = false;
-bool ppgBufferReady     = false;
-bool hrvDataReady       = false;
 bool batteryDataReady   = false;
 
 uint8_t battery_percent = 100;
 
 union FloatByte bodyTemperature;
-
-const int freq = 5000;
-const int ledChannel = 0;
-const int resolution = 8;
-
-ADS1292         ads1292;                      
-ads1292r_processing ECG_RESPIRATION_ALGORITHM; 
-AFE4490         afe4490;
-spo2_algorithm  spo2;
-ads1292r_data   ads1292r_raw_data;
-afe44xx_data    afe44xx_raw_data;
 
 #if TEMP_SENSOR_MAX30325
 MAX30205        tempSensor;
@@ -133,31 +85,31 @@ Interrupt Routine should:
     Don't try to turn interrupts off or on
 
 ESP32 has 2 cores, each has 6 internal peripheral interrupts:
-3 x timer comparators
-1 x performance monitor
-3 x software interrupts.
+    3 x timer comparators
+    1 x performance monitor
+    3 x software interrupts.
 
 Arduino normally use "NoInterrupts" and "Interrupts" to enable/disable interrupt
 for critical sections. But "NoInterrupts" and "Interrupts" have not been 
 implemented in ESP32 Arduino, please use the following methods.
 
-portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
+    portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
 
-portENTER_CRITICAL(&myMutex);
-//critical section
-portEXIT_CRITICAL(&myMutex);
+    portENTER_CRITICAL(&myMutex);
+    //critical section
+    portEXIT_CRITICAL(&myMutex);
 
-portENTER_CRITICAL_ISR(&myMutex);
-//ISR section
-portEXIT_CRITICAL_ISR(&myMutex);
+    portENTER_CRITICAL_ISR(&myMutex);
+    //ISR section
+    portEXIT_CRITICAL_ISR(&myMutex);
 
-use semaphore if using FreeRtos. Refer to:
+use semaphore if using FreeRtos. 
+
+Refer to:
 
 http://www.iotsharing.com/2017/06/how-to-use-binary-semaphore-mutex-counting-semaphore-resource-management.html
 http://www.gammon.com.au/interrupts
----------------------------------------------------------------------------------*/
-
-
+*/
 /*---------------------------------------------------------------------------------
   Button interrupt handler
 ---------------------------------------------------------------------------------*/
@@ -188,12 +140,11 @@ void doButton() {
 /*---------------------------------------------------------------------------------
  Repeat Timer interrupt
 
- Note: code for killing the timer:
-  if (timer) {
-      // Stop and free timer
-      timerEnd(timer);
-      timer = NULL;
-  }
+    Note: code for killing the timer
+    if (timer) {
+        timerEnd(timer);
+        timer = NULL;
+    }
 ---------------------------------------------------------------------------------*/
 void IRAM_ATTR onTimer(){
   portENTER_CRITICAL_ISR(&timerMux);
@@ -234,26 +185,27 @@ void doTimer()
 
     portEXIT_CRITICAL (&timerMux);
 
-    #if JOY_TEST
+    #if JOYTICK_TEST
     // ESP32 ADC return a 12bit value 0~4095 (uint16_t) 
     {
     int x, y;
-    x = analogRead(JOYX_PIN);
+    pinMode(JOYY_PIN,   INPUT);  
     y = analogRead(JOYY_PIN);
-    Serial.printf("           %05d %05d\r", x,y);
+    // Serial.printf("Y:%05d BAT:%3d Tmp:%4f\r", y, battery_percent, bodyTemperature.f);
     }
     #endif 
 
-
     #if ECG_BLE_TEST
-    if (ecgBufferReady == false )     // refill the data
-      getTestData(ecg_data_buff, ECG_BUFFER_SIZE); // 125 Sample rate, 0.2s
-      ecgBufferReady = true; 
+    ads1292.getTestData();
+    #endif 
+    
+    #if SIM_PPG
+    afe4490.simulateData();
     #endif 
   }  
 }
 /*---------------------------------------------------------------------------------
- battery level check
+ battery measurement
 ---------------------------------------------------------------------------------*/
 void read_battery_value()
 {
@@ -328,7 +280,9 @@ void read_battery_value()
   batteryDataReady = true; 
 
 }
- 
+/*---------------------------------------------------------------------------------
+ body temperature measurement
+---------------------------------------------------------------------------------*/
 void read_temperature_value()
 {
   #define TEMPERATURE_READ_INTERVAL     (2*1000)  //millis
@@ -371,16 +325,13 @@ void read_temperature_value()
 
  This design only uses VSPI, the default CS pin is IO5.
  
- This design use SPI control ADS1292 and AFE4490.
- These two devices are  with different CS pin and SPI mode.
-	
 ---------------------------------------------------------------------------------*/
 void initSPI()
 {
   SPI.begin();
   SPI.setClockDivider (SPI_CLOCK_DIV16);
   SPI.setBitOrder     (MSBFIRST);
-   
+  delay(10);           // delay 10ms
 }
 /*---------------------------------------------------------------------------------
 The setup() function is called when a sketch starts. Use it to initialize variables, 
@@ -421,25 +372,19 @@ void setup()
   initBLE();                  // low energy blue tooth 
    
   initSPI();                  // initialize SPI
-  delay(10);                  //delay 10ms
-  
-  afe4490.init();
-
-  Wire.begin(25,22);          // initialize I2C. SDA=25pin SCL=22pin
+  afe4490.init();             // SPI controls ADS1292 and AFE4490,
+  ads1292.init();             // with different CS pin and SPI mode.
+   
+  Wire.begin(25,22);          // initialize I2C, SDA=25pin SCL=22pin
   
   setupBasicOTA();            // uploading by Over The Air code
   #if WEB_UPDATE
   setupWebServer();           // uploading by Web server
   #endif 
-
-  //initialize ADS1292 slave
-  ads1292.init();  
-   
-  delay(10); 
   
   // data ready for reading for ADS1292 and AFE4490
-  attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292_interrupt_handler, FALLING ); 
-  attachInterrupt(digitalPinToInterrupt(AFE4490_DRDY_PIN),afe4490_interrupt_handler,  RISING ); 
+  attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292_interrupt_handler, FALLING); 
+  attachInterrupt(digitalPinToInterrupt(AFE4490_DRDY_PIN),afe4490_interrupt_handler, RISING ); 
 
   #if (TEMP_SENSOR_MAX30325 | TEMP_SENSOR_TMP117)
   if (tempSensor.begin()) 
@@ -448,96 +393,30 @@ void setup()
     Serial.println("Temperature sensor: Missing.");
   #endif 
 
-  Serial.printf("Setup() done. Error number = %d\r\n\r\n",system_init_error);
+  Serial.printf("Setup() done. Found %d errors\r\n\r\n",system_init_error);
 }
 /*---------------------------------------------------------------------------------
-After creating a setup() function, which initializes and sets the initial values, 
-the loop() function loops consecutively, allowing your program to change and respond.
+setup() => loop() 
 ---------------------------------------------------------------------------------*/
 void loop()
 {
-  boolean result;
-
   doTimer();                  // process timer event
+  
   doButton();                 // process button event
+
   ArduinoOTA.handle();        // "On The Air" update function 
+
+  handleBLEstack();           // handle bluetooth low energy
+
+  ads1292.getData();          // handle ECG and RESP
+  
+  afe4490.getData();          // handle SpO2 and PPG 
+  
+  read_temperature_value();   // battery power percent
+
+  read_battery_value();       // measure body temperature
 
   #if WEB_UPDATE
   handleWebClient();          // web server
   #endif 
-
-  handleBLEstack();           // handle bluetooth low energy
-
-  // handle ADS1292/ECG/RESP
-#if 1  //FIXME
-delay(2000);
-  result = ads1292.getData(&ads1292r_raw_data);
-  if (result == true)
-  {  
-    // ignore the lower 8 bits out of 24bits 
-    ecg_wave_sample = (int16_t)(ads1292r_raw_data.raw_ecg  >> 8);  
-    res_wave_sample = (int16_t)(ads1292r_raw_data.raw_resp >> 8);
-  
-    if (!((ads1292r_raw_data.status_reg & 0x1f) == 0))
-    { // measure lead is OFF the body 
-      lead_flag         = 0;
-      ecg_filterout     = 0;
-      resp_filterout    = 0;      
-    }  
-    else
-    { // the measure lead is ON the body 
-      lead_flag         = 1;
-      // filter out the line noise @40Hz cutoff 161 order
-      ECG_RESPIRATION_ALGORITHM.Filter_CurrentECG_sample  (&ecg_wave_sample,&ecg_filterout);   
-      ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate       (ecg_filterout,   &heart_rate,&npeakflag); 
-      ECG_RESPIRATION_ALGORITHM.Filter_CurrentRESP_sample (res_wave_sample, &resp_filterout);
-      ECG_RESPIRATION_ALGORITHM.Calculate_RespRate        (resp_filterout,  &RespirationRate);   
-      if(npeakflag == 1)
-      {
-        read_send_data(heart_rate,RespirationRate);
-        add_heart_rate_histogram(heart_rate);
-        npeakflag = 0;
-      }
-   
-      ecg_data_buff[ecg_stream_cnt++] = (uint8_t)ecg_wave_sample; //ecg_filterout;
-      ecg_data_buff[ecg_stream_cnt++] = (ecg_wave_sample>>8);     //ecg_filterout>>8;
-      
-      if(ecg_stream_cnt >=ECG_BUFFER_SIZE)
-      {
-        ecgBufferReady = true;
-        ecg_stream_cnt = 0;
-      }
-    }
-  }
-
-  // SpO2Level PPG 
-  afe4490.getData(&afe44xx_raw_data);
-  ppg_wave_ir = (uint16_t)(afe44xx_raw_data.IR_data>>8);
-  ppg_wave_ir = ppg_wave_ir;
-  
-  ppg_data_buff[ppg_stream_cnt++] = (uint8_t)ppg_wave_ir;
-  ppg_data_buff[ppg_stream_cnt++] = (ppg_wave_ir>>8);
-
-  if(ppg_stream_cnt >=PPG_BUFFER_SIZE)
-  {
-Serial.println("B1");        
-    ppgBufferReady = true;
-    ppg_stream_cnt = 0;
-  }
-
-  if( afe44xx_raw_data.buffer_count_overflow)
-  {
-    if (afe44xx_raw_data.spo2 == -999)
-      SpO2Level = 0;
-    else
-    {
-      SpO2Level = (uint8_t)afe44xx_raw_data.spo2;       
-      SpO2Ready = true;
-    }
-    afe44xx_raw_data.buffer_count_overflow = false;
-  }
-#endif //0 //FIXME
-  // temperature, battery
-  read_temperature_value();
-  read_battery_value();
 }

@@ -16,8 +16,8 @@
 //   Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
 //
 /////////////////////////////////////////////////////////////////////////////////////////
-#ifndef ads1292r_h
-#define ads1292r_h
+#ifndef ads1292_h
+#define ads1292_h
 
 #include "Arduino.h"
 
@@ -49,21 +49,25 @@
 #define ADS1292_REG_RESP1     0x09
 #define ADS1292_REG_RESP2     0x0A
 
-typedef struct ads1292r_Record
+typedef struct ads1292_Record
 {
   signed long raw_ecg;
   signed long raw_resp;
   uint32_t    status_reg;
-} ads1292r_data;
+} ads1292_data;
 
 void    ads1292_interrupt_handler(void);
-extern  portMUX_TYPE ads1292Mux;
+extern  portMUX_TYPE  ads1292Mux;
+extern  bool          ecgBufferReady;
+extern  bool          hrvDataReady  ;
+extern  bool          histogramReady;
 
 class ADS1292
 {
 public:
-  void    init(void);
-  boolean getData (ads1292r_data *data_struct);
+  void      init(void);
+  void      getData(void);
+  void      getTestData(void);
 private:
   int       chip_select; 
   void      SendCommand   (uint8_t data_in);
@@ -71,8 +75,10 @@ private:
   void      ReadToBuffer  (void);
   void      pin_high_time (int pin, uint32_t ms);
   void      pin_low_time  (int pin, uint32_t ms);
+  uint8_t * fillTxBuffer  (uint8_t peakvalue,uint8_t respirationRate);
+  void      add_heart_rate_histogram(uint8_t hr);
 
-  uint8_t SPI_ReadBuffer[10];
+  uint8_t   SPI_ReadBuffer[10];
 };
 
 #endif

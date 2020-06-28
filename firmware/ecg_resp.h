@@ -18,7 +18,7 @@
 #define TRUE                       1
 #define FALSE                      0
 
-class ads1292r_processing
+class ADS1290Process
 {
   public:
     void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);

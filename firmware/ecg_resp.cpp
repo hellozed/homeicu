@@ -1,5 +1,6 @@
 /*---------------------------------------------------------------------------------
- FIXME
+ FIXME code needs tidy up
+ 
  The code here is from healthypi project, 
  Code here requires tidy up and testing!
 
@@ -82,7 +83,7 @@ int16_t RespCoeffBuf[FILTERORDER] = { 120,    124,    126,    127,    127,    12
                                       118,    122,    125,    127,    127,    126,    124,    120       };
 
 
-void ads1292r_processing :: ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
+void ADS1290Process :: ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
 {
   int32_t acc = 0;   // accumulator for MACs
   int  k;
@@ -100,7 +101,7 @@ void ads1292r_processing :: ECG_FilterProcess(int16_t * WorkingBuff, int16_t * C
   *FilterOut = (int16_t)(acc >> 15);
 }
 
-void ads1292r_processing :: Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t *FilteredOut)
+void ADS1290Process :: Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t *FilteredOut)
 {
   static uint16_t ECG_bufStart = 0, ECG_bufCur = FILTERORDER - 1, ECGFirstFlag = 1;
   static int16_t ECG_Pvev_DC_Sample, ECG_Pvev_Sample;/* Working Buffer Used for Filtering*/
@@ -143,7 +144,7 @@ void ads1292r_processing :: Filter_CurrentECG_sample(int16_t *CurrAqsSample, int
   }
 }
 
-void ads1292r_processing :: Calculate_HeartRate(int16_t CurrSample,volatile uint8_t *Heart_rate, volatile uint8_t *peakflag )
+void ADS1290Process :: Calculate_HeartRate(int16_t CurrSample,volatile uint8_t *Heart_rate, volatile uint8_t *peakflag )
 {
   static int16_t prev_data[32] = {0};
   int16_t i;
@@ -167,7 +168,7 @@ void ads1292r_processing :: Calculate_HeartRate(int16_t CurrSample,volatile uint
   QRS_process_buffer(Heart_rate,peakflag);
 }
 
-void ads1292r_processing :: QRS_process_buffer(volatile uint8_t *Heart_rate, volatile uint8_t *peakflag )
+void ADS1290Process :: QRS_process_buffer(volatile uint8_t *Heart_rate, volatile uint8_t *peakflag )
 {
   int16_t first_derivative = 0 ;
   int16_t scaled_result = 0 ;
@@ -201,7 +202,7 @@ void ads1292r_processing :: QRS_process_buffer(volatile uint8_t *Heart_rate, vol
     QRS_check_sample_crossing_threshold(scaled_result,Heart_rate,peakflag) ;
 }
 
-void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled_result,volatile uint8_t *Heart_rate,volatile uint8_t *peakflag)
+void ADS1290Process :: QRS_check_sample_crossing_threshold( uint16_t scaled_result,volatile uint8_t *Heart_rate,volatile uint8_t *peakflag)
 {
   /* array to hold the sample indexes S1,S2,S3 etc */
   static uint16_t s_array_index = 0 ;
@@ -356,7 +357,7 @@ void ads1292r_processing :: QRS_check_sample_crossing_threshold( uint16_t scaled
   *Heart_rate = (uint8_t)QRS_Heart_Rate;
 }
 
-void ads1292r_processing :: Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
+void ADS1290Process :: Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
 {
   int32_t acc=0;     // accumulator for MACs
   int  k;
@@ -375,7 +376,7 @@ void ads1292r_processing :: Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16
   *FilterOut = (int16_t)(acc >> 15);
 }
 
-void ads1292r_processing :: Filter_CurrentRESP_sample(int16_t CurrAqsSample, int16_t * FiltOut)
+void ADS1290Process :: Filter_CurrentRESP_sample(int16_t CurrAqsSample, int16_t * FiltOut)
 {
   static uint16_t bufStart=0, bufCur = FILTERORDER-1, FirstFlag = 1;
   int16_t temp1, temp2;//, RESPData;
@@ -406,7 +407,7 @@ void ads1292r_processing :: Filter_CurrentRESP_sample(int16_t CurrAqsSample, int
   }
 }
 
-void ads1292r_processing :: Calculate_RespRate(int16_t CurrSample,volatile uint8_t *RespirationRate)
+void ADS1290Process :: Calculate_RespRate(int16_t CurrSample,volatile uint8_t *RespirationRate)
 {
   static int16_t prev_data[64] ={0};
   char i;
@@ -429,7 +430,7 @@ void ads1292r_processing :: Calculate_RespRate(int16_t CurrSample,volatile uint8
   Respiration_Rate_Detection(RESP_Second_Next_Sample,RespirationRate);
 }
 
-void ads1292r_processing :: Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *RespirationRate)
+void ADS1290Process :: Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *RespirationRate)
 {
   static uint16_t skipCount = 0, SampleCount = 0,TimeCnt=0, SampleCountNtve=0, PtiveCnt =0,NtiveCnt=0 ;
   static int16_t MinThreshold = 0x7FFF, MaxThreshold = 0x8000, PrevSample = 0, PrevPrevSample = 0, PrevPrevPrevSample =0;

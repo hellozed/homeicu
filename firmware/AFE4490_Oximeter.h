@@ -19,7 +19,7 @@
 
 #include "Arduino.h"
 
-//afe44xx Register definition
+//afe4490 Register definition
 #define CONTROL0      0x00
 #define LED2STC       0x01
 #define LED2ENDC      0x02
@@ -71,25 +71,18 @@
 #define LED1ABSVAL    0x2f
 #define DIAG          0x30
 
-typedef struct afe44xx_Record{
-  int32_t heart_rate;
-  int32_t spo2;
-  signed long IR_data;
-  signed long RED_data;
-  boolean buffer_count_overflow = false;
-}afe44xx_data;
-
 void    afe4490_interrupt_handler(void);
 extern  portMUX_TYPE AFE4490Mux;
 
 class AFE4490
 {
   public:
-    void    init(void);
-    boolean getData (afe44xx_data *afe44xx_raw_data);
+    void    init    (void);
+    void    getData (void);
+    void    simulateData(void);
 
   private:  
-  void          writeData(uint8_t address, uint32_t data);
-  unsigned long readData (uint8_t address);
+    void          writeData(uint8_t address, uint32_t data);
+    unsigned long readData (uint8_t address);
 };
 #endif
