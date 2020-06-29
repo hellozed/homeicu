@@ -28,8 +28,8 @@ class ADS1290Process
     void QRS_check_sample_crossing_threshold( uint16_t scaled_result,volatile uint8_t *Heart_rate,volatile uint8_t *peakflag);  
     void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);
     void Filter_CurrentRESP_sample(int16_t CurrAqsSample, int16_t * FiltOut);
-    void Calculate_RespRate(int16_t CurrSample,volatile uint8_t *RespirationRate);
-    void Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *RespirationRate);
+    void Calculate_RespRate(int16_t CurrSample,volatile uint8_t *respirationRate);
+    void Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *respirationRate);
 };
 
 #endif

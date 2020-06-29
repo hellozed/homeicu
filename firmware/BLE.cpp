@@ -39,11 +39,9 @@
 #define HRV_SERVICE_UUID                "cd5c7491-4448-7db8-ae4c-d1da8cba36d0"
 #define HRV_CHARACTERISTIC_UUID         "01bfa86f-970f-8d96-d44d-9023c47faddc"
 #define HIST_CHARACTERISTIC_UUID        "01bf1525-970f-8d96-d44d-9023c47faddc"
-
 /*---------------------------------------------------------------------------------
  
 ---------------------------------------------------------------------------------*/
-
 BLEServer         *pServer                    = NULL;
 BLECharacteristic *heartRate_Characteristic   = NULL;
 BLECharacteristic *SpO2_Characteristic        = NULL;
@@ -53,9 +51,8 @@ BLECharacteristic *battery_Characteristic     = NULL;
 BLECharacteristic *temperature_Characteristic = NULL;
 BLECharacteristic *hist_Characteristic        = NULL;
 BLECharacteristic *hrv_Characteristic         = NULL;
-
 /*---------------------------------------------------------------------------------
- FIXME: global variables need checked for interrupt conflict
+ global variables
 ---------------------------------------------------------------------------------*/
 bool deviceConnected    = false;
 bool oldDeviceConnected = false;
@@ -66,17 +63,18 @@ extern bool     ecgBufferReady;
 extern bool     ppgBufferReady;
 extern bool     hrvDataReady;
 extern bool     batteryDataReady;
+extern bool     heartRateReady;
 
 extern uint8_t  hrv_array[HVR_ARRAY_SIZE];
 extern uint8_t  ecg_data_buff[ECG_BUFFER_SIZE];
 extern uint8_t  ppg_data_buff[PPG_BUFFER_SIZE];
+extern uint8_t  heart_rate_pack[3];
 extern uint8_t  lead_flag;
 extern uint8_t  SpO2Level;
 extern uint8_t  battery_percent;
 extern union    FloatByte bodyTemperature;
 
 extern volatile uint8_t heart_rate;
-extern volatile uint8_t HeartRate_prev;
 extern uint8_t  histogram_percent[HISTGRM_PERCENT_SIZE];
 extern bool     histogramReady;
 /*---------------------------------------------------------------------------------
@@ -93,7 +91,7 @@ class MyServerCallbacks: public BLEServerCallbacks
 
   void onDisconnect(BLEServer* pServer)
   {
-    Serial.println("BLE: Disconnect");
+    Serial.println("BLE: disconnected");
     deviceConnected = false;
   }
 };
@@ -116,6 +114,7 @@ class ecgCallbackHandler: public BLECharacteristicCallbacks
     }
   }
 };
+
 class ppgCallbackHandler: public BLECharacteristicCallbacks 
 {
   void onWrite(BLECharacteristic *characteristic) 
@@ -137,7 +136,7 @@ class ppgCallbackHandler: public BLECharacteristicCallbacks
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
-void bleSend(bool * readyFlag, uint8_t * data, int length, BLECharacteristic * chr)
+void sendBle(bool * readyFlag, uint8_t * data, int length, BLECharacteristic * chr)
 {
   if (*readyFlag){
     chr->setValue(data, length);
@@ -146,27 +145,16 @@ void bleSend(bool * readyFlag, uint8_t * data, int length, BLECharacteristic * c
   }
 }
 
-void handleBLEstack(void)
+void handleBLE(void)
 {
-  //send notifications if connected to a client
-  if(HeartRate_prev != heart_rate)
-  {
-    bool heart_rate_ready = true;
-    uint8_t hr_att_ble[2];
-    hr_att_ble[0] = lead_flag;
-    hr_att_ble[1] = (uint8_t)heart_rate;    
-    bleSend(&heart_rate_ready,hr_att_ble,sizeof(hr_att_ble),heartRate_Characteristic);
-    
-    HeartRate_prev = heart_rate;
-  }  
-  
-  bleSend(&hrvDataReady,    hrv_array,          sizeof(hrv_array),        hrv_Characteristic);
-  bleSend(&histogramReady,  histogram_percent,  sizeof(histogram_percent),hist_Characteristic); 
-  bleSend(&batteryDataReady,&battery_percent,   sizeof(battery_percent),  battery_Characteristic);  
-  bleSend(&SpO2Ready,       &SpO2Level,         sizeof(SpO2Level),        SpO2_Characteristic);
-  bleSend(&temperatureReady,bodyTemperature.b,  sizeof(bodyTemperature.b),temperature_Characteristic);  
-  bleSend(&ecgBufferReady,  ecg_data_buff,      sizeof(ecg_data_buff),    ecgStream_Characteristic);  
-  bleSend(&ppgBufferReady,  ppg_data_buff,      sizeof(ppg_data_buff),    ppgStream_Characteristic); 
+  sendBle(&heartRateReady,  heart_rate_pack,    sizeof(heart_rate_pack),  heartRate_Characteristic);
+  sendBle(&hrvDataReady,    hrv_array,          sizeof(hrv_array),        hrv_Characteristic);
+  sendBle(&histogramReady,  histogram_percent,  sizeof(histogram_percent),hist_Characteristic); 
+  sendBle(&batteryDataReady,&battery_percent,   sizeof(battery_percent),  battery_Characteristic);  
+  sendBle(&SpO2Ready,       &SpO2Level,         sizeof(SpO2Level),        SpO2_Characteristic);
+  sendBle(&temperatureReady,bodyTemperature.b,  sizeof(bodyTemperature.b),temperature_Characteristic);  
+  sendBle(&ecgBufferReady,  ecg_data_buff,      sizeof(ecg_data_buff),    ecgStream_Characteristic);  
+  sendBle(&ppgBufferReady,  ppg_data_buff,      sizeof(ppg_data_buff),    ppgStream_Characteristic); 
      
   if (!deviceConnected && oldDeviceConnected)
   {

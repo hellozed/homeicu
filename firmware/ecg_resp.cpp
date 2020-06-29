@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------
- FIXME code needs tidy up
+ FIXME 3rd party code, needs tidy up
  
  The code here is from healthypi project, 
  Code here requires tidy up and testing!
@@ -407,7 +407,7 @@ void ADS1290Process :: Filter_CurrentRESP_sample(int16_t CurrAqsSample, int16_t 
   }
 }
 
-void ADS1290Process :: Calculate_RespRate(int16_t CurrSample,volatile uint8_t *RespirationRate)
+void ADS1290Process :: Calculate_RespRate(int16_t CurrSample,volatile uint8_t *respirationRate)
 {
   static int16_t prev_data[64] ={0};
   char i;
@@ -427,10 +427,10 @@ void ADS1290Process :: Calculate_RespRate(int16_t CurrSample,volatile uint8_t *R
   RESP_Current_Sample = RESP_Next_Sample ;
   RESP_Next_Sample = RESP_Second_Next_Sample ;
   RESP_Second_Next_Sample = CurrSample;// << 3 ;
-  Respiration_Rate_Detection(RESP_Second_Next_Sample,RespirationRate);
+  Respiration_Rate_Detection(RESP_Second_Next_Sample,respirationRate);
 }
 
-void ADS1290Process :: Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *RespirationRate)
+void ADS1290Process :: Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *respirationRate)
 {
   static uint16_t skipCount = 0, SampleCount = 0,TimeCnt=0, SampleCountNtve=0, PtiveCnt =0,NtiveCnt=0 ;
   static int16_t MinThreshold = 0x7FFF, MaxThreshold = 0x8000, PrevSample = 0, PrevPrevSample = 0, PrevPrevPrevSample =0;
@@ -544,5 +544,5 @@ void ADS1290Process :: Respiration_Rate_Detection(int16_t Resp_wave,volatile uin
       }
     }
   }
-  *RespirationRate=(uint8_t)Respiration_Rate;
+  *respirationRate=(uint8_t)Respiration_Rate;
 }

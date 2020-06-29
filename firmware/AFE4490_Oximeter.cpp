@@ -12,15 +12,14 @@
 static  int32_t an_x[ BUFFER_SIZE];
 static  int32_t an_y[ BUFFER_SIZE];
 
-volatile bool     AFE4490_intr_flag  = false;
+volatile bool     AFE4490_interrupt_flag  = false;
 volatile int8_t   n_buffer_count; //data length
 
 int dec=0;
 
 int32_t spo2_value;               //SPO2 value
 
-//FIXME heart rate from afe4490 not used
-int32_t heart_rate_from_afe4490;//heart rate value
+int32_t heart_rate_from_afe4490;  //heart rate value
 
 uint16_t aun_ir_buffer [100];     //infrared LED sensor data
 uint16_t aun_red_buffer[100];     //red LED sensor data
@@ -33,7 +32,7 @@ spo2_algorithm spo2;
 void IRAM_ATTR afe4490_interrupt_handler(void)
 {
   portENTER_CRITICAL_ISR(&AFE4490Mux);
-  AFE4490_intr_flag = true;
+  AFE4490_interrupt_flag = true;
   portEXIT_CRITICAL_ISR (&AFE4490Mux);  
 }
 
@@ -48,14 +47,14 @@ void AFE4490 :: getData(void)
   signed   long afe4490_IR_data, afe4490_RED_data;
   unsigned long IRtemp,REDtemp;
 
-  if (AFE4490_intr_flag == false) 
+  if (AFE4490_interrupt_flag == false) 
     return;   // continue wait for data ready pin interrupt
   
   // interrupt captured, process the data
 
   SPI.setDataMode(SPI_MODE0); 
   portENTER_CRITICAL_ISR(&AFE4490Mux);
-  AFE4490_intr_flag = false;
+  AFE4490_interrupt_flag = false;
   portEXIT_CRITICAL_ISR (&AFE4490Mux);  
 
   writeData(CONTROL0, 0x000001);

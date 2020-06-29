@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------
- FIXME code needs tidy up
+ FIXME 3rd part code, needs tidy up
  The code here is from healthypi project, 
  Code here requires tidy up and testing!
 ---------------------------------------------------------------------------------*/

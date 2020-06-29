@@ -32,10 +32,10 @@
 #include "TMP117.h"
 #include "MAX30205.h"
 
-class AFE4490 afe4490;
-class ADS1292R ads1292r;
+class AFE4490   afe4490;
+class ADS1292R  ads1292r;
 void initBLE();
-void handleBLEstack();
+void handleBLE();
 void handleWebClient();
 void setupWebServer();
 void setupBasicOTA();
@@ -111,7 +111,7 @@ http://www.iotsharing.com/2017/06/how-to-use-binary-semaphore-mutex-counting-sem
 http://www.gammon.com.au/interrupts
 */
 /*---------------------------------------------------------------------------------
-  Button interrupt handler
+  button interrupt
 ---------------------------------------------------------------------------------*/
 void IRAM_ATTR button_interrupt_handler()
 {
@@ -138,7 +138,7 @@ void doButton() {
   } 
 }  
 /*---------------------------------------------------------------------------------
- Repeat Timer interrupt
+  repeatable timer interrupt
 
     Note: code for killing the timer
     if (timer) {
@@ -207,7 +207,7 @@ void doTimer()
 /*---------------------------------------------------------------------------------
  battery measurement
 ---------------------------------------------------------------------------------*/
-void read_battery_value()
+void measureBattery()
 {
   #define BAT_SAMPLE  5     
   
@@ -283,7 +283,7 @@ void read_battery_value()
 /*---------------------------------------------------------------------------------
  body temperature measurement
 ---------------------------------------------------------------------------------*/
-void read_temperature_value()
+void measureTemperature()
 {
   #define TEMPERATURE_READ_INTERVAL     (2*1000)  //millis
   
@@ -354,11 +354,11 @@ void setup()
 	Serial.printf ("MAC address: %04X %08X \r\n",(uint16_t)(chipid>>32), (uint32_t)chipid);
 
   // initialize the data ready and chip select pins:
-  // Pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
-  pinMode(ADS1292R_DRDY_PIN,   INPUT);  
-  pinMode(ADS1292R_CS_PIN,     OUTPUT);    
-  pinMode(ADS1292R_START_PIN,  OUTPUT);
-  pinMode(ADS1292R_PWDN_PIN,   OUTPUT);  
+  // pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
+  pinMode(ADS1292R_DRDY_PIN,  INPUT);  
+  pinMode(ADS1292R_CS_PIN,    OUTPUT);    
+  pinMode(ADS1292R_START_PIN, OUTPUT);
+  pinMode(ADS1292R_PWDN_PIN,  OUTPUT);  
   pinMode(LED_PIN,            OUTPUT); 
   pinMode(AFE4490_PWDN_PIN,   OUTPUT);
   pinMode(AFE4490_CS_PIN,     OUTPUT);  // slave select
@@ -396,7 +396,7 @@ void setup()
   Serial.printf("Setup() done. Found %d errors\r\n\r\n",system_init_error);
 }
 /*---------------------------------------------------------------------------------
-setup() => loop() 
+ setup() => loop() 
 ---------------------------------------------------------------------------------*/
 void loop()
 {
@@ -406,15 +406,15 @@ void loop()
 
   ArduinoOTA.handle();        // "On The Air" update function 
 
-  handleBLEstack();           // handle bluetooth low energy
+  handleBLE();                // handle bluetooth low energy
 
-  ads1292r.getData();          // handle ECG and RESP
+  ads1292r.getData();         // handle ECG and RESP
   
   afe4490.getData();          // handle SpO2 and PPG 
   
-  read_temperature_value();   // battery power percent
+  measureTemperature();       // battery power percent
 
-  read_battery_value();       // measure body temperature
+  measureBattery();           // measure body temperature
 
   #if WEB_UPDATE
   handleWebClient();          // web server

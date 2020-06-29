@@ -14,18 +14,20 @@ uint8_t   histogram_percent   [HISTGRM_PERCENT_SIZE];
 uint8_t   respirationRate;
 uint8_t   hr_percent_count    = 0;
 uint8_t   hrv_array[HVR_ARRAY_SIZE];
+uint8_t   heart_rate_pack  [3];
 bool      ecgBufferReady      = false;
 bool      hrvDataReady        = false;
 bool      histogramReady      = false;
+bool      heartRateReady      = false;
 
 volatile uint8_t  heart_rate  = 0;
 volatile uint8_t  npeakflag   = 0;
-volatile uint8_t  HeartRate_prev = 0;
-volatile uint8_t  RespirationRate=0;
-volatile bool     ads1292r_intr_flag   = false;
+volatile uint8_t  heart_rate_prev = 0;
+volatile uint8_t  respirationRate = 0;
+volatile bool     ads1292r_interrupt_flag   = false;
 
-ADS1290Process  ECG_RESPIRATION_ALGORITHM; 
-ads1292r_data    ads1292r_raw_data;
+ADS1290Process    ECG_RESPIRATION_ALGORITHM; 
+ads1292r_data     ads1292r_raw_data;
 
 uint8_t   lead_flag = 0;
 uint8_t   ecg_data_buff[ECG_BUFFER_SIZE];
@@ -33,16 +35,16 @@ int16_t   ecg_wave_sample,  ecg_filterout ;
 int16_t   res_wave_sample,  resp_filterout;
 uint16_t  ecg_stream_cnt = 0;
 
+extern int32_t heart_rate_from_afe4490;
+
 void IRAM_ATTR ads1292r_interrupt_handler(void)
 {
   portENTER_CRITICAL_ISR(&ads1292rMux);
-  ads1292r_intr_flag = true;
+  ads1292r_interrupt_flag = true;
   portEXIT_CRITICAL_ISR (&ads1292rMux);  
 }
 
-
 //FIXME too many delays
-
 void ADS1292R :: init(void)
 {
   SPI.setDataMode(SPI_MODE1);
@@ -88,14 +90,14 @@ void ADS1292R :: getData()
   unsigned long resultTemp= 0;
 
   // Sampling rate is set to 125SPS ,DRDY ticks for every 8ms
-  if (ads1292r_intr_flag==false)
+  if (ads1292r_interrupt_flag==false)
     return;   //wait data to be ready
 
   // processing the data
   SPI.setDataMode(SPI_MODE1);
 
   portENTER_CRITICAL_ISR(&ads1292rMux);
-  ads1292r_intr_flag = false;
+  ads1292r_interrupt_flag = false;
   portEXIT_CRITICAL_ISR (&ads1292rMux);  
 
   ReadToBuffer(); // Read the data to SPI_ReadBuffer
@@ -142,10 +144,20 @@ void ADS1292R :: getData()
     ECG_RESPIRATION_ALGORITHM.Filter_CurrentECG_sample  (&ecg_wave_sample,&ecg_filterout);   
     ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate       (ecg_filterout,   &heart_rate,  &npeakflag); 
     ECG_RESPIRATION_ALGORITHM.Filter_CurrentRESP_sample (res_wave_sample, &resp_filterout);
-    ECG_RESPIRATION_ALGORITHM.Calculate_RespRate        (resp_filterout,  &RespirationRate);   
+    ECG_RESPIRATION_ALGORITHM.Calculate_RespRate        (resp_filterout,  &respirationRate);   
+    
+    if(heart_rate_prev != heart_rate)
+    {
+      heart_rate_pack[0] = heart_rate;        //from ads1292r
+      heart_rate_pack[1] = (uint8_t) heart_rate_from_afe4490; 
+      heart_rate_pack[2] = lead_flag; 
+      heart_rate_prev = heart_rate;
+    }  
+
+    
     if(npeakflag == 1)
     {
-      fillTxBuffer(heart_rate, RespirationRate);
+      fillTxBuffer(heart_rate, respirationRate);
       add_heart_rate_histogram(heart_rate);
       npeakflag = 0;
     }
@@ -229,7 +241,7 @@ void ADS1292R :: WriteRegister(uint8_t READ_WRITE_ADDRESS, uint8_t DATA)
 
   pin_high_time (ADS1292R_CS_PIN,10);  // de-select the device
 }
-
+//FIXME check delays
 void ADS1292R :: pin_high_time(int pin, uint32_t ms)
 {
   digitalWrite(pin, HIGH);
