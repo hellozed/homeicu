@@ -10,12 +10,12 @@
 //#include <WiFi.h>
 //#include <WiFiClient.h>
 //#include <WebServer.h>
-//#include <ESPmDNS.h>
+//#include <ESPmDNS.h>              //This would cause power consumption increase 
 
 #include "firmware.h"
+
 extern String   loginIndex;
 extern String   serverIndex;
-extern int      system_init_error;
 /*---------------------------------------------------------------------------------
   WiFi router configuration
 
@@ -138,12 +138,13 @@ void handleWebClient(void)
 void setupWebServer(void) 
 {
   /*use mdns for host name resolution*/
-  if (!MDNS.begin(host)) {
+  if (!MDNS.begin(host)) {  //FIXME this would cause increase power consumption
     Serial.println("Error setting up MDNS responder!");
     while (1) {
       delay(1000);
     }
   }
+  
   Serial.println("mDNS responder started");
   /*return index page which is stored in serverIndex */
   server.on("/", HTTP_GET, []() {

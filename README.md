@@ -114,7 +114,14 @@ You can build this breakout board or just purchase one  "SparkFun FT231X" from t
 
 A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board. 
 
-Coming soon.
+It would be best NOT to connect the ECG front end to a human while it is also connected to:
+1) A ordinary wall wart
+2) A line powered PC/Laptop
+3) A line powered oscilloscope.
+
+Do NOT connect it to yourself when any line powered devices are connected to the circuit. Please battery or medical degree wall wart, which provide higher level of isolation between input and output.
+ 
+... Coming soon.
 
 ---
 

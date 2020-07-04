@@ -18773,8 +18773,12 @@ for saving battery</text>
 VUSB  = +5V from USB
 RESET = DTR
 CTS    =  RTS</text>
-<text x="264.16" y="132.08" size="1.778" layer="97" font="vector" align="top-center">TODO:
-afe44xx connector change to other type</text>
+<text x="264.16" y="132.08" size="3.81" layer="97" font="vector" align="top-center">TODO:
+Replace AFE4490 with MAX30102
+Replace LDO AMS1117 with better one
+I2C 1.8V~3.3V converter</text>
+<text x="304.8" y="15.24" size="1.778" layer="97" font="vector" align="top-center">V1: AFE4490 for SpO2
+V2: MAX30102 for SpO2</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0" smashed="yes">

@@ -6,12 +6,7 @@
   Arduino Language Reference:
   https://www.arduino.cc/en/Reference/
 
-  Heart rate and respiration computation based on original code from Texas Instruments
-  requires a g4p_control graphing library for processing. 
-
-  Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
-
-  To view the build-out, please go to the build folder. 
+  Heart rate and respiration computation based on original code from Texas Instruments.
 ---------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------
@@ -23,28 +18,13 @@
 /*---------------------------------------------------------------------------------
  HomeICU driver code
 ---------------------------------------------------------------------------------*/
-#include "ADS1292r.h"
-#include "ecg_resp.h"
-#include "AFE4490_Oximeter.h"
-#include "spo2_algorithm.h"
 #include "version.h"
 #include "firmware.h"
-#include "TMP117.h"
-#include "MAX30205.h"
 
-class AFE4490   afe4490;
-class ADS1292R  ads1292r;
-void initBLE();
-void handleBLE();
-void handleWebClient();
-void setupWebServer();
-void setupBasicOTA();
-void getTestData(void);
 /*---------------------------------------------------------------------------------
  Temperature sensor (ONLY turn on one of them)
 ---------------------------------------------------------------------------------*/
-#define TEMP_SENSOR_MAX30325  false
-#define TEMP_SENSOR_TMP117    false  
+
 /*---------------------------------------------------------------------------------
  constant and global variables
 ---------------------------------------------------------------------------------*/
@@ -54,10 +34,10 @@ volatile int      buttonEventPending = false;
 volatile SemaphoreHandle_t timerSemaphore;
 hw_timer_t * timer = NULL;
 
-portMUX_TYPE buttonMux  = portMUX_INITIALIZER_UNLOCKED;
-portMUX_TYPE ads1292rMux = portMUX_INITIALIZER_UNLOCKED;
-portMUX_TYPE AFE4490Mux = portMUX_INITIALIZER_UNLOCKED;
-portMUX_TYPE timerMux   = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE buttonMux    = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE ads1292rMux  = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE oximeterMux  = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE timerMux     = portMUX_INITIALIZER_UNLOCKED;
 
 bool temperatureReady   = false;
 bool batteryDataReady   = false;
@@ -65,14 +45,6 @@ bool batteryDataReady   = false;
 uint8_t battery_percent = 100;
 
 union FloatByte bodyTemperature;
-
-#if TEMP_SENSOR_MAX30325
-MAX30205        tempSensor;
-#endif
-
-#if TEMP_SENSOR_TMP117
-TMP117          tempSensor; 
-#endif
 
 int system_init_error = 0;  
 /*---------------------------------------------------------------------------------
@@ -200,7 +172,7 @@ void doTimer()
     #endif 
     
     #if SIM_PPG
-    afe4490.simulateData();
+    oximeter_simulateData();
     #endif 
   }  
 }
@@ -293,16 +265,7 @@ void measureTemperature()
   { 
     LastReadTime = millis();     
 
-    #if TEMP_SENSOR_MAX30325
-    bodyTemperature.f = tempSensor.getTemperature()*100;    // °C 
-    #endif
-
-    #if TEMP_SENSOR_TMP117
-    // Data Ready is a flag for the conversion modes
-    // the dataReady flag should always be high in continuous conversion 
-    if (tempSensor.dataReady()) 
-      bodyTemperature.f = tempSensor.readTempC();;
-    #endif 
+    bodyTemperature.f = getTemperature();    // °C 
     
     #if SIM_TEMPERATURE
     bodyTemperature.f =  (float)analogRead(SENSOR_TEMP)*100/4096;
@@ -370,29 +333,30 @@ void setup()
   setupTimer();               
 
   initBLE();                  // low energy blue tooth 
-   
+  //------------------------------------------------ 
   initSPI();                  // initialize SPI
   afe4490.init();             // SPI controls ADS1292R and AFE4490,
-  ads1292r.init();             // with different CS pin and SPI mode.
-   
-  Wire.begin(25,22);          // initialize I2C, SDA=25pin SCL=22pin
   
+  ads1292r.init();            // with different CS pin and SPI mode.
+  attachInterrupt(digitalPinToInterrupt(ADS1292R_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
+  attachInterrupt(digitalPinToInterrupt(AFE4490_DRDY_PIN), oximeter_interrupt_handler, RISING ); 
+
+  //------------------------------------------------
+  Wire.begin(25,22);          // initialize I2C, SDA=25pin SCL=22pin
+
+  initAcceleromter();
+  // data ready for reading for ADS1292R and AFE4490
+
+  if (initTemperature()) 
+    Serial.println("Temperature sensor: OK.");
+  else
+    Serial.println("Temperature sensor: Missing.");
+  //------------------------------------------------
   setupBasicOTA();            // uploading by Over The Air code
   #if WEB_UPDATE
   setupWebServer();           // uploading by Web server
   #endif 
   
-  // data ready for reading for ADS1292R and AFE4490
-  attachInterrupt(digitalPinToInterrupt(ADS1292R_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
-  attachInterrupt(digitalPinToInterrupt(AFE4490_DRDY_PIN),afe4490_interrupt_handler, RISING ); 
-
-  #if (TEMP_SENSOR_MAX30325 | TEMP_SENSOR_TMP117)
-  if (tempSensor.begin()) 
-    Serial.println("Temperature sensor: OK.");
-  else
-    Serial.println("Temperature sensor: Missing.");
-  #endif 
-
   Serial.printf("Setup() done. Found %d errors\r\n\r\n",system_init_error);
 }
 /*---------------------------------------------------------------------------------
@@ -413,6 +377,7 @@ void loop()
   afe4490.getData();          // handle SpO2 and PPG 
   
   measureTemperature();       // battery power percent
+  handelAcceleromter();       // motion detection with accelerometer
 
   measureBattery();           // measure body temperature
 

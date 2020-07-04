@@ -17,7 +17,50 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 #include <Arduino.h>
 #include <Wire.h>
-#include "MAX30205.h"
+#include "firmware.h"
+
+#if TEMP_SENSOR_MAX30325
+
+#define MAX30205_ADDRESS        0x48  // 8bit address converted to 7bit
+
+// Registers
+#define MAX30205_TEMPERATURE    0x00  //  get temperature ,Read only
+#define MAX30205_CONFIGURATION  0x01  //
+#define MAX30205_THYST          0x02  //
+#define MAX30205_TOS            0x03  //
+
+#define MAX30205_READ_INTERVAL  500
+
+typedef unsigned char uint8_t;
+
+typedef enum{   	  // For configuration registers
+  SHUTDOWN,    		  // shut down mode to reduce power consumption <3.5uA
+  COMPARATOR,    	  // Bit 0 = operate OS in comparator mode, 1= INTERRUPT MODE
+  OS_POLARITY,    	// Polarity bit ;Bit 0 = Active low output, Bit 1 = Active high
+  FAULT_QUEUE_0,    // Fault indication bits
+  FAULT_QUEUE_1,    // Fault indication bits
+  DATA_FORMAT,      // Data Format
+  TIME_OUT,         //  Time out
+  ONE_SHOT          //  1= One shot, 0 = Continuos
+}configuration;
+
+
+
+class MAX30205
+{
+  public:
+   float temperature = 0;      // Last temperature
+   void  shutdown(void);   // Instructs device to power-save
+   void  printRegisters(void); // Dumps contents of registers for debug
+   bool  begin(void);
+   float getTemperature(void);
+
+  private:
+    void    I2CwriteByte(uint8_t address, uint8_t subAddress, uint8_t data);
+    void    I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count);
+    uint8_t I2CreadByte(uint8_t address, uint8_t subAddress);   
+};
+
 
 float MAX30205::getTemperature(void)
 {
@@ -85,3 +128,25 @@ void MAX30205::I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest,
 	}
 	
 }
+
+
+// -------------------------------------------
+
+MAX30205  tempSensor;
+
+float getTemperature()
+{
+  return tempSensor.getTemperature()*100;
+}
+
+boolean initTemperature()
+{
+  return tempSensor.begin();
+}
+#elif (TEMP_SENSOR_TMP117==false)
+
+//if none of temperature sensor enabled
+float getTemperature()    {return 0;}
+boolean initTemperature() {return false;}
+
+#endif //TEMP_SENSOR_MAX30325

@@ -1,17 +1,94 @@
 /*---------------------------------------------------------------------------------
   ADS1292R driver - hardware for ECG
+
+Inspired by:
+Healthy Pi V4 project
+https://github.com/ericherman/eeg-mouse
+http://www.mccauslandcenter.sc.edu/CRNL/ads1298
+
+
+SCLK   |  Device attempts to decode and execute commands every eight serial clocks. 
+       |  It is recommended that multiples of 8 SCLKs be presented every serial transfer 
+       |  to keep the interface in a normal operating mode.
+       |
+DRDY   |  low = new data are available, regardless of CS
+       |
+START  |  keep low if using start opcode. The START pin or the START command is used to 
+       |  place the device either in normal data capture mode or pulse data capture mode.
+       |
+PWDN   |  When PWDN is pulled low, all on-chip circuitry is powered down
+       |
+CS     |  low = SPI is active, must remain low during communication, then wait 4-5 tCLK 
+       |  cycles before returning to high, set CS high then low to reset the communication
+RESET  |  low = force a reset, RESET is automatically issued to the digital filter whenever 
+       |  registers CONFIG1 and RESP are set to new values with a WREG command
+       |
+CLKSEL |  internal clock
+
+SPI library
+the spi clock divider (setClockDivider) sets relative to the system clock, the frequency of SLK 
+relative to the chip frequency. it needs to be at least 32, or the clock is too slow, 64 to be safe
+
+Quote from http://www.mit.edu/~gari/CODE/ECG_lab/ecg_ads1292.ino
+----------------------------------------------------------------------
+
+Another solution is to use ADS1293, but ADS1293 and ADS1292R has very little in common on the 
+interface and register map definition.
+
+-ADS1292 has digital lead-off detection. ADS1293 has both analog and digital lead-off detection
+-ADS1293 can generate Wilson or Goldberger References.
+-ADS1293 has a flexible routing switch that can connect any input pin to any channel. 
+-ADS1292 has assigned input pins per channel
+-ADS1293 has lower power-consumption per channel and has shutdown control bits for individual blocks
+-ADS1293’s SPI has a read back feature that can read a specific register
+-ADS1293 diagnostics is interrupt driven (alarm pin). ADS1293 polls error flags to detect diagnostic condition
+-ADS1293 does not have a respiration channel, ADS1292R can do respiration measurement. 
+Quote from "https://e2e.ti.com/support/data-converters/f/73/t/300611?1292-vs-1293"
+
+Other IC for ECG : MAX30001 ~ MAX30004
+https://www.maximintegrated.com/en/design/technical-documents/app-notes/6/6952.html
+
+
+The tri-wavelength MAX30101 sensor and bi-wavelength MAX30102 sensor were evaluated on the forehead, in a truly non-obtrusive wearable friendly position. Heart rate, respiration rate and blood oxygen saturation were extracted from both sensors and compared with a FDA/TGA/CE approved photoplethysmography device placed on the finger. All data were captured simultaneously and at rest. The MAX30101 sensor was more accurate in measuring heart rate, blood oxygen saturation and respiration rate compared to the MAX30102. 
+
+
 ---------------------------------------------------------------------------------*/
 #include "Arduino.h"
 #include <SPI.h>
-#include "ADS1292r.h"
-#include "ecg_resp.h"
 #include "firmware.h" 
+
+#define CONFIG_SPI_MASTER_DUMMY 0xFF
+
+// Register Read Commands
+#define RREG    0x20    //Read n nnnn registers starting at address r rrrr
+                        //first byte 001r rrrr (2xh)(2) - second byte 000n nnnn(2)
+#define WREG    0x40    //Write n nnnn registers starting at address r rrrr
+                        //first byte 010r rrrr (2xh)(2) - second byte 000n nnnn(2)
+#define START   0x08    //Start/restart (synchronize) conversions
+#define STOP    0x0A    //Stop conversion
+#define RDATAC  0x10    //Enable Read Data Continuous mode.
+
+//This mode is the default mode at power-up.
+#define SDATAC  0x11    //Stop Read Data Continuously mode
+#define RDATA   0x12    //Read data by command; supports multiple read back.
+
+//register address
+#define ADS1292R_REG_ID        0x00
+#define ADS1292R_REG_CONFIG1   0x01
+#define ADS1292R_REG_CONFIG2   0x02
+#define ADS1292R_REG_LOFF      0x03
+#define ADS1292R_REG_CH1SET    0x04
+#define ADS1292R_REG_CH2SET    0x05
+#define ADS1292R_REG_RLDSENS   0x06
+#define ADS1292R_REG_LOFFSENS  0x07
+#define ADS1292R_REG_LOFFSTAT  0x08
+#define ADS1292R_REG_RESP1     0x09
+#define ADS1292R_REG_RESP2     0x0A
 
 #define HISTGRM_CALC_TH               10
 
 uint32_t  heart_rate_histogram[HISTGRM_DATA_SIZE];
 uint8_t   histogram_percent   [HISTGRM_PERCENT_SIZE];
-uint8_t   respirationRate;
 uint8_t   hr_percent_count    = 0;
 uint8_t   hrv_array[HVR_ARRAY_SIZE];
 uint8_t   heart_rate_pack  [3];
@@ -26,8 +103,9 @@ volatile uint8_t  heart_rate_prev = 0;
 volatile uint8_t  respirationRate = 0;
 volatile bool     ads1292r_interrupt_flag   = false;
 
-ADS1290Process    ECG_RESPIRATION_ALGORITHM; 
-ads1292r_data     ads1292r_raw_data;
+ADS1292R          ads1292r;
+ADS1292Data       ads1292r_raw_data;
+ADS1292Process    ecg_respiration_algorithm; 
 
 uint8_t   lead_flag = 0;
 uint8_t   ecg_data_buff[ECG_BUFFER_SIZE];
@@ -141,10 +219,10 @@ void ADS1292R :: getData()
   { // the measure lead is ON the body 
     lead_flag         = 1;
     // filter out the line noise @40Hz cutoff 161 order
-    ECG_RESPIRATION_ALGORITHM.Filter_CurrentECG_sample  (&ecg_wave_sample,&ecg_filterout);   
-    ECG_RESPIRATION_ALGORITHM.Calculate_HeartRate       (ecg_filterout,   &heart_rate,  &npeakflag); 
-    ECG_RESPIRATION_ALGORITHM.Filter_CurrentRESP_sample (res_wave_sample, &resp_filterout);
-    ECG_RESPIRATION_ALGORITHM.Calculate_RespRate        (resp_filterout,  &respirationRate);   
+    ecg_respiration_algorithm.Filter_CurrentECG_sample  (&ecg_wave_sample,&ecg_filterout);   
+    ecg_respiration_algorithm.Calculate_HeartRate       (ecg_filterout,   &heart_rate,  &npeakflag); 
+    ecg_respiration_algorithm.Filter_CurrentRESP_sample (res_wave_sample, &resp_filterout);
+    ecg_respiration_algorithm.Calculate_RespRate        (resp_filterout,  &respirationRate);   
     
     if(heart_rate_prev != heart_rate)
     {

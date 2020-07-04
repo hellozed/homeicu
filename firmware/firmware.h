@@ -1,13 +1,12 @@
-#ifndef FIRMWARE_H1__
-#define FIRMWARE_H1__
+#ifndef __PUBLIC_H__
+#define __PUBLIC_H__
 
-// This file is "forcedInclude" for every C/C++ code (NOT .ino code).
-// The setting is in c_cpp_properties.json
-// but this forceInclude does not work.
-// "${workspaceFolder}/firmware/firmware.h"
-   
-//#undef __APPLE__                // turn this on, if some error messages happen
-
+// temperature sensor define
+#define TEMP_SENSOR_MAX30325  false
+#define TEMP_SENSOR_TMP117    true
+#if (TEMP_SENSOR_MAX30325&&TEMP_SENSOR_TMP117)
+  #error You must only enable at least one!
+#endif 
 /*---------------------------------------------------------------------------------
   Test Parameters
 ---------------------------------------------------------------------------------*/
@@ -76,4 +75,105 @@ disable WiFi can significantly save battery power
 */
 #define WEB_UPDATE      false   // *false
 
-#endif //FIRMWARE_H__
+extern int system_init_error;
+
+// This file is "forcedInclude" for every C/C++ code (NOT .ino code).
+// The setting is in c_cpp_properties.json
+// but this forceInclude does not work.
+// "${workspaceFolder}/firmware/firmware.h"
+   
+//#undef __APPLE__                // turn this on, if some error messages happen
+
+
+/*---------------------------------------------------------------------------------
+ public functions & classes
+---------------------------------------------------------------------------------*/
+/***********************
+ * ads1292r.cpp (ECG)
+ ***********************/
+typedef struct ads1292r_Record
+{
+  signed long raw_ecg;
+  signed long raw_resp;
+  uint32_t    status_reg;
+} ADS1292Data;
+
+void    ads1292r_interrupt_handler(void);
+extern  portMUX_TYPE  ads1292rMux;
+extern  bool          ecgBufferReady;
+extern  bool          hrvDataReady  ;
+extern  bool          histogramReady;
+
+class ADS1292R
+{
+public:
+  void      init(void);
+  void      getData(void);
+  void      getTestData(void);
+private:
+  int       chip_select; 
+  void      SendCommand   (uint8_t data_in);
+  void      WriteRegister (uint8_t READ_WRITE_ADDRESS, uint8_t DATA);
+  void      ReadToBuffer  (void);
+  void      pin_high_time (int pin, uint32_t ms);
+  void      pin_low_time  (int pin, uint32_t ms);
+  uint8_t * fillTxBuffer  (uint8_t peakvalue,uint8_t respirationRate);
+  void      add_heart_rate_histogram(uint8_t hr);
+
+  uint8_t   SPI_ReadBuffer[10];
+};
+
+extern class ADS1292R  ads1292r;
+/***********************
+ * ecg_resp.cpp
+ ***********************/
+class ADS1292Process
+{
+  public:
+    void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);
+    void Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t *FilteredOut);
+    void Calculate_HeartRate(int16_t CurrSample,volatile uint8_t *Heart_rate, volatile uint8_t *peakflag);
+    void QRS_process_buffer(volatile uint8_t *Heart_rate,volatile uint8_t *peakflag);
+    void QRS_check_sample_crossing_threshold( uint16_t scaled_result,volatile uint8_t *Heart_rate,volatile uint8_t *peakflag);  
+    void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);
+    void Filter_CurrentRESP_sample(int16_t CurrAqsSample, int16_t * FiltOut);
+    void Calculate_RespRate(int16_t CurrSample,volatile uint8_t *respirationRate);
+    void Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *respirationRate);
+};
+/***********************
+ * oximeter_afe4490.cpp
+ ***********************/
+class AFE4490
+{
+  public:
+    void    init    (void);
+    void    getData (void);
+
+  private:  
+    void          writeData(uint8_t address, uint32_t data);
+    unsigned long readData (uint8_t address);
+};
+extern class AFE4490  afe4490;
+/***********************
+ * 
+ ***********************/
+
+
+
+/***********************
+ * for firmware.ino
+ ***********************/
+void initBLE();
+void handleBLE();
+void handleWebClient();
+void setupWebServer();
+void setupBasicOTA();
+void initAcceleromter();
+void handelAcceleromter();
+void oximeter_interrupt_handler();
+void oximeter_simulateData();
+
+float   getTemperature();
+boolean initTemperature();
+
+#endif //__PUBLIC_H__
