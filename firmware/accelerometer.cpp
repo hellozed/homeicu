@@ -1,7 +1,10 @@
 /*---------------------------------------------------------------------------------
   Accelerometer - detect body movement and position
 
-  MMA8452 - Digital Triaxial Accelerometer Inclination 
+
+  MMA8452 - Digital Triaxial Accelerometer Inclination
+  Provides basic accelerometer functionality over I2C protocol. 
+  User can select between 2g/4g/8g scale, select low power mode and read filtered or non-filtered data. 
 
   ZWang, Inspired By: Jim Lindblom and Andrea DeVore
   from SparkFun Electronics
@@ -21,22 +24,74 @@
 
 MMA8452Q accel;         // create instance of the MMA8452 class
 
+// Choose your adventure! There are a few options when it comes
+  // to initializing the MMA8452Q:
+  
+
 void initAcceleromter() {
-  if (accel.begin() == false) {
+  //  1. Default init. This will set the accelerometer up
+  //     with a full-scale range of +/-2g, and an output data rate
+  //     of 800 Hz (fastest).
+  //  accel.init();
+  if (accel.begin(Wire, MMA8452Q_DEFAULT_ADDRESS) == false) {
     Serial.println("Acc: not Connected.");
     system_init_error++;
   }
+
+  /* Default output data rate (ODR) is 800 Hz (fastest)
+     Set data rate using ODR_800, ODR_400, ODR_200, 
+     ODR_100, ODR_50, ODR_12, ODR_6, ODR_1
+     Sets data rate to 800, 400, 200, 100, 50, 12.5, 
+     6.25, or 1.56 Hz respectively 
+     See data sheet for relationship between voltage
+     and ODR (pg. 7) */
+  // accel.setDataRate(ODR_100);
+  
+  /* Default scale is +/-2g (full-scale range)
+     Set scale using SCALE_2G, SCALE_4G, SCALE_8G
+     Sets scale to +/-2g, 4g, or 8g respectively */
+  // accel.setScale(SCALE_4G);
+
 }
 
 void handelAcceleromter() {
   if (accel.available()) {      // Wait for new data from accelerometer
-    // Acceleration of x, y, and z directions in g units
+    
+	// Acceleration of x, y, and z directions in g units
+	
     Serial.print(accel.getCalculatedX(), 3);
     Serial.print("\t");
     Serial.print(accel.getCalculatedY(), 3);
     Serial.print("\t");
     Serial.print(accel.getCalculatedZ(), 3);
     Serial.println();
+
+	// read raw data of acceleration of x, y, and z directions
+    // Serial.print(accel.getX());
+  	// Serial.print(accel.getX());
+  	// Serial.print(accel.getX());
+
+   	// Prints "Tap" each time accelerometer detects a tap
+    if (accel.readTap() > 0) {
+      Serial.println("Acc: Tap");
+    }
+
+	// Orientation of board (Right, Left, Down, Up);
+    if (accel.isRight() == true) {
+      Serial.println("Acc: Right");
+    }
+    else if (accel.isLeft() == true) {
+      Serial.println("Acc: Left");
+    }
+    else if (accel.isUp() == true) {
+      Serial.println("Acc: Up");
+    }
+    else if (accel.isDown() == true) {
+      Serial.println("Acc: Down");
+    }
+    else if (accel.isFlat() == true) {
+      Serial.println("Acc: Flat");
+    }
   }
 }
 
@@ -118,7 +173,8 @@ byte MMA8452Q::init(MMA8452Q_Scale fsr, MMA8452Q_ODR odr)
 		_i2cPort = &Wire;
 	}
 
-	_i2cPort->begin(); // Initialize I2C
+	//ZWang disabled this line
+	//_i2cPort->begin(); // Initialize I2C
 
 	byte c = readRegister(WHO_AM_I); // Read WHO_AM_I register
 

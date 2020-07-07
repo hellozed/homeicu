@@ -42,6 +42,10 @@ portMUX_TYPE timerMux     = portMUX_INITIALIZER_UNLOCKED;
 bool temperatureReady   = false;
 bool batteryDataReady   = false;
 
+int32_t heart_rate_from_oximeter;  //heart rate value
+uint8_t SpO2Level;
+bool    SpO2Ready           = false;
+
 uint8_t battery_percent = 100;
 
 union FloatByte bodyTemperature;
@@ -127,7 +131,7 @@ void IRAM_ATTR onTimer(){
   xSemaphoreGiveFromISR(timerSemaphore, NULL);
 }
 
-void setupTimer() {
+void initTimer() {
   // Create semaphore to inform us when the timer has fired
   timerSemaphore = xSemaphoreCreateBinary();
 
@@ -172,7 +176,7 @@ void doTimer()
     #endif 
     
     #if SIM_PPG
-    oximeter_simulateData();
+    spo2.simulateData();
     #endif 
   }  
 }
@@ -325,25 +329,27 @@ void setup()
   pinMode(LED_PIN,            OUTPUT); 
   pinMode(AFE4490_PWDN_PIN,   OUTPUT);
   pinMode(AFE4490_CS_PIN,     OUTPUT);  // slave select
-  pinMode(AFE4490_DRDY_PIN,   INPUT);   // data ready 
+  pinMode(OXIMETER_INT_PIN,   INPUT);   // data ready 
   pinMode(PUSH_BUTTON_PIN,    INPUT_PULLUP);
 
   attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON_PIN), button_interrupt_handler, FALLING);
  
-  setupTimer();               
+  initTimer();               
 
   initBLE();                  // low energy blue tooth 
   //------------------------------------------------ 
   initSPI();                  // initialize SPI
-  afe4490.init();             // SPI controls ADS1292R and AFE4490,
-  
+
+  #define I2C_SPEED_STANDARD        100000
+  #define I2C_SPEED_FAST            400000
+  Wire.begin(25,22,I2C_SPEED_FAST); // initialize I2C, SDA=25pin SCL=22pin
+  //------------------------------------------------ 
   ads1292r.init();            // with different CS pin and SPI mode.
+  
   attachInterrupt(digitalPinToInterrupt(ADS1292R_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
-  attachInterrupt(digitalPinToInterrupt(AFE4490_DRDY_PIN), oximeter_interrupt_handler, RISING ); 
-
+  
   //------------------------------------------------
-  Wire.begin(25,22);          // initialize I2C, SDA=25pin SCL=22pin
-
+  spo2.init();
   initAcceleromter();
   // data ready for reading for ADS1292R and AFE4490
 
@@ -352,7 +358,7 @@ void setup()
   else
     Serial.println("Temperature sensor: Missing.");
   //------------------------------------------------
-  setupBasicOTA();            // uploading by Over The Air code
+  initBasicOTA();             // uploading by Over The Air code
   #if WEB_UPDATE
   setupWebServer();           // uploading by Web server
   #endif 
@@ -373,9 +379,8 @@ void loop()
   handleBLE();                // handle bluetooth low energy
 
   ads1292r.getData();         // handle ECG and RESP
-  
-  afe4490.getData();          // handle SpO2 and PPG 
-  
+
+  spo2.handleData();           // read and send spo2 data  
   measureTemperature();       // battery power percent
   handelAcceleromter();       // motion detection with accelerometer
 

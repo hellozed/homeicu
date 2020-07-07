@@ -1,6 +1,19 @@
 #ifndef __PUBLIC_H__
 #define __PUBLIC_H__
 
+// define the oximeter IC type, 
+
+  #define OXI_AFE4490     1   // TI IC, no internal LEDs, single power 
+  #define OXI_MAX30102    2   // with 2 color LEDs, two power supply
+//#define OXI_MAX30101    3   // with 3 color LEDs, two power supply
+//#define OXI_MAXM86161   4   // with 3 color LEDs, single power
+
+#define SPO2_TYPE        OXI_MAX30102   
+
+// this number need change according to hardware
+// it = read_unblocked_IR_value() + tolerance range
+#define HUMAN_BODY_PRESENT_IR_THRESHOLD   1000  //FIXME this number need define
+
 // temperature sensor define
 #define TEMP_SENSOR_MAX30325  false
 #define TEMP_SENSOR_TMP117    true
@@ -25,7 +38,7 @@ const int ADS1292R_DRDY_PIN  = 26;
 const int ADS1292R_PWDN_PIN  = 27;
 
 const int AFE4490_CS_PIN    = 21; 
-const int AFE4490_DRDY_PIN  = 39; 
+const int OXIMETER_INT_PIN  = 39; 
 const int AFE4490_PWDN_PIN  = 4;
 const int PUSH_BUTTON_PIN   = 0;
 const int LED_PIN           = 2;
@@ -154,24 +167,48 @@ class AFE4490
     unsigned long readData (uint8_t address);
 };
 extern class AFE4490  afe4490;
+
 /***********************
- * 
+ * firmware.ino
+ ***********************/
+extern int32_t    heart_rate_from_oximeter;
+extern uint8_t    SpO2Level;
+extern bool       SpO2Ready;
+/***********************
+ * spo2.cpp
  ***********************/
 
+extern class SPO2 spo2;
 
+class SPO2
+{
+  public:
+    void init();
+    void handleData();
+    void simulateData();
+    void clear_interrupt();
+    void save_to_ppg_buffer(uint8_t i);
+    
+    volatile bool interrupt_flag;
+  private:
+    uint16_t  ppg_data_cnt;
+};
 
+/***********************
+ * spo2_max3010x.cpp
+ ***********************/
+void initMax3010xSpo2();
+void handleMax3010xSpo2();
 /***********************
  * for firmware.ino
  ***********************/
 void initBLE();
 void handleBLE();
 void handleWebClient();
-void setupWebServer();
-void setupBasicOTA();
+void initBasicOTA();
 void initAcceleromter();
 void handelAcceleromter();
 void oximeter_interrupt_handler();
-void oximeter_simulateData();
 
 float   getTemperature();
 boolean initTemperature();

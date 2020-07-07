@@ -113,8 +113,6 @@ int16_t   ecg_wave_sample,  ecg_filterout ;
 int16_t   res_wave_sample,  resp_filterout;
 uint16_t  ecg_stream_cnt = 0;
 
-extern int32_t heart_rate_from_afe4490;
-
 void IRAM_ATTR ads1292r_interrupt_handler(void)
 {
   portENTER_CRITICAL_ISR(&ads1292rMux);
@@ -227,7 +225,7 @@ void ADS1292R :: getData()
     if(heart_rate_prev != heart_rate)
     {
       heart_rate_pack[0] = heart_rate;        //from ads1292r
-      heart_rate_pack[1] = (uint8_t) heart_rate_from_afe4490; 
+      heart_rate_pack[1] = (uint8_t) heart_rate_from_oximeter; 
       heart_rate_pack[2] = lead_flag; 
       heart_rate_prev = heart_rate;
     }  

@@ -3,5 +3,5 @@
 // before building the binary
 
 
-#define homeicu_version "v0.1.9"
-#define homeicu_commits "72"
+#define homeicu_version "v0.2.0"
+#define homeicu_commits "75"

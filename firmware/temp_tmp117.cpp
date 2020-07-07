@@ -107,7 +107,7 @@ class TMP117
 public:
 	TMP117(); // Constructor
 
-	bool begin(uint8_t sensorAddress = 0x48, TwoWire &wirePort = Wire); // Checks for ACK over I2C, and sets the device ID of the TMP and chooses the wire port
+	bool begin(TwoWire &wirePort, uint8_t sensorAddress); 				// Checks for ACK over I2C, and sets the device ID of the TMP and chooses the wire port
 	uint8_t getAddress();												// Returns the address of the device
 	double readTempC();													// Returns the temperature in degrees C
 	double readTempF();													// Converts readTempC result to degrees F
@@ -159,7 +159,7 @@ TMP117::TMP117()
 	with setting the wire for the I2C Communication. 
 	This will return true if both checks pass.
 */
-bool TMP117::begin(uint8_t sensorAddress, TwoWire &wirePort)
+bool TMP117::begin(TwoWire &wirePort, uint8_t sensorAddress)
 {
 	_i2cPort = &wirePort;			// Chooses the wire port of the device
 	_deviceAddress = sensorAddress; // Sets the address of the device
@@ -800,7 +800,14 @@ float getTemperature()
 
 boolean initTemperature()
 {
-  return tempSensor.begin();
+	/*
+	I2C Address - AD0 Pin
+	0x48		- Ground (current schematic)
+	0x49 		- V+
+	0x4A		- SDA
+	0x4B		- SCL			
+	*/
+  	return tempSensor.begin(Wire, 0x48);
 }
 #endif //TEMP_SENSOR_TMP117
 

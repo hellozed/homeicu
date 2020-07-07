@@ -35,7 +35,7 @@ extern String   serverIndex;
   3. ota.py
   Please reference to README.md at "# Upload Binary to board"
 ---------------------------------------------------------------------------------*/
-void setupBasicOTA(void) 
+void initBasicOTA(void) 
 {
   WiFi.mode(WIFI_STA);
 

@@ -116,8 +116,8 @@ class MMA8452Q
 	MMA8452Q(byte addr = MMA8452Q_DEFAULT_ADDRESS); // Constructor
 	MMA8452Q_Scale scale;
 	MMA8452Q_ODR odr;
-
-	bool begin(TwoWire &wirePort = Wire, uint8_t deviceAddress = MMA8452Q_DEFAULT_ADDRESS);
+ 
+	bool begin(TwoWire &wirePort, uint8_t deviceAddress);
 	byte init(MMA8452Q_Scale fsr = SCALE_2G, MMA8452Q_ODR odr = ODR_800);
 	void read();
 	byte available();

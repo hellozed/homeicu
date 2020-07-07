@@ -1,31 +1,13 @@
 /*---------------------------------------------------------------------------------
-  Oximeter
-
-  V1 hardware - AFE4490 driver - hardware for SpO2 and PPG
-  V2 hardware - MAX30102 
+  Oximeter -  AFE4490 driver - hardware for SpO2 and PPG
 ---------------------------------------------------------------------------------*/
 #include "Arduino.h"
 #include <SPI.h>
 #include <string.h>
 #include <math.h>
 #include "firmware.h"
-
 extern  void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_ir_buffer_length, uint32_t *pun_red_buffer, int32_t *pn_spo2, int8_t *pch_spo2_valid, int32_t *pn_heart_rate, int8_t *pch_hr_valid);
-extern  portMUX_TYPE oximeterMux;
 
-volatile bool     AFE4490_interrupt_flag  = false;
-volatile int8_t   n_buffer_count; //data length
-
-int dec=0;
-
-int32_t spo2_value;               //SPO2 value
-int32_t heart_rate_from_afe4490;  //heart rate value
-
-uint32_t aun_ir_buffer [100];     //infrared LED sensor data
-uint32_t aun_red_buffer[100];     //red LED sensor data
-
-int8_t ch_spo2_valid;             //if the SPO2 calculation is valid
-int8_t ch_hr_valid;               //if the heart rate calculation is valid
 
 //afe4490 Register definition
 #define CONTROL0      0x00
@@ -79,11 +61,14 @@ int8_t ch_hr_valid;               //if the heart rate calculation is valid
 #define LED1ABSVAL    0x2f
 #define DIAG          0x30
 
-bool      ppgBufferReady      = false;
-uint8_t   ppg_data_buff[PPG_BUFFER_SIZE];
-uint16_t  ppg_data_cnt        = 0;
-uint8_t   SpO2Level;
-bool      SpO2Ready           = false;
+volatile int8_t   n_buffer_count; //data length
+
+int dec=0;
+
+
+static uint32_t irBuffer [100];     //infrared LED sensor data
+static uint32_t redBuffer[100];     //red LED sensor data
+
 
 class AFE4490  afe4490;
 
@@ -92,15 +77,15 @@ void AFE4490 :: getData(void)
   signed   long afe4490_IR_data, afe4490_RED_data;
   unsigned long IRtemp,REDtemp;
 
-  if (AFE4490_interrupt_flag == false) 
+  if (spo2.interrupt_flag == false) 
     return;   // continue wait for data ready pin interrupt
+  else 
+    spo2.clear_interrupt();
   
   // interrupt captured, process the data
 
   SPI.setDataMode(SPI_MODE0); 
-  portENTER_CRITICAL_ISR(&oximeterMux);
-  AFE4490_interrupt_flag = false;
-  portEXIT_CRITICAL_ISR (&oximeterMux);  
+  
 
   writeData(CONTROL0, 0x000001);
   IRtemp = readData(LED1VAL);
@@ -118,8 +103,8 @@ void AFE4490 :: getData(void)
 
   if (dec == 20)
   {
-    aun_ir_buffer [n_buffer_count] = (uint32_t) ((afe4490_IR_data ) >> 4);
-    aun_red_buffer[n_buffer_count] = (uint32_t) ((afe4490_RED_data) >> 4);
+    irBuffer [n_buffer_count] = (uint32_t) ((afe4490_IR_data ) >> 4);
+    redBuffer[n_buffer_count] = (uint32_t) ((afe4490_RED_data) >> 4);
     n_buffer_count++;
     dec = 0;
   }
@@ -130,12 +115,18 @@ void AFE4490 :: getData(void)
   //////////////////////////
   if (n_buffer_count > 99)
   {
-    maxim_heart_rate_and_oxygen_saturation(aun_ir_buffer, 100, aun_red_buffer, &spo2_value, &ch_spo2_valid, &heart_rate_from_afe4490, &ch_hr_valid);
+    int32_t spo2_value;
+    int8_t ch_spo2_valid;             //if the SPO2 calculation is valid
+    int8_t ch_hr_valid;               //if the heart rate calculation is valid
+
+    maxim_heart_rate_and_oxygen_saturation(
+      irBuffer, 100, redBuffer, 
+      &spo2_value, &ch_spo2_valid, 
+      &heart_rate_from_oximeter, &ch_hr_valid);
+
     n_buffer_count = 0;
     
-    if (spo2_value == -999)
-      SpO2Level = 0;
-    else
+    if (ch_spo2_valid)
     {
       SpO2Level = (uint8_t)spo2_value;       
       SpO2Ready = true;
@@ -148,14 +139,8 @@ void AFE4490 :: getData(void)
   {
   uint16_t  ppg_wave_ir;
   ppg_wave_ir = (uint16_t)(afe4490_IR_data>>8);  
-  ppg_data_buff[ppg_data_cnt++] = (uint8_t)ppg_wave_ir;
-  ppg_data_buff[ppg_data_cnt++] = (ppg_wave_ir>>8);
-  }
-
-  if(ppg_data_cnt >=PPG_BUFFER_SIZE)
-  {
-    ppgBufferReady = true;
-    ppg_data_cnt = 0;
+  spo2.save_to_ppg_buffer((uint8_t)ppg_wave_ir);
+  spo2.save_to_ppg_buffer((uint8_t)ppg_wave_ir>>8);
   }
 }
 
@@ -226,24 +211,3 @@ unsigned long AFE4490 :: readData (uint8_t address)
   digitalWrite (AFE4490_CS_PIN, HIGH);    // disable device
   return data;                            // return with 24 bits of read data
 }
-/*---------------------------------------------------------------------------------
- Oximeter functions
----------------------------------------------------------------------------------*/
-void IRAM_ATTR oximeter_interrupt_handler(void)
-{
-  portENTER_CRITICAL_ISR(&oximeterMux);
-  AFE4490_interrupt_flag = true;
-  portEXIT_CRITICAL_ISR (&oximeterMux);  
-}
-
-void oximeter_simulateData(void)
-{
-  if (ppgBufferReady == false )     // refill the data
-  {
-    pinMode(JOYX_PIN, INPUT);  
-    for(int i=0;i<PPG_BUFFER_SIZE;i++)
-      ppg_data_buff[i] = analogRead(JOYX_PIN);
-    ppgBufferReady = true; 
- }
-}
-

@@ -2,6 +2,9 @@
 
 # Getting Started:
 
+The main code is "firmware.ino", a source code format of Arduino IDE. 
+The rest of ".cpp" and ".h" files are just C/C++ source code called from "firmware.ino".
+
 ## Program binary file into ESP32 board
 You need a breakout board bridges USB to UART for Arduino. This board brings out the DTR pin as opposed to the RTS pin of the FTDI cable. The DTR pin allows an Arduino target to auto-reset when a new Sketch is downloaded. This is a nice feature to have and allows a sketch to be downloaded without having to hit the reset button. 
 
@@ -119,3 +122,14 @@ SPI0 and SPI1 are used internally to access the ESP32’s attached flash memory 
 
 There are quite a few limitations when using SPI Master driver on the SPI1 bus, see Notes on Using the SPI Master driver on SPI1 Bus.
 SPI2 and SPI3 are general-purpose SPI controllers, sometimes referred to as HSPI and VSPI, respectively. They are open to users. SPI2 and SPI3 have independent signal buses with the same respective names. Each bus has three CS lines to drive up to three SPI slaves.
+
+## MA3010X Oximeter Driver
+This library should work with other MAX3010x sensors including the MAX30102, MAX30101, and MAX30100. Library written by Nathan Seidle ([SparkFun](http://www.sparkfun.com)) and Peter Jansen ([Open Sensing Lab](https://github.com/opensensinglab)).
+
+Documentation
+--------------
+* **[Product Repository (MAX30105)](https://github.com/sparkfun/MAX30105_Particle_Sensor_Breakout)** - Main repository (including hardware files) for the sensor breakout board.
+* **[Product Repository (MAX30101)](https://github.com/sparkfun/SparkFun_Photodetector_Breakout_MAX30101_Qwiic)** - Main repository (including hardware files) for the SparkFun Photodetector (MAX30101) - Qwiic.
+* **[Hookup Guide (MAX30105)](https://learn.sparkfun.com/tutorials/max30105-particle-and-pulse-ox-sensor-hookup-guide)** - Basic hookup guide for the MAX30105 Particle Sensor breakout board.
+* **[Hookup Guide (MAX30101)](https://learn.sparkfun.com/tutorials/sparkfun-photodetector-max30101-hookup-guide)** - Basic hookup guide for the SparkFun Photodetector (MAX30101) - Qwiic.
+
