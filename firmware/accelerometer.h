@@ -85,14 +85,14 @@ enum MMA8452Q_Scale
 }; // Possible full-scale settings
 enum MMA8452Q_ODR
 {
-	ODR_800,
+	ODR_800,	//800Hz
 	ODR_400,
 	ODR_200,
 	ODR_100,
 	ODR_50,
-	ODR_12,
-	ODR_6,
-	ODR_1
+	ODR_12,		//12.5Hz
+	ODR_6,		//6.25Hz
+	ODR_1		//1.56Hz
 }; // possible data rates
 // Possible portrait/landscape settings
 #define PORTRAIT_U 0
@@ -100,7 +100,12 @@ enum MMA8452Q_ODR
 #define LANDSCAPE_R 2
 #define LANDSCAPE_L 3
 #define LOCKOUT 0x40
-#define MMA8452Q_DEFAULT_ADDRESS 0x1D
+
+/*	I2C address 
+	0x1C when SA0=0
+ 	0x1D when SA0=1
+*/
+#define MMA8452Q_DEFAULT_ADDRESS 0x1C
 
 // Posible SYSMOD (system mode) States
 #define SYSMOD_STANDBY 0b00

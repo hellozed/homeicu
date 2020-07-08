@@ -35,6 +35,11 @@ void SPO2::init()
 {
   ppg_data_cnt    = 0;
   interrupt_flag  = false;
+  
+  digitalWrite(SPO2_START_PIN, LOW);
+  delay(500);
+  digitalWrite(SPO2_START_PIN, HIGH);
+  delay(500);
 
   #if   (SPO2_TYPE==OXI_AFE4490)
     attachInterrupt(digitalPinToInterrupt(OXIMETER_INT_PIN), 

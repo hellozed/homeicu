@@ -1,5 +1,20 @@
 /*---------------------------------------------------------------------------------
   Oximeter -  AFE4490 driver - hardware for SpO2 and PPG
+
+
+  "AFE4490 and AFE4400 are pin to pin compatible and have similar functionality.
+  AFE4400 is cheaper and has a lower performance spec.
+
+  No changes are required for the external circuitry but it requires few firmware 
+  modifications to migrate from AFE4490 to AFE4400.
+
+  AFE4400 does not support the following:
+  1. Separate gain and bandwidth control
+  2. Higher LED current ranges (supports up to 50 mA)
+  3. ADC bypass mode"
+
+  Quoted from https://e2e.ti.com/support/data-converters/f/73/t/547701?AFE4490-vs-AFE4400
+
 ---------------------------------------------------------------------------------*/
 #include "Arduino.h"
 #include <SPI.h>
@@ -147,10 +162,6 @@ void AFE4490 :: getData(void)
 void AFE4490 :: init(void)
 {
   SPI.setDataMode(SPI_MODE0); 
-  digitalWrite(AFE4490_PWDN_PIN, LOW);
-  delay(500);
-  digitalWrite(AFE4490_PWDN_PIN, HIGH);
-  delay(500);
   writeData(CONTROL0,     0x000000);
   writeData(CONTROL0,     0x000008);
   writeData(TIAGAIN,      0x000000); // CF = 5pF, RF = 500kR

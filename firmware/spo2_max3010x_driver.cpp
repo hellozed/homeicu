@@ -1,3 +1,61 @@
+/*
+Functions
+
+The MAX30101 is highly configurable, and there are a large number of functions 
+exposed in the library to the user. Checkout the MAX30105.h file for all the 
+functions, but here are the major ones. Read the MAX30101 datasheet for more information.
+
+The library supports the following functions:
+
+.begin(wirePort, i2cSpeed) - If you have a platform with multiple I2C ports, 
+pass the port object when you call begin. You can increase the I2C speed to 400kHz 
+by including I2C_SPEED_FAST when you call .begin() as well.
+
+.setup() - Initializes the sensor with various settings. See the Example 2 from the MAX30105
+ hookup guide for a good explanation of the options.
+
+.getRed() - Returns the immediate red value
+.getIR() - Returns the immediate IR value
+.getGreen() - Returns the immediate Green value
+.available() - Returns how many new samples are available
+.readTemperature() - Returns the temperature of the IC in C
+.readTemperatureF() - Returns the temperature of the IC in F
+.softReset() - Resets everything including data and configuration
+.shutDown() - Powers down the IC but retains all configuration
+.wakeUp() - Opposite of shutDown
+.setLEDMode(mode) - Configure the sensor to use 1 (Red only), 2 (Red + IR), or 3 (Red + IR + Green) LEDs
+.setADCRange(adcRange) - Set ADC to be at 2048, 4096, 8192, or 16384
+.setSampleRate(sampleRate) - Configure the sample rate: 50, 100, 200, 400, 800, 1000, 1600, 3200
+
+Interrupts
+
+.getINT1() - Returns the main interrupt group
+.getINT2() - Returns the temp ready interrupt
+
+Enable/disable individual interrupts. See page 13 and 14 of the datasheet for an explanation of each interrupt:
+.enableAFULL()
+.disableAFULL()
+.enableDATARDY()
+.disableDATARDY()
+.enableALCOVF()
+.disableALCOVF()
+.enablePROXINT()
+.disablePROXINT()
+.enableDIETEMPRDY()
+.disableDIETEMPRDY()
+
+FIFO
+
+The MAX30101 has a 32 byte FIFO (first-in first-out) buffer. This allows us do other things on our 
+microcontroller while the sensor is taking measurements.
+
+.check() - Call regularly to pull data in from sensor
+.nextSample() - Advances the FIFO
+.getFIFORed() - Returns the FIFO sample pointed to by tail
+.getFIFOIR() - Returns the FIFO sample pointed to by tail
+.getFIFOGreen() - Returns the FIFO sample pointed to by tail
+*/
+
 /***************************************************
   This is a library written for the Maxim MAX3010X Optical Smoke Detector
   It should also work with the MAX30102. However, the MAX30102 does not have a Green LED.
@@ -15,14 +73,15 @@ MAX3010X::MAX3010X() {
   // Constructor
 }
 
-boolean MAX3010X::begin(TwoWire &wirePort, /*uint32_t i2cSpeed,*/ uint8_t i2caddr) {
+boolean MAX3010X::begin(TwoWire &wirePort, uint8_t i2c_read_addr, uint8_t i2c_write_addr) {
   // Note by ZWang: disabled speed setting, and make the whole I2C same speed
   _i2cPort = &wirePort; //Grab which port the user wants us to use
 
   // _i2cPort->begin();
   // _i2cPort->setClock(i2cSpeed);
 
-  _i2caddr = i2caddr;
+  _i2c_read_addr  = i2c_read_addr;
+  _i2c_write_addr = i2c_write_addr;
 
   // Step 1: Initial Communication and Verification
   // Check that a board is connected
@@ -44,10 +103,10 @@ boolean MAX3010X::begin(TwoWire &wirePort, /*uint32_t i2cSpeed,*/ uint8_t i2cadd
 
 //Begin Interrupt configuration
 uint8_t MAX3010X::getINT1(void) {
-  return (readRegister8(_i2caddr, MAX3010X_INTSTAT1));
+  return (readRegister8(_i2c_read_addr, MAX3010X_INTSTAT1));
 }
 uint8_t MAX3010X::getINT2(void) {
-  return (readRegister8(_i2caddr, MAX3010X_INTSTAT2));
+  return (readRegister8(_i2c_read_addr, MAX3010X_INTSTAT2));
 }
 
 void MAX3010X::enableAFULL(void) {
@@ -95,7 +154,7 @@ void MAX3010X::softReset(void) {
   unsigned long startTime = millis();
   while (millis() - startTime < 100)
   {
-    uint8_t response = readRegister8(_i2caddr, MAX3010X_MODECONFIG);
+    uint8_t response = readRegister8(_i2c_read_addr, MAX3010X_MODECONFIG);
     if ((response & MAX3010X_RESET) == 0) break; //We're done!
     delay(1); //Let's not over burden the I2C bus
   }
@@ -137,26 +196,26 @@ void MAX3010X::setPulseWidth(uint8_t pulseWidth) {
 // NOTE: Amplitude values: 0x00 = 0mA, 0x7F = 25.4mA, 0xFF = 50mA (typical)
 // See datasheet, page 21
 void MAX3010X::setPulseAmplitudeRed(uint8_t amplitude) {
-  writeRegister8(_i2caddr, MAX3010X_LED1_PULSEAMP, amplitude);
+  writeRegister8(_i2c_write_addr, MAX3010X_LED1_PULSEAMP, amplitude);
 }
 
 void MAX3010X::setPulseAmplitudeIR(uint8_t amplitude) {
-  writeRegister8(_i2caddr, MAX3010X_LED2_PULSEAMP, amplitude);
+  writeRegister8(_i2c_write_addr, MAX3010X_LED2_PULSEAMP, amplitude);
 }
 
 void MAX3010X::setPulseAmplitudeGreen(uint8_t amplitude) {
-  writeRegister8(_i2caddr, MAX3010X_LED3_PULSEAMP, amplitude);
+  writeRegister8(_i2c_write_addr, MAX3010X_LED3_PULSEAMP, amplitude);
 }
 
 void MAX3010X::setPulseAmplitudeProximity(uint8_t amplitude) {
-  writeRegister8(_i2caddr, MAX3010X_LED_PROX_AMP, amplitude);
+  writeRegister8(_i2c_write_addr, MAX3010X_LED_PROX_AMP, amplitude);
 }
 
 void MAX3010X::setProximityThreshold(uint8_t threshMSB) {
   // Set the IR ADC count that will trigger the beginning of particle-sensing mode.
   // The threshMSB signifies only the 8 most significant-bits of the ADC count.
   // See datasheet, page 24.
-  writeRegister8(_i2caddr, MAX3010X_PROXINTTHRESH, threshMSB);
+  writeRegister8(_i2c_write_addr, MAX3010X_PROXINTTHRESH, threshMSB);
 }
 
 //Given a slot number assign a thing to it
@@ -188,8 +247,8 @@ void MAX3010X::enableSlot(uint8_t slotNumber, uint8_t device) {
 
 //Clears all slot assignments
 void MAX3010X::disableSlots(void) {
-  writeRegister8(_i2caddr, MAX3010X_MULTILEDCONFIG1, 0);
-  writeRegister8(_i2caddr, MAX3010X_MULTILEDCONFIG2, 0);
+  writeRegister8(_i2c_write_addr, MAX3010X_MULTILEDCONFIG1, 0);
+  writeRegister8(_i2c_write_addr, MAX3010X_MULTILEDCONFIG2, 0);
 }
 
 //
@@ -204,9 +263,9 @@ void MAX3010X::setFIFOAverage(uint8_t numberOfSamples) {
 //Resets all points to start in a known state
 //Page 15 recommends clearing FIFO before beginning a read
 void MAX3010X::clearFIFO(void) {
-  writeRegister8(_i2caddr, MAX3010X_FIFOWRITEPTR, 0);
-  writeRegister8(_i2caddr, MAX3010X_FIFOOVERFLOW, 0);
-  writeRegister8(_i2caddr, MAX3010X_FIFOREADPTR, 0);
+  writeRegister8(_i2c_write_addr, MAX3010X_FIFOWRITEPTR, 0);
+  writeRegister8(_i2c_write_addr, MAX3010X_FIFOOVERFLOW, 0);
+  writeRegister8(_i2c_write_addr, MAX3010X_FIFOREADPTR, 0);
 }
 
 //Enable roll over if FIFO over flows
@@ -228,12 +287,12 @@ void MAX3010X::setFIFOAlmostFull(uint8_t numberOfSamples) {
 
 //Read the FIFO Write Pointer
 uint8_t MAX3010X::getWritePointer(void) {
-  return (readRegister8(_i2caddr, MAX3010X_FIFOWRITEPTR));
+  return (readRegister8(_i2c_read_addr, MAX3010X_FIFOWRITEPTR));
 }
 
 //Read the FIFO Read Pointer
 uint8_t MAX3010X::getReadPointer(void) {
-  return (readRegister8(_i2caddr, MAX3010X_FIFOREADPTR));
+  return (readRegister8(_i2c_read_addr, MAX3010X_FIFOREADPTR));
 }
 
 
@@ -245,18 +304,18 @@ float MAX3010X::readTemperature() {
   //See issue 19: https://github.com/sparkfun/SparkFun_MAX3010x_Sensor_Library/issues/19
   
   // Step 1: Config die temperature register to take 1 temperature sample
-  writeRegister8(_i2caddr, MAX3010X_DIETEMPCONFIG, 0x01);
+  writeRegister8(_i2c_write_addr, MAX3010X_DIETEMPCONFIG, 0x01);
 
   // Poll for bit to clear, reading is then complete
   // Timeout after 100ms
   unsigned long startTime = millis();
   while (millis() - startTime < 100)
   {
-    //uint8_t response = readRegister8(_i2caddr, MAX3010X_DIETEMPCONFIG); //Original way
+    //uint8_t response = readRegister8(_i2c_read_addr, MAX3010X_DIETEMPCONFIG); //Original way
     //if ((response & 0x01) == 0) break; //We're done!
     
 	//Check to see if DIE_TEMP_RDY interrupt is set
-	uint8_t response = readRegister8(_i2caddr, MAX3010X_INTSTAT2);
+	uint8_t response = readRegister8(_i2c_read_addr, MAX3010X_INTSTAT2);
     if ((response & MAX3010X_INT_DIE_TEMP_RDY_ENABLE) > 0) break; //We're done!
     delay(1); //Let's not over burden the I2C bus
   }
@@ -264,8 +323,8 @@ float MAX3010X::readTemperature() {
   //? if(millis() - startTime >= 100) return(-999.0);
 
   // Step 2: Read die temperature register (integer)
-  int8_t tempInt = readRegister8(_i2caddr, MAX3010X_DIETEMPINT);
-  uint8_t tempFrac = readRegister8(_i2caddr, MAX3010X_DIETEMPFRAC); //Causes the clearing of the DIE_TEMP_RDY interrupt
+  int8_t tempInt = readRegister8(_i2c_read_addr, MAX3010X_DIETEMPINT);
+  uint8_t tempFrac = readRegister8(_i2c_read_addr, MAX3010X_DIETEMPFRAC); //Causes the clearing of the DIE_TEMP_RDY interrupt
 
   // Step 3: Calculate temperature (datasheet pg. 23)
   return (float)tempInt + ((float)tempFrac * 0.0625);
@@ -282,7 +341,7 @@ float MAX3010X::readTemperatureF() {
 
 // Set the PROX_INT_THRESHold
 void MAX3010X::setPROXINTTHRESH(uint8_t val) {
-  writeRegister8(_i2caddr, MAX3010X_PROXINTTHRESH, val);
+  writeRegister8(_i2c_write_addr, MAX3010X_PROXINTTHRESH, val);
 }
 
 
@@ -290,11 +349,11 @@ void MAX3010X::setPROXINTTHRESH(uint8_t val) {
 // Device ID and Revision
 //
 uint8_t MAX3010X::readPartID() {
-  return readRegister8(_i2caddr, MAX3010X_PARTID);
+  return readRegister8(_i2c_read_addr, MAX3010X_PARTID);
 }
 
 void MAX3010X::readRevisionID() {
-  revisionID = readRegister8(_i2caddr, MAX3010X_REVISIONID);
+  revisionID = readRegister8(_i2c_read_addr, MAX3010X_REVISIONID);
 }
 
 uint8_t MAX3010X::getRevisionID() {
@@ -487,7 +546,7 @@ uint16_t MAX3010X::check(void)
     int bytesLeftToRead = numberOfSamples * activeLEDs * 3;
 
     //Get ready to read a burst of data from the FIFO register
-    _i2cPort->beginTransmission(MAX3010X_ADDRESS);
+    _i2cPort->beginTransmission(_i2c_write_addr);
     _i2cPort->write(MAX3010X_FIFODATA);
     _i2cPort->endTransmission();
 
@@ -509,7 +568,7 @@ uint16_t MAX3010X::check(void)
       bytesLeftToRead -= toGet;
 
       //Request toGet number of bytes from sensor
-      _i2cPort->requestFrom(MAX3010X_ADDRESS, toGet);
+      _i2cPort->requestFrom(_i2c_read_addr, toGet);
       
       while (toGet > 0)
       {
@@ -596,13 +655,13 @@ bool MAX3010X::safeCheck(uint8_t maxTimeToCheck)
 void MAX3010X::bitMask(uint8_t reg, uint8_t mask, uint8_t thing)
 {
   // Grab current register context
-  uint8_t originalContents = readRegister8(_i2caddr, reg);
+  uint8_t originalContents = readRegister8(_i2c_read_addr, reg);
 
   // Zero-out the portions of the register we're interested in
   originalContents = originalContents & mask;
 
   // Change contents
-  writeRegister8(_i2caddr, reg, originalContents | thing);
+  writeRegister8(_i2c_write_addr, reg, originalContents | thing);
 }
 
 //

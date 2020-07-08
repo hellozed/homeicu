@@ -9,13 +9,13 @@
   ZWang, Inspired By: Jim Lindblom and Andrea DeVore
   from SparkFun Electronics
   http://librarymanager/All#SparkFun_MMA8452Q
+  https://learn.sparkfun.com/tutorials/mma8452q-accelerometer-breakout-hookup-guide
 ---------------------------------------------------------------------------------*/
 
 #include <Arduino.h>
 #include <Wire.h>             // I2C library
 #include "accelerometer.h"    // Click here to get the library: 
 #include "firmware.h"
-
 /*
   This sketch uses the SparkFun_MMA8452Q library to initialize
   the accelerometer and stream calcuated x, y, z, acceleration
@@ -146,8 +146,8 @@ bool MMA8452Q::begin(TwoWire &wirePort, uint8_t deviceAddress)
 		return false;
 	}
 
-	scale = SCALE_2G;
-	odr = ODR_800;
+	scale = SCALE_2G; // SCALE_2G, SCALE_4G, or SCALE_8G	
+	odr   = ODR_800;  // data rate, 1~800~Hz
 
 	setScale(scale);  // Set up accelerometer scale
 	setDataRate(odr); // Set up output data rate

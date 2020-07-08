@@ -327,7 +327,7 @@ void setup()
   pinMode(ADS1292R_START_PIN, OUTPUT);
   pinMode(ADS1292R_PWDN_PIN,  OUTPUT);  
   pinMode(LED_PIN,            OUTPUT); 
-  pinMode(AFE4490_PWDN_PIN,   OUTPUT);
+  pinMode(SPO2_START_PIN,     OUTPUT);
   pinMode(AFE4490_CS_PIN,     OUTPUT);  // slave select
   pinMode(OXIMETER_INT_PIN,   INPUT);   // data ready 
   pinMode(PUSH_BUTTON_PIN,    INPUT_PULLUP);

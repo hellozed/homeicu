@@ -138,8 +138,16 @@ static const uint8_t MAX_30105_EXPECTEDPARTID = 0x15;
 #include "Arduino.h"
 #include <Wire.h>
 
-#define MAX3010X_ADDRESS          0x57 //7-bit I2C Address
-//Note: MAX30101 and MAX30102 have the same I2C slave ID and Part ID
+#if ((SPO2_TYPE==OXI_MAX30101)||(SPO2_TYPE==OXI_MAX30102))
+  #define MAX3010X_I2C_ADDRESS_W          0x57 //7-bit I2C Address
+  #define MAX3010X_I2C_ADDRESS_R          0x57 //7-bit I2C Address
+#elif (SPO2_TYPE==OXI_MAXM86161)
+  #define MAX3010X_I2C_ADDRESS_W          0xC4 //7-bit I2C Address
+  #define MAX3010X_I2C_ADDRESS_R          0xC5 //7-bit I2C Address
+#else // not build for 3010X chip 
+  #define MAX3010X_I2C_ADDRESS_W          0x00 
+  #define MAX3010X_I2C_ADDRESS_R          0x00 
+#endif 
 
 #define I2C_BUFFER_LENGTH 32
 
@@ -147,9 +155,9 @@ class MAX3010X {
  public: 
   MAX3010X(void);
 
-  boolean begin(TwoWire &wirePort = Wire, 
-                /*uint32_t i2cSpeed = I2C_SPEED_STANDARD,*/ 
-                uint8_t i2caddr = MAX3010X_ADDRESS);
+  boolean begin(TwoWire &wirePort, 
+                uint8_t i2c_write_addr,
+                uint8_t i2c_read_addr);
 
   uint32_t getRed(void); //Returns immediate red value
   uint32_t getIR(void); //Returns immediate IR value
@@ -232,7 +240,8 @@ class MAX3010X {
 
  private:
   TwoWire *_i2cPort; //The generic connection to user's chosen I2C hardware
-  uint8_t _i2caddr;
+  uint8_t _i2c_read_addr;
+  uint8_t _i2c_write_addr;
 
   //activeLEDs is the number of channels turned on, and can be 1 to 3. 2 is common for Red+IR.
   byte activeLEDs; //Gets set during setup. Allows check() to calculate how many bytes to read from FIFO

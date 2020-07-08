@@ -1,3 +1,18 @@
+/*---------------------------------------------------------------------------------
+ MAX30205 body temperature sensor 
+
+ Modified by ZWang
+
+ MAX30205, TDFN/8 package, $1.68 @1k, 0.1°C Accuracy (37°C to 39°C)
+ 16-Bit (0.00390625°C) Temperature Resolution
+ 2.7V to 3.3V Supply Voltage Range.
+
+ MAX30208 reduces temperature measurement power by 50% (10-pin thin LGA package, 
+ 2mm x 2mm x 0.75mm, 1.7V to 3.6V), $1.31 (1000-up); The MAX30208EVSYS# evaluation 
+ kit is available for $56. 
+---------------------------------------------------------------------------------*/
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 //
 //    Arduino library for the MAX30205 body temperature sensor breakout board

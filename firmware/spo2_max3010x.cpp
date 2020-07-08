@@ -1,12 +1,23 @@
 /*---------------------------------------------------------------------------------
 
-  Use MAX30101/MAX30102 for oximeter
+  MAX30101/MAX30102/MAXM86161 for oximeter
 
   Optical SP02 Detection (SPK Algorithm)
   
   This demo shows heart rate and SPO2 levels.
 
   Modified by: ZWang
+
+Integrated LEDS+ optical photodetector module for HR and SpO2 measurement
+
+MAX30101 and MAX30102 are similarly, only LEDs different.
+The MAX30101 - 1.8V power supply, and 5.0V for two internal LEDs. 
+The MAX30102 - 1.8V power supply, and 3.3V for three internal LEDs. 
+
+MAXM86161 is single 3.0~5.5V power supply and shrink optical size by 40 % 
+(OLGA package, 2.9mm x 4.3mm x 1.4 mm). 
+three LEDs — red and infrared for SpO2 measurement and green for heart rate. 
+The MAXM86161 is $4.41 (1000 pcs); The evaluation kit is $150.
 ---------------------------------------------------------------------------------*/
 
 /*
@@ -60,7 +71,7 @@ void initMax3010xSpo2()
   int32_t spo2Value;      //SPO2 value
 
   // Initialize sensor
-  if (!spo2Sensor.begin(Wire, MAX3010X_ADDRESS)) //Use default I2C port, 400kHz speed
+  if (!spo2Sensor.begin(Wire, MAX3010X_I2C_ADDRESS_W, MAX3010X_I2C_ADDRESS_R)) //Use default I2C port, 400kHz speed
   {
     Serial.println(F("MAX3010X was not found. Please check wiring/power."));
   }

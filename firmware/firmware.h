@@ -32,14 +32,14 @@
 /*---------------------------------------------------------------------------------
   PIN number defined by ESP-WROOM-32 IO port number
 ---------------------------------------------------------------------------------*/
-const int ADS1292R_CS_PIN    = 13;
-const int ADS1292R_START_PIN = 14;
-const int ADS1292R_DRDY_PIN  = 26;
-const int ADS1292R_PWDN_PIN  = 27;
+const int ADS1292R_CS_PIN   = 13;
+const int ADS1292R_START_PIN= 14;
+const int ADS1292R_DRDY_PIN = 26;
+const int ADS1292R_PWDN_PIN = 27;
 
-const int AFE4490_CS_PIN    = 21; 
+const int AFE4490_CS_PIN    = 21;   //this IO pin is not used if not usxing AFE4490
 const int OXIMETER_INT_PIN  = 39; 
-const int AFE4490_PWDN_PIN  = 4;
+const int SPO2_START_PIN    = 4;    //high to power on SPO2 chip, low to power off
 const int PUSH_BUTTON_PIN   = 0;
 const int LED_PIN           = 2;
 const int SENSOR_VP_PIN     = 36; 
