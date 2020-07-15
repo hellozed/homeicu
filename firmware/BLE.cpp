@@ -7,12 +7,14 @@
  https://randomnerdtutorials.com/esp32-bluetooth-low-energy-ble-arduino-ide/
 
 ---------------------------------------------------------------------------------*/
-#include <Arduino.h>
+
+#include "firmware.h"
+#if BLE_FEATURE
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include "firmware.h"
+
 /*---------------------------------------------------------------------------------
  UUID Define 
  
@@ -251,3 +253,8 @@ void initBLE(void)
   Serial.println("BLE: adverting");     // wait for connection to notify
 }
 
+#else //BLE_FEATURE
+#include "firmware.h"
+void initBLE(void){}
+void handleBLE(void){}
+#endif //BLE_FEATURE

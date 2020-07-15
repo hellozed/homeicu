@@ -4,15 +4,17 @@
  Credit: The original code is from the link below:
  https://lastminuteengineers.com/esp32-ota-updates-arduino-ide/
 ---------------------------------------------------------------------------------*/
-#include <ArduinoOTA.h>
+#include "firmware.h"
+
+#if WEB_FEATURE
 #include <SPIFFS.h>                 // SPI File system
 #include <Update.h>
+#include <ArduinoOTA.h>   // wifi upload (on the air)
+
 //#include <WiFi.h>
 //#include <WiFiClient.h>
 //#include <WebServer.h>
 //#include <ESPmDNS.h>              //This would cause power consumption increase 
-
-#include "firmware.h"
 
 extern String   loginIndex;
 extern String   serverIndex;
@@ -50,7 +52,7 @@ void initBasicOTA(void)
   //initialize SPI file system
   if(!SPIFFS.begin(true)) 
   {
-    Serial.println("SPIFFS Error (it is ok for the brand new board's the first time bootup)");
+    Serial.println("!! SPIFFS Error (ignore this, if it is the brand new board's the first bootup)");
     system_init_error++;
   }
   else
@@ -98,6 +100,10 @@ void initBasicOTA(void)
 
   Serial.print("OTA IP: ");
   Serial.println(WiFi.localIP());
+}
+void handleOTA() 
+{
+  ArduinoOTA.handle();
 }
 /*---------------------------------------------------------------------------------
   Web Update function
@@ -284,3 +290,10 @@ void setupSmartConfig() {
   }
 }
 */
+
+#else // WEB_FEATURE
+
+#include "firmware.h"
+void initBasicOTA(void) {}
+void handleOTA() {}
+#endif// WEB_FEATURE

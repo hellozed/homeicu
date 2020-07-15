@@ -110,7 +110,7 @@ bool checkForBeat(int32_t sample)
     //if ((IR_AC_Max - IR_AC_Min) > 100 & (IR_AC_Max - IR_AC_Min) < 1000)
     if ((IR_AC_Max - IR_AC_Min) > 20 & (IR_AC_Max - IR_AC_Min) < 1000)
     {
-      //Heart beat!!!
+      //Heart beat
       beatDetected = true;
     }
   }

@@ -3,7 +3,6 @@
 
   support both AFE4490 and MAX3010x, but only turn on one of them 
 ---------------------------------------------------------------------------------*/
-#include "Arduino.h"
 #include "firmware.h"
 
 extern  portMUX_TYPE oximeterMux;
@@ -49,6 +48,8 @@ void SPO2::init()
     attachInterrupt(digitalPinToInterrupt(OXIMETER_INT_PIN), 
                     oximeter_interrupt_handler, FALLING ); 
     initMax3010xSpo2();
+  #elif (SPO2_TYPE==OXI_NULL)
+    // do nothing
   #else 
     #error define here!
   #endif 
@@ -60,6 +61,8 @@ void SPO2::handleData()
     afe4490.getData();          // handle SpO2 and PPG 
   #elif (SPO2_TYPE==OXI_MAX30102)
     handleMax3010xSpo2();       // handel SpO2 and PPG
+  #elif (SPO2_TYPE==OXI_NULL)
+    // do nothing  
   #else 
     #error define here!
   #endif   

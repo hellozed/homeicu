@@ -66,7 +66,8 @@ microcontroller while the sensor is taking measurements.
   Written by Peter Jansen and Nathan Seidle (SparkFun)
   BSD license, all text above must be included in any redistribution.
  *****************************************************/
-#include "Arduino.h"
+#include "firmware.h"
+#include <Wire.h>
 #include "spo2_max3010x.h"
 
 MAX3010X::MAX3010X() {
@@ -555,7 +556,7 @@ uint16_t MAX3010X::check(void)
     //Wire.requestFrom() is limited to BUFFER_LENGTH which is 32 on the Uno
     while (bytesLeftToRead > 0)
     {
-      int toGet = bytesLeftToRead;
+      uint8_t toGet = bytesLeftToRead;
       if (toGet > I2C_BUFFER_LENGTH)
       {
         //If toGet is 32 this is bad because we read 6 bytes (Red+IR * 3 = 6) at a time
@@ -587,7 +588,7 @@ uint16_t MAX3010X::check(void)
         //Convert array to long
         memcpy(&tempLong, temp, sizeof(tempLong));
 		
-		tempLong &= 0x3FFFF; //Zero out all but 18 bits
+		    tempLong &= 0x3FFFF; //Zero out all but 18 bits
 
         sense.red[sense.head] = tempLong; //Store this reading into the sense array
 

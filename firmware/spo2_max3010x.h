@@ -135,8 +135,6 @@ static const uint8_t SLOT_GREEN_PILOT = 0x07;
 
 static const uint8_t MAX_30105_EXPECTEDPARTID = 0x15;
 
-#include "Arduino.h"
-#include <Wire.h>
 
 #if ((SPO2_TYPE==OXI_MAX30101)||(SPO2_TYPE==OXI_MAX30102))
   #define MAX3010X_I2C_ADDRESS_W          0x57 //7-bit I2C Address

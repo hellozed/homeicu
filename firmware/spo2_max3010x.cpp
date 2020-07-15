@@ -40,7 +40,6 @@ The MAXM86161 is $4.41 (1000 pcs); The evaluation kit is $150.
   The MAX3010X Breakout can handle 5V or 3.3V I2C logic. We recommend powering the board with 5V
   but it will also run at 3.3V.
 */
-#include "Arduino.h"
 #include "firmware.h"
 #include <Wire.h>
 #include "spo2_max3010x.h"

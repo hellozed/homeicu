@@ -8,19 +8,13 @@
 
   Heart rate and respiration computation based on original code from Texas Instruments.
 ---------------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------------
- Arduino/ESP32 library
----------------------------------------------------------------------------------*/
-#include <SPI.h>
-#include <Wire.h>         // I2C library
-#include <ArduinoOTA.h>   // On-The-Air upload (wifi)
-/*---------------------------------------------------------------------------------
- HomeICU driver code
----------------------------------------------------------------------------------*/
-#include "version.h"
 #include "firmware.h"
+#include <SPI.h>
+#include <Wire.h>         // i2c library
+#include "version.h"
 
+void initECG();
+void handleECG();
 /*---------------------------------------------------------------------------------
  Temperature sensor (ONLY turn on one of them)
 ---------------------------------------------------------------------------------*/
@@ -296,8 +290,13 @@ void measureTemperature()
 void initSPI()
 {
   SPI.begin();
-  SPI.setClockDivider (SPI_CLOCK_DIV16);
   SPI.setBitOrder     (MSBFIRST);
+
+  // the higher speed will cause ecg stop working
+  // example code use SPI_CLOCK_DIV16 
+  SPI.setClockDivider (SPI_CLOCK_DIV32);  
+  //FIXME SPI speed maybe can increase
+
   delay(10);           // delay 10ms
 }
 /*---------------------------------------------------------------------------------
@@ -338,25 +337,27 @@ void setup()
 
   initBLE();                  // low energy blue tooth 
   //------------------------------------------------ 
-  initSPI();                  // initialize SPI
 
   #define I2C_SPEED_STANDARD        100000
   #define I2C_SPEED_FAST            400000
   Wire.begin(25,22,I2C_SPEED_FAST); // initialize I2C, SDA=25pin SCL=22pin
   //------------------------------------------------ 
-  ads1292r.init();            // with different CS pin and SPI mode.
+  initSPI();                  // initialize SPI
+  initECG();                  // with different CS pin and SPI mode.
   
   attachInterrupt(digitalPinToInterrupt(ADS1292R_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
   
   //------------------------------------------------
-  spo2.init();
+  spo2.init(); 
   initAcceleromter();
-  // data ready for reading for ADS1292R and AFE4490
 
   if (initTemperature()) 
     Serial.println("Temperature sensor: OK.");
   else
-    Serial.println("Temperature sensor: Missing.");
+  {
+    Serial.println("!! temperature sensor missing.");
+    system_init_error++;
+  }
   //------------------------------------------------
   initBasicOTA();             // uploading by Over The Air code
   #if WEB_UPDATE
@@ -374,11 +375,11 @@ void loop()
   
   doButton();                 // process button event
 
-  ArduinoOTA.handle();        // "On The Air" update function 
+  handleOTA();                // "On The Air" update function 
 
   handleBLE();                // handle bluetooth low energy
 
-  ads1292r.getData();         // handle ECG and RESP
+  handleECG();                // handle ECG and RESP
 
   spo2.handleData();           // read and send spo2 data  
   measureTemperature();       // battery power percent

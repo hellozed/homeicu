@@ -30,9 +30,8 @@
 //
 //   For information on how to use, visit https://github.com/protocentral/ProtoCentral_MAX30205
 /////////////////////////////////////////////////////////////////////////////////////////
-#include <Arduino.h>
-#include <Wire.h>
 #include "firmware.h"
+#include <Wire.h>
 
 #if TEMP_SENSOR_MAX30325
 

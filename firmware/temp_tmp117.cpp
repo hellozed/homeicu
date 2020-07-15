@@ -35,13 +35,10 @@ Distributed as-is; no warranty is given.
 	reference the "Precise Temperature Measurements with TMP116" datasheet that is 
 	linked on Page 35 of the TMP117's datasheet
 */
-
-#include <Arduino.h>
-#include <Wire.h>
 #include "firmware.h"
+#include <Wire.h>
 
 #if TEMP_SENSOR_TMP117
-
 /*
   TMP117 Register Map
 

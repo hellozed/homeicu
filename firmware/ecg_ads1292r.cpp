@@ -5,6 +5,7 @@ Inspired by:
 Healthy Pi V4 project
 https://github.com/ericherman/eeg-mouse
 http://www.mccauslandcenter.sc.edu/CRNL/ads1298
+https://bois083.wordpress.com/lucid-dreaming-device/version-5-0/ads1292-firmware/
 
 
 SCLK   |  Device attempts to decode and execute commands every eight serial clocks. 
@@ -53,39 +54,56 @@ The tri-wavelength MAX30101 sensor and bi-wavelength MAX30102 sensor were evalua
 
 
 ---------------------------------------------------------------------------------*/
-#include "Arduino.h"
-#include <SPI.h>
 #include "firmware.h" 
+#include <SPI.h>
 
-#define CONFIG_SPI_MASTER_DUMMY 0xFF
+#define SPI_DUMMY_DATA  0xFF
 
+/*
+fCLK = 512 kHz and CLK_DIV = 0 
+sample rate = 125 SPS
+tCLK = (use 2us) 1775~2170 ns, when DVDD = 3.3V, when CLK_DIV = 0
+tMOD = (use 8us) 4 tCLK, when CLK_DIV = 0. 
+*/
+#define CS_LOW_TIME    1 // tCSSC - CS low to first SCLK, setup time. > 6 ns 
+#define CS_HIGH_TIME   1 // tCSH  - CS high pulse, > 2 tCLK (use 4us)
+#define PWDN_TIME_LOW  2 // hold > 29 tMOD to power down the device is. (use 250 us)
+#define PWDN_TIME_LOW  2 // hold > 29 tMOD to power down the device is. (use 250 us)
+#define PWDN_TIME_HIGH 40// tPOR Wait after power-up until reset > 4096 tMOD (32ms)
+#define START_TIME     3 // START Pin, wait >4100 tMOD to use (2ms)
+ 
 // Register Read Commands
 #define RREG    0x20    //Read n nnnn registers starting at address r rrrr
                         //first byte 001r rrrr (2xh)(2) - second byte 000n nnnn(2)
 #define WREG    0x40    //Write n nnnn registers starting at address r rrrr
                         //first byte 010r rrrr (2xh)(2) - second byte 000n nnnn(2)
-#define START   0x08    //Start/restart (synchronize) conversions
-#define STOP    0x0A    //Stop conversion
-#define RDATAC  0x10    //Enable Read Data Continuous mode.
+//System Commands
+#define START		0x08		// start/restart (synchronize) conversions
+#define STOP		0x0A		// stop conversion
 
-//This mode is the default mode at power-up.
-#define SDATAC  0x11    //Stop Read Data Continuously mode
-#define RDATA   0x12    //Read data by command; supports multiple read back.
+// Data Read Commands
+#define RDATAC  0x10	  // enable Read Data Continuously mode (power-up default).
+#define SDATAC	0x11		// stop   Read Data Continuously mode
+#define RDATA   0x12    // read data by command; supports multiple read back.
 
-//register address
-#define ADS1292R_REG_ID        0x00
-#define ADS1292R_REG_CONFIG1   0x01
-#define ADS1292R_REG_CONFIG2   0x02
-#define ADS1292R_REG_LOFF      0x03
-#define ADS1292R_REG_CH1SET    0x04
-#define ADS1292R_REG_CH2SET    0x05
-#define ADS1292R_REG_RLDSENS   0x06
-#define ADS1292R_REG_LOFFSENS  0x07
-#define ADS1292R_REG_LOFFSTAT  0x08
-#define ADS1292R_REG_RESP1     0x09
-#define ADS1292R_REG_RESP2     0x0A
+const uint8_t register_settings[] = {
+//set value      register name        address
+  0x73,       // ADS1292_REG_ID			  0x00  read only
+  0x00,       // ADS1292_REG_CONFIG1	0x01  set sampling rate to 125 SPS
+  0b10100000, // ADS1292_REG_CONFIG2	0x02  lead-off comp off, test signal disabled
+  0b00010000, // ADS1292_REG_LOFF		  0x03  lead-off defaults
+  0b01000000, // ADS1292_REG_CH1SET		0x04  Ch 1 enabled, gain 6, connected to electrode in
+  0b01100000, // ADS1292_REG_CH2SET		0x05  Ch 2 enabled, gain 6, connected to electrode in
+  0b00101100, // ADS1292_REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
+  0x00,       // ADS1292_REG_LOFFSENS 0x07  LOFF settings: all disabled
+  0x00,       // ADS1292_REG_LOFFSTAT 0x08  Skip register 8, LOFF Settings default
+  0b11110010, // ADS1292_REG_RESP1	  0x09  respiration: MOD/DEMOD turned only, phase 0
+  0b00000011, // ADS1292_REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
+  0b00001100  // ADS1292_REG_GPIO     0x0B
+}; 
 
-#define HISTGRM_CALC_TH               10
+
+#define HISTGRM_CALC_TH        10
 
 uint32_t  heart_rate_histogram[HISTGRM_DATA_SIZE];
 uint8_t   histogram_percent   [HISTGRM_PERCENT_SIZE];
@@ -103,13 +121,29 @@ volatile uint8_t  heart_rate_prev = 0;
 volatile uint8_t  respirationRate = 0;
 volatile bool     ads1292r_interrupt_flag   = false;
 
+
+class ADS1292R
+{
+public:
+  void      init(void);
+  void      getData(void);
+  void      getTestData(void);
+private:
+  uint8_t * fillTxBuffer  (uint8_t peakvalue,uint8_t respirationRate);
+  void      add_heart_rate_histogram(uint8_t hr);
+  uint8_t   mask_register_bits(uint8_t address, uint8_t data_in);
+
+  #define   SPI_BUFFER_SIZE   9
+  uint8_t   SPI_ReadBuffer[SPI_BUFFER_SIZE];
+};
+
 ADS1292R          ads1292r;
 ADS1292Data       ads1292r_raw_data;
 ADS1292Process    ecg_respiration_algorithm; 
 
 uint8_t   lead_flag = 0;
 uint8_t   ecg_data_buff[ECG_BUFFER_SIZE];
-int16_t   ecg_wave_sample,  ecg_filterout ;
+int16_t   ecg_wave_sample,  ecg_filterout;
 int16_t   res_wave_sample,  resp_filterout;
 uint16_t  ecg_stream_cnt = 0;
 
@@ -120,49 +154,113 @@ void IRAM_ATTR ads1292r_interrupt_handler(void)
   portEXIT_CRITICAL_ISR (&ads1292rMux);  
 }
 
-//FIXME too many delays
+void initECG()    {ads1292r.init(); }
+void handleECG()  {ads1292r.getData();}  
+ 
+void pin_level_high(uint8_t pin, uint32_t ms)
+{
+  digitalWrite(pin, HIGH);
+  delay(ms);
+}
+
+void pin_level_low(uint8_t pin, uint32_t ms)
+{
+  digitalWrite(pin, LOW);
+  delay(ms);
+}
+
 void ADS1292R :: init(void)
 {
+  uint8_t data;
+  uint8_t r[12]; 
+  int i, address;
+
   SPI.setDataMode(SPI_MODE1);
 
-  // start the SPI library:
-  pin_high_time(ADS1292R_PWDN_PIN,100);
-  pin_low_time (ADS1292R_PWDN_PIN,100);
-  pin_high_time(ADS1292R_PWDN_PIN,100);
-  
-  pin_low_time (ADS1292R_START_PIN,20);       // disable Start
-  pin_high_time(ADS1292R_START_PIN,20);       // enable Start
-  pin_low_time (ADS1292R_START_PIN,100);      //  hard Stop 
-  
-  SendCommand(START); // Send 0x08, start data conv
-  SendCommand(STOP);  // Send 0x0A, soft stop
-  delay(50);
-  SendCommand(SDATAC);// Send 0x11, stop read data continuous
-  delay(300);
-  WriteRegister(ADS1292R_REG_CONFIG1,      0x00);  //Set sampling rate to 125 SPS
-  WriteRegister(ADS1292R_REG_CONFIG2,0b10100000);	//Lead-off comp off, test signal disabled
-  WriteRegister(ADS1292R_REG_LOFF,   0b00010000);	//Lead-off defaults
-  WriteRegister(ADS1292R_REG_CH1SET, 0b01000000);	//Ch 1 enabled, gain 6, connected to electrode in
-  WriteRegister(ADS1292R_REG_CH2SET, 0b01100000);	//Ch 2 enabled, gain 6, connected to electrode in
-  WriteRegister(ADS1292R_REG_RLDSENS,0b00101100);	//RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
-  WriteRegister(ADS1292R_REG_LOFFSENS,     0x00);	//LOFF settings: all disabled
-  WriteRegister(ADS1292R_REG_RESP1,  0b11110010);	//Respiration: MOD/DEMOD turned only, phase 0
-  WriteRegister(ADS1292R_REG_RESP2,  0b00000011);	//Respiration: Calib OFF, respiration freq defaults
-  //Skip register 8, LOFF Settings default
+  // after power on, wait device boot up
+  while (millis()<PWDN_TIME_HIGH)
+  {
+    Serial.println("wait ads129r bootup...");
+    delay(2);
+  }
 
-  SendCommand(RDATAC);					              // Send 0x10, Start Read Data Continuous
-  delay(10);
+  // reset device
+  pin_level_high(ADS1292R_CS_PIN,CS_HIGH_TIME); //initial CS
 
-  pin_high_time (ADS1292R_START_PIN,20);                // enable Start
+  pin_level_low(ADS1292R_PWDN_PIN,PWDN_TIME_LOW);  
+  pin_level_high(ADS1292R_PWDN_PIN,PWDN_TIME_HIGH);  
+  //------------------------------------------------
+  // conversion stop, when "START pin is low" OR "receive STOP opcode"
+  //------------------------------------------------
+  pin_level_low(ADS1292R_START_PIN,START_TIME);       // stop 
+
+  //------------------------------------------------
+  pin_level_low(ADS1292R_CS_PIN,CS_LOW_TIME);
+  //------------------------------------------------
+                     
+  //SPI.transfer(START);  
+  //SPI.transfer(STOP);  
+  SPI.transfer(SDATAC);         // stop data reading mode before write regiters
+
+  //------------------------------------------------
+  // write registers
+  //Write n nnnn registers starting @ address r rrrr
+  // 010rrrrr, rrrrr = the starting register address.
+  uint8_t OPCODE1 = 0x00 | WREG;  
+  // 000nnnnn, nnnnn = the number of registers to write – 1
+  uint8_t OPCODE2 = sizeof(register_settings) - 1;                   
+  
+  SPI.transfer(OPCODE1);   
+  SPI.transfer(OPCODE2);	
+  
+  for(i = 0,address = 0x00; i<sizeof(register_settings); address++, i++)	
+  {
+    data = mask_register_bits(address, register_settings[i]);
+    SPI.transfer(data);	
+  } 
+  
+  //------------------------------------------------
+  // verify registers
+
+  //read n nnnn registers starting at address r rrrr  
+  // 001r rrrr (rrrrr = the starting register address)
+  OPCODE1 = 0x00 | RREG;  
+  // 000nnnnn, nnnnn = the number of registers to write – 1
+  OPCODE2 = sizeof(r) - 1;                 
+  SPI.transfer(OPCODE1);   
+  SPI.transfer(OPCODE2);	
+
+  for(i=0; i<sizeof(r);i++)	
+  {
+    r[i] = SPI.transfer(0x00);
+    if (r[i]!=register_settings[i])
+    {
+      Serial.printf("!! ecg register error @%02x = %02x, expecting %02x\r\n", 
+                    i, r[i], register_settings[i]);
+      system_init_error++;
+      return;
+    }
+  } 
+  // start to read data continuously
+  SPI.transfer(RDATAC);  
+  
+  //------------------------------------------------
+  pin_level_high(ADS1292R_CS_PIN,CS_HIGH_TIME);
+  //------------------------------------------------
+  
+  // Conversions begin, when "START pin is high" OR "START opcode is received"
+  pin_level_high (ADS1292R_START_PIN,START_TIME);
+
+  Serial.println("ECG config ok.");
 }
 
 void ADS1292R :: getData()
 {
   uint8_t     LeadStatus  = 0;
-  signed long secgtemp    = 0;
+  signed long signed_ecg_temp    = 0;
   long        status_byte = 0;
 
-  unsigned long uecgtemp  = 0;
+  unsigned long unsigned_ecg_temp  = 0;
   unsigned long resultTemp= 0;
 
   // Sampling rate is set to 125SPS ,DRDY ticks for every 8ms
@@ -176,23 +274,27 @@ void ADS1292R :: getData()
   ads1292r_interrupt_flag = false;
   portEXIT_CRITICAL_ISR (&ads1292rMux);  
 
-  ReadToBuffer(); // Read the data to SPI_ReadBuffer
+  // Read the data to SPI_ReadBuffer
+  pin_level_low (ADS1292R_CS_PIN,CS_LOW_TIME);
+  for (int i = 0; i < SPI_BUFFER_SIZE; i++)
+    SPI_ReadBuffer[i] = SPI.transfer(SPI_DUMMY_DATA);
+  pin_level_high(ADS1292R_CS_PIN,CS_HIGH_TIME); 
 
-  uecgtemp = (unsigned long) (((unsigned long)SPI_ReadBuffer[3] << 16)|  \
+  unsigned_ecg_temp = (unsigned long) (((unsigned long)SPI_ReadBuffer[3] << 16)|  \
                               ((unsigned long)SPI_ReadBuffer[4] << 8) |  \
                                 (unsigned long)SPI_ReadBuffer[5]);
-  uecgtemp = (unsigned long)(uecgtemp << 8);
-  secgtemp = (signed long)  (uecgtemp);
-  ads1292r_raw_data.raw_resp    = secgtemp;
+  unsigned_ecg_temp = (unsigned long)(unsigned_ecg_temp << 8);
+  signed_ecg_temp = (signed long)  (unsigned_ecg_temp);
+  ads1292r_raw_data.raw_resp    = signed_ecg_temp;
 
-  uecgtemp = (unsigned long)(((unsigned  long)SPI_ReadBuffer[6] << 16) | \
+  unsigned_ecg_temp = (unsigned long)(((unsigned  long)SPI_ReadBuffer[6] << 16) | \
                               ((unsigned long)SPI_ReadBuffer[7] <<  8) | \
                                 (unsigned long)SPI_ReadBuffer[8]);
   
-  uecgtemp = (unsigned long)(uecgtemp << 8);
-  secgtemp = (signed long)  (uecgtemp);
-  secgtemp = (signed long)  (secgtemp >> 8);
-  ads1292r_raw_data.raw_ecg     = secgtemp;
+  unsigned_ecg_temp = (unsigned long)(unsigned_ecg_temp << 8);
+  signed_ecg_temp = (signed long)  (unsigned_ecg_temp);
+  signed_ecg_temp = (signed long)  (signed_ecg_temp >> 8);
+  ads1292r_raw_data.raw_ecg     = signed_ecg_temp;
 
   status_byte = (long)((long)SPI_ReadBuffer[2] |      \ 
                       ((long)SPI_ReadBuffer[1]) <<8 | \
@@ -206,6 +308,9 @@ void ADS1292R :: getData()
   // ignore the lower 8 bits out of 24bits 
   ecg_wave_sample = (int16_t)(ads1292r_raw_data.raw_ecg  >> 8);  
   res_wave_sample = (int16_t)(ads1292r_raw_data.raw_resp >> 8);
+  
+//  Serial.printf("%d %d\r\n", ecg_wave_sample, res_wave_sample);//wzg
+//  Serial.printf("%d\r\n", ecg_wave_sample);//wzg
 
   if (!((ads1292r_raw_data.status_reg & 0x1f) == 0))
   { // measure lead is OFF the body 
@@ -230,7 +335,6 @@ void ADS1292R :: getData()
       heart_rate_prev = heart_rate;
     }  
 
-    
     if(npeakflag == 1)
     {
       fillTxBuffer(heart_rate, respirationRate);
@@ -247,88 +351,7 @@ void ADS1292R :: getData()
       ecg_stream_cnt = 0;
     }
   }
-  /////////////////////////////////////
-}
-
-void ADS1292R :: ReadToBuffer(void)
-{
-  pin_low_time (ADS1292R_CS_PIN,0);
-
-  for (int i = 0; i < 9; ++i)
-    SPI_ReadBuffer[i] = SPI.transfer(CONFIG_SPI_MASTER_DUMMY);
-  
-  pin_high_time(ADS1292R_CS_PIN,0);
-}
- 
-void ADS1292R :: SendCommand(uint8_t data_in)
-{
-  pin_low_time (ADS1292R_CS_PIN,2);
-  pin_high_time(ADS1292R_CS_PIN,2);
-  pin_low_time (ADS1292R_CS_PIN,2);
-
-  SPI.transfer(data_in);
-
-  pin_high_time(ADS1292R_CS_PIN,2);
-}
-
-void ADS1292R :: WriteRegister(uint8_t READ_WRITE_ADDRESS, uint8_t DATA)
-{
-  switch (READ_WRITE_ADDRESS)
-  {
-    case 1:
-            DATA = DATA & 0x87;
-	          break;
-    case 2:
-            DATA = DATA & 0xFB;
-	          DATA |= 0x80;
-	          break;
-    case 3:
-      	    DATA = DATA & 0xFD;
-      	    DATA |= 0x10;
-      	    break;
-    case 7:
-      	    DATA = DATA & 0x3F;
-      	    break;
-    case 8:
-    	      DATA = DATA & 0x5F;
-	          break;
-    case 9:
-      	    DATA |= 0x02;
-      	    break;
-    case 10:
-      	    DATA = DATA & 0x87;
-      	    DATA |= 0x01;
-      	    break;
-    case 11:
-      	    DATA = DATA & 0x0F;
-      	    break;
-    default:
-            break;
-  }
-  pin_low_time (ADS1292R_CS_PIN,2);
-  pin_high_time(ADS1292R_CS_PIN,2);
-  
-  pin_low_time (ADS1292R_CS_PIN,2);    // select the device
-
-  SPI.transfer(uint8_t (READ_WRITE_ADDRESS | WREG)); //Send register location
-  SPI.transfer(0x00);		    //number of register to wr
-  SPI.transfer(DATA);		    //Send value to record into register
-  delay(2);
-
-  pin_high_time (ADS1292R_CS_PIN,10);  // de-select the device
-}
-//FIXME check delays
-void ADS1292R :: pin_high_time(int pin, uint32_t ms)
-{
-  digitalWrite(pin, HIGH);
-  delay(ms);
-}
-
-void ADS1292R :: pin_low_time(int pin, uint32_t ms)
-{
-  digitalWrite(pin, LOW);
-  delay(ms);
-}
+} 
 /*--------------------------------------------------------------------------------- 
  heart rate variability (HRV)
 ---------------------------------------------------------------------------------*/
@@ -482,6 +505,45 @@ void ADS1292R :: add_heart_rate_histogram(uint8_t hr)
     }
     histogramReady = true;
   }
+}
+
+uint8_t ADS1292R::mask_register_bits(uint8_t address, uint8_t data_in)
+{
+  uint8_t data = data_in;
+
+  switch (address)
+  {
+    case 1:
+      data = data & 0x87;
+	    break;
+    case 2:
+      data = data & 0xFB;
+	    data |= 0x80;		
+	    break;
+    case 3:
+	    data = data & 0xFD;
+	    data |= 0x10;
+	    break;
+    case 7:
+	    data = data & 0x3F;
+	    break;
+    case 8:
+    	data = data & 0x5F;
+	    break;
+    case 9:
+	    data |= 0x02;
+	    break;
+    case 10:
+	    data = data & 0x87;
+	    data |= 0x01;
+	    break;
+    case 11:
+	    data = data & 0x0F;
+	    break;
+    default:
+	    break;		
+  }
+  return data;
 }
 /*---------------------------------------------------------------------------------
  fake ecg data for testing

@@ -209,3 +209,6 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+hardware/cost.numbers
+firmware/TIcode/*
+datasheet/ads1292r-bio-measurement.pdf

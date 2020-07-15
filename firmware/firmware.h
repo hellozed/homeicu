@@ -1,14 +1,26 @@
 #ifndef __PUBLIC_H__
 #define __PUBLIC_H__
 
-// define the oximeter IC type, 
+#include <Arduino.h>
 
+/*---------------------------------------------------------------------------------
+  Link options
+---------------------------------------------------------------------------------*/
+#define BLE_FEATURE false
+
+#define WEB_FEATURE false
+
+/*---------------------------------------------------------------------------------
+  
+---------------------------------------------------------------------------------*/
+// define the oximeter IC type, 
+  #define OXI_NULL        0   // no oximeter hardware
   #define OXI_AFE4490     1   // TI IC, no internal LEDs, single power 
   #define OXI_MAX30102    2   // with 2 color LEDs, two power supply
 //#define OXI_MAX30101    3   // with 3 color LEDs, two power supply
 //#define OXI_MAXM86161   4   // with 3 color LEDs, single power
 
-#define SPO2_TYPE        OXI_MAX30102   
+#define SPO2_TYPE        OXI_NULL   
 
 // this number need change according to hardware
 // it = read_unblocked_IR_value() + tolerance range
@@ -27,22 +39,22 @@
 #define SIM_BATTERY     true    // potentiometer A simulates the bettery voltage detction
 #define SIM_TEMPERATURE true    // potentiometer B to simulate the temperature sensor
 #define JOYTICK_TEST    true    // use joy stick y to simulate 
-#define ECG_BLE_TEST    true    // send fake ecg data to BLE
+#define ECG_BLE_TEST    false   // send fake ecg data to BLE
 #define SIM_PPG         true    // use joy stick x to simulate PPG
 /*---------------------------------------------------------------------------------
   PIN number defined by ESP-WROOM-32 IO port number
 ---------------------------------------------------------------------------------*/
-const int ADS1292R_CS_PIN   = 13;
-const int ADS1292R_START_PIN= 14;
-const int ADS1292R_DRDY_PIN = 26;
-const int ADS1292R_PWDN_PIN = 27;
+const uint8_t ADS1292R_CS_PIN   = 13;
+const uint8_t ADS1292R_START_PIN= 14;
+const uint8_t ADS1292R_DRDY_PIN = 26;
+const uint8_t ADS1292R_PWDN_PIN = 27;
 
-const int AFE4490_CS_PIN    = 21;   //this IO pin is not used if not usxing AFE4490
-const int OXIMETER_INT_PIN  = 39; 
-const int SPO2_START_PIN    = 4;    //high to power on SPO2 chip, low to power off
-const int PUSH_BUTTON_PIN   = 0;
-const int LED_PIN           = 2;
-const int SENSOR_VP_PIN     = 36; 
+const uint8_t AFE4490_CS_PIN    = 21;   //this IO pin is not used if not usxing AFE4490
+const uint8_t OXIMETER_INT_PIN  = 39; 
+const uint8_t SPO2_START_PIN    = 4;    //high to power on SPO2 chip, low to power off
+const uint8_t PUSH_BUTTON_PIN   = 0;
+const uint8_t LED_PIN           = 2;
+const uint8_t SENSOR_VP_PIN     = 36; 
 
 #if JOYTICK_TEST
 const int JOYY_PIN          = 34;   //GPIO34 ADC
@@ -117,26 +129,6 @@ extern  bool          ecgBufferReady;
 extern  bool          hrvDataReady  ;
 extern  bool          histogramReady;
 
-class ADS1292R
-{
-public:
-  void      init(void);
-  void      getData(void);
-  void      getTestData(void);
-private:
-  int       chip_select; 
-  void      SendCommand   (uint8_t data_in);
-  void      WriteRegister (uint8_t READ_WRITE_ADDRESS, uint8_t DATA);
-  void      ReadToBuffer  (void);
-  void      pin_high_time (int pin, uint32_t ms);
-  void      pin_low_time  (int pin, uint32_t ms);
-  uint8_t * fillTxBuffer  (uint8_t peakvalue,uint8_t respirationRate);
-  void      add_heart_rate_histogram(uint8_t hr);
-
-  uint8_t   SPI_ReadBuffer[10];
-};
-
-extern class ADS1292R  ads1292r;
 /***********************
  * ecg_resp.cpp
  ***********************/
@@ -206,6 +198,7 @@ void initBLE();
 void handleBLE();
 void handleWebClient();
 void initBasicOTA();
+void handleOTA();
 void initAcceleromter();
 void handelAcceleromter();
 void oximeter_interrupt_handler();
