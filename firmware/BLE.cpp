@@ -71,12 +71,9 @@ extern uint8_t  hrv_array[HVR_ARRAY_SIZE];
 extern uint8_t  ecg_data_buff[ECG_BUFFER_SIZE];
 extern uint8_t  ppg_data_buff[PPG_BUFFER_SIZE];
 extern uint8_t  heart_rate_pack[3];
-extern uint8_t  lead_flag;
 extern uint8_t  SpO2Level;
 extern uint8_t  battery_percent;
 extern union    FloatByte bodyTemperature;
-
-extern volatile uint8_t heart_rate;
 extern uint8_t  histogram_percent[HISTGRM_PERCENT_SIZE];
 extern bool     histogramReady;
 /*---------------------------------------------------------------------------------

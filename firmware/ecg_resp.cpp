@@ -13,24 +13,24 @@ The typical ECG detection system internal converters is 12 bits, and 125 SPS.
 #include "firmware.h"
 #include <SPI.h>
 
+static void QRS_process_buffer();
+static void QRS_check_sample_crossing_threshold( uint16_t scaled_result);  
+static void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);
+static void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);
+static void Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *respirationRate);
 
-#define TEMPERATURE          0
 #define FILTERORDER         161
 #define NRCOEFF           (0.992)
-#define WAVE_SIZE            1
 
 //******* ecg filter *********
-#define MAX_PEAK_TO_SEARCH         5
+#define MAX_PEAK_TO_SEARCH        5
 #define MAXIMA_SEARCH_WINDOW      25
 #define MINIMUM_SKIP_WINDOW       30
 #define SAMPLING_RATE             125
-#define TWO_SEC_SAMPLES      2 * SAMPLING_RATE
-#define QRS_THRESHOLD_FRACTION    0.4
-#define TRUE                       1
-#define FALSE                      0
+#define TWO_SEC_SAMPLES           2 * SAMPLING_RATE
 
 unsigned char Start_Sample_Count_Flag = 0;
-unsigned char first_peak_detect = FALSE ;
+unsigned char first_peak_detect = false ;
 /* Variable which will hold the calculated heart rate */
 unsigned int sample_count = 0 ; 
 unsigned int sample_index[MAX_PEAK_TO_SEARCH + 2] ;
@@ -83,6 +83,50 @@ int16_t CoeffBuf_40Hz_LowPass[FILTERORDER] =
 };
 
 
+int16_t CoeffBuf_60Hz_Notch[FILTERORDER] = {             
+
+/* Coeff for Notch @ 60Hz for 500SPS/60Hz Notch coeff13102008*/
+      131,    -16,     85,     97,   -192,   -210,      9,    -37,    -11,
+      277,    213,   -105,    -94,   -100,   -324,   -142,    257,    211,
+      121,    242,    -38,   -447,   -275,    -39,    -79,    221,    543,
+      181,   -187,   -138,   -351,   -515,     34,    446,    260,    303,
+      312,   -344,   -667,   -234,    -98,    -46,    585,    702,    -17,
+     -241,   -197,   -683,   -552,    394,    540,    239,    543,    230,
+     -811,   -700,    -44,   -254,     81,   1089,    594,   -416,    -81,
+     -249,  -1195,   -282,   1012,    223,     80,   1170,   -156,  -1742,
+       21,    543,  -1503,    505,   3202,  -1539,  -3169,   9372,  19006,
+     9372,  -3169,  -1539,   3202,    505,  -1503,    543,     21,  -1742,
+     -156,   1170,     80,    223,   1012,   -282,  -1195,   -249,    -81,
+     -416,    594,   1089,     81,   -254,    -44,   -700,   -811,    230,
+      543,    239,    540,    394,   -552,   -683,   -197,   -241,    -17,
+      702,    585,    -46,    -98,   -234,   -667,   -344,    312,    303,
+      260,    446,     34,   -515,   -351,   -138,   -187,    181,    543,
+      221,    -79,    -39,   -275,   -447,    -38,    242,    121,    211,
+      257,   -142,   -324,   -100,    -94,   -105,    213,    277,    -11,
+      -37,      9,   -210,   -192,     97,     85,    -16,    131
+};
+int16_t CoeffBuf_50Hz_Notch[FILTERORDER] = {             
+/* Coeff for Notch @ 50Hz @ 500 SPS*/
+      -47,   -210,    -25,    144,     17,     84,    249,     24,   -177,
+      -58,   -144,   -312,    -44,    191,     78,    185,    357,     42,
+     -226,   -118,   -248,   -426,    -61,    243,    134,    290,    476,
+       56,   -282,   -169,   -352,   -549,    -70,    301,    177,    392,
+      604,     60,   -344,   -200,   -450,   -684,    -66,    369,    191,
+      484,    749,     44,   -420,   -189,   -535,   -843,    -32,    458,
+      146,    560,    934,    -16,   -532,    -89,   -600,  -1079,     72,
+      613,    -50,    614,   1275,   -208,   -781,    308,   -642,  -1694,
+      488,   1141,  -1062,    642,   3070,  -1775,  -3344,   9315,  19005,
+     9315,  -3344,  -1775,   3070,    642,  -1062,   1141,    488,  -1694,
+     -642,    308,   -781,   -208,   1275,    614,    -50,    613,     72,
+    -1079,   -600,    -89,   -532,    -16,    934,    560,    146,    458,
+      -32,   -843,   -535,   -189,   -420,     44,    749,    484,    191,
+      369,    -66,   -684,   -450,   -200,   -344,     60,    604,    392,
+      177,    301,    -70,   -549,   -352,   -169,   -282,     56,    476,
+      290,    134,    243,    -61,   -426,   -248,   -118,   -226,     42,
+      357,    185,     78,    191,    -44,   -312,   -144,    -58,   -177,
+       24,    249,     84,     17,    144,    -25,   -210,    -47
+};
+
 /* Coeff for lowpass Fc=2Hz @ 125 SPS*/
 int16_t RespCoeffBuf[FILTERORDER] = 
 { 120,    124,    126,    127,    127,    125,    122,    118,    113,  
@@ -105,7 +149,7 @@ int16_t RespCoeffBuf[FILTERORDER] =
   118,    122,    125,    127,    127,    126,    124,    120       };
 
 
-void ADS1292Process :: ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
+static void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
 {
   int32_t acc = 0;   // accumulator for MACs
   int  k;
@@ -123,7 +167,7 @@ void ADS1292Process :: ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffB
   *FilterOut = (int16_t)(acc >> 15);
 }
 
-void ADS1292Process :: Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t *FilteredOut)
+void Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t *FilteredOut)
 {
   static uint16_t ECG_bufStart = 0, ECG_bufCur = FILTERORDER - 1, ECGFirstFlag = 1;
   static int16_t ECG_Pvev_DC_Sample, ECG_Pvev_Sample;/* Working Buffer Used for Filtering*/
@@ -132,7 +176,10 @@ void ADS1292Process :: Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t 
   /* Count variable*/
   uint16_t Cur_Chan;
   int16_t FiltOut = 0;
-  CoeffBuf = CoeffBuf_40Hz_LowPass;         // Default filter option is 40Hz LowPass
+// FIXME
+  CoeffBuf = CoeffBuf_40Hz_LowPass;   // filter option is 40Hz LowPass (Default)
+//CoeffBuf = CoeffBuf_50Hz_Notch;     // filter option is 50Hz Notch & 0.5-150 Hz Band
+//CoeffBuf = CoeffBuf_60Hz_Notch;     // filter option is 60Hz Notch & 0.5-150 Hz Band
 
   if  ( ECGFirstFlag )                // First Time initialize static variables.
   {
@@ -166,7 +213,7 @@ void ADS1292Process :: Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t 
   }
 }
 
-void ADS1292Process :: Calculate_HeartRate(int16_t CurrSample,volatile uint8_t *Heart_rate, volatile uint8_t *peakflag )
+void QRS_Algorithm_Interface(int16_t CurrSample)
 {
   static int16_t prev_data[32] = {0};
   int16_t i;
@@ -178,7 +225,6 @@ void ADS1292Process :: Calculate_HeartRate(int16_t CurrSample,volatile uint8_t *
     Mac += prev_data[i];
     prev_data[i] = prev_data[i - 1];
   }
-
   Mac += CurrSample;
   Mac = Mac >> 2;
   CurrSample = (int16_t) Mac;
@@ -187,10 +233,10 @@ void ADS1292Process :: Calculate_HeartRate(int16_t CurrSample,volatile uint8_t *
   QRS_Current_Sample = QRS_Next_Sample ;
   QRS_Next_Sample = QRS_Second_Next_Sample ;
   QRS_Second_Next_Sample = CurrSample ;
-  QRS_process_buffer(Heart_rate,peakflag);
+  QRS_process_buffer();
 }
 
-void ADS1292Process :: QRS_process_buffer(volatile uint8_t *Heart_rate, volatile uint8_t *peakflag )
+static void QRS_process_buffer(void)
 {
   int16_t first_derivative = 0 ;
   int16_t scaled_result = 0 ;
@@ -215,23 +261,24 @@ void ADS1292Process :: QRS_process_buffer(volatile uint8_t *Heart_rate, volatile
   {
     QRS_Threshold_Old = ((Max * 7) / 10 ) ;
     QRS_Threshold_New = QRS_Threshold_Old ;
-    first_peak_detect = TRUE ;
+   // if (Max > 70)
+      first_peak_detect = true ;
     Max = 0;
     QRS_B4_Buffer_ptr = 0;
   }
 
-  if ( TRUE == first_peak_detect )
-    QRS_check_sample_crossing_threshold(scaled_result,Heart_rate,peakflag) ;
+  if ( true == first_peak_detect )
+    QRS_check_sample_crossing_threshold(scaled_result) ;
 }
 
-void ADS1292Process :: QRS_check_sample_crossing_threshold( uint16_t scaled_result,volatile uint8_t *Heart_rate,volatile uint8_t *peakflag)
+static void QRS_check_sample_crossing_threshold( uint16_t scaled_result)
 {
   /* array to hold the sample indexes S1,S2,S3 etc */
   static uint16_t s_array_index = 0 ;
   static uint16_t m_array_index = 0 ;
-  static unsigned char threshold_crossed = FALSE ;
+  static unsigned char threshold_crossed = false ;
   static uint16_t maxima_search = 0 ;
-  static unsigned char peak_detected = FALSE ;
+  static unsigned char peak_detected = false ;
   static uint16_t skip_window = 0 ;
   static long maxima_sum = 0 ;
   static unsigned int peak = 0;
@@ -241,7 +288,7 @@ void ADS1292Process :: QRS_check_sample_crossing_threshold( uint16_t scaled_resu
   uint16_t HRAvg;
   uint16_t  RRinterval = 0;
 
-  if ( TRUE == threshold_crossed  )
+  if ( true == threshold_crossed  )
   {
     /*
     Once the sample value crosses the threshold check for the
@@ -258,11 +305,11 @@ void ADS1292Process :: QRS_check_sample_crossing_threshold( uint16_t scaled_resu
       // Store the maxima values for each peak
       maxima_sum += peak ;
       maxima_search = 0 ;
-      threshold_crossed = FALSE ;
-      peak_detected = TRUE ;
+      threshold_crossed = false ;
+      peak_detected = true ;
     }
   }
-  else if ( TRUE == peak_detected )
+  else if ( true == peak_detected )
   {
     // Once the sample value goes below the threshold
     // skip the samples untill the SKIP WINDOW criteria is meet
@@ -272,7 +319,7 @@ void ADS1292Process :: QRS_check_sample_crossing_threshold( uint16_t scaled_resu
     if ( skip_window >= MINIMUM_SKIP_WINDOW )
     {
       skip_window = 0 ;
-      peak_detected = FALSE ;
+      peak_detected = false ;
     }
 
     if ( m_array_index == MAX_PEAK_TO_SEARCH )
@@ -316,11 +363,13 @@ void ADS1292Process :: QRS_check_sample_crossing_threshold( uint16_t scaled_resu
     Start_Sample_Count_Flag = 1;
     sample_count ++ ;
     m_array_index++;
-    threshold_crossed = TRUE ;
+    threshold_crossed = true ;
     peak = scaled_result ;
-    *peakflag = 1;
     nopeak = 0;
 
+    //!!!!!!!!!!!!!!!!!!!!
+    npeakflag = 1;
+    //!!!!!!!!!!!!!!!!!!!!
     //  storing sample index
     sample_index[ s_array_index ] = sample_count ;
 
@@ -345,9 +394,9 @@ void ADS1292Process :: QRS_check_sample_crossing_threshold( uint16_t scaled_resu
       sample_index[2] = 0 ;
       sample_index[3] = 0 ;
       Start_Sample_Count_Flag = 0;
-      peak_detected = FALSE ;
+      peak_detected = false ;
       sample_sum = 0;
-      first_peak_detect = FALSE;
+      first_peak_detect = false;
       nopeak = 0;
       QRS_Heart_Rate = 0;
     }
@@ -368,17 +417,16 @@ void ADS1292Process :: QRS_check_sample_crossing_threshold( uint16_t scaled_resu
       sample_index[2] = 0 ;
       sample_index[3] = 0 ;
       Start_Sample_Count_Flag = 0;
-      peak_detected = FALSE ;
+      peak_detected = false ;
       sample_sum = 0;
-      first_peak_detect = FALSE;
+      first_peak_detect = false;
       nopeak = 0;
       QRS_Heart_Rate = 0;
     }
   }
-  *Heart_rate = (uint8_t)QRS_Heart_Rate;
 }
 
-void ADS1292Process :: Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
+static void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
 {
   int32_t acc=0;     // accumulator for MACs
   int  k;
@@ -397,7 +445,7 @@ void ADS1292Process :: Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * 
   *FilterOut = (int16_t)(acc >> 15);
 }
 
-void ADS1292Process :: Filter_CurrentRESP_sample(int16_t CurrAqsSample, int16_t * FiltOut)
+void Filter_CurrentRESP_sample(int16_t CurrAqsSample, int16_t * FiltOut)
 {
   static uint16_t bufStart=0, bufCur = FILTERORDER-1, FirstFlag = 1;
   int16_t temp1, temp2;//, RESPData;
@@ -428,7 +476,7 @@ void ADS1292Process :: Filter_CurrentRESP_sample(int16_t CurrAqsSample, int16_t 
   }
 }
 
-void ADS1292Process :: Calculate_RespRate(int16_t CurrSample,volatile uint8_t *respirationRate)
+void Calculate_RespRate(int16_t CurrSample,volatile uint8_t *respirationRate)
 {
   static int16_t prev_data[64] ={0};
   char i;
@@ -451,7 +499,7 @@ void ADS1292Process :: Calculate_RespRate(int16_t CurrSample,volatile uint8_t *r
   Respiration_Rate_Detection(RESP_Second_Next_Sample,respirationRate);
 }
 
-void ADS1292Process :: Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *respirationRate)
+static void Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *respirationRate)
 {
   static uint16_t skipCount = 0, SampleCount = 0,TimeCnt=0, SampleCountNtve=0, PtiveCnt =0,NtiveCnt=0 ;
   static int16_t MinThreshold = 0x7FFF, MaxThreshold = 0x8000, PrevSample = 0, PrevPrevSample = 0, PrevPrevPrevSample =0;

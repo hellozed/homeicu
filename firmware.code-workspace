@@ -34,7 +34,21 @@
 			"unordered_map": "cpp",
 			"unordered_set": "cpp",
 			"__locale": "cpp",
-			"__string": "cpp"
+			"__string": "cpp",
+			"__functional_base": "cpp",
+			"__node_handle": "cpp",
+			"algorithm": "cpp",
+			"atomic": "cpp",
+			"bitset": "cpp",
+			"__memory": "cpp",
+			"limits": "cpp",
+			"locale": "cpp",
+			"memory": "cpp",
+			"optional": "cpp",
+			"system_error": "cpp",
+			"tuple": "cpp",
+			"type_traits": "cpp",
+			"utility": "cpp"
 		}
 	},
 	"arduino.ignoreBoards": []

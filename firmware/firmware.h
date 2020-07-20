@@ -7,8 +7,8 @@
   Link options
 ---------------------------------------------------------------------------------*/
 #define BLE_FEATURE false
-
 #define WEB_FEATURE false
+#define CLI_FEATURE true
 
 /*---------------------------------------------------------------------------------
   
@@ -44,10 +44,10 @@
 /*---------------------------------------------------------------------------------
   PIN number defined by ESP-WROOM-32 IO port number
 ---------------------------------------------------------------------------------*/
-const uint8_t ADS1292R_CS_PIN   = 13;
-const uint8_t ADS1292R_START_PIN= 14;
-const uint8_t ADS1292R_DRDY_PIN = 26;
-const uint8_t ADS1292R_PWDN_PIN = 27;
+const uint8_t ADS1292_CS_PIN   = 13;
+const uint8_t ADS1292_START_PIN= 14;
+const uint8_t ADS1292_DRDY_PIN = 26;
+const uint8_t ADS1292_PWDN_PIN = 27;
 
 const uint8_t AFE4490_CS_PIN    = 21;   //this IO pin is not used if not usxing AFE4490
 const uint8_t OXIMETER_INT_PIN  = 39; 
@@ -116,35 +116,21 @@ extern int system_init_error;
 /***********************
  * ads1292r.cpp (ECG)
  ***********************/
-typedef struct ads1292r_Record
-{
-  signed long raw_ecg;
-  signed long raw_resp;
-  uint32_t    status_reg;
-} ADS1292Data;
-
 void    ads1292r_interrupt_handler(void);
 extern  portMUX_TYPE  ads1292rMux;
 extern  bool          ecgBufferReady;
 extern  bool          hrvDataReady  ;
 extern  bool          histogramReady;
-
 /***********************
  * ecg_resp.cpp
  ***********************/
-class ADS1292Process
-{
-  public:
-    void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);
-    void Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t *FilteredOut);
-    void Calculate_HeartRate(int16_t CurrSample,volatile uint8_t *Heart_rate, volatile uint8_t *peakflag);
-    void QRS_process_buffer(volatile uint8_t *Heart_rate,volatile uint8_t *peakflag);
-    void QRS_check_sample_crossing_threshold( uint16_t scaled_result,volatile uint8_t *Heart_rate,volatile uint8_t *peakflag);  
-    void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);
-    void Filter_CurrentRESP_sample(int16_t CurrAqsSample, int16_t * FiltOut);
-    void Calculate_RespRate(int16_t CurrSample,volatile uint8_t *respirationRate);
-    void Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *respirationRate);
-};
+void Filter_CurrentECG_sample (int16_t *CurrAqsSample, int16_t *FilteredOut);
+void Filter_CurrentRESP_sample(int16_t  CurrAqsSample, int16_t *FiltOut);
+void QRS_Algorithm_Interface  (int16_t  CurrSample);
+void Calculate_RespRate       (int16_t  CurrSample,volatile uint8_t *respirationRate);
+
+extern volatile uint16_t  QRS_Heart_Rate;
+extern volatile uint8_t   npeakflag;
 /***********************
  * oximeter_afe4490.cpp
  ***********************/
@@ -159,7 +145,6 @@ class AFE4490
     unsigned long readData (uint8_t address);
 };
 extern class AFE4490  afe4490;
-
 /***********************
  * firmware.ino
  ***********************/
@@ -169,9 +154,6 @@ extern bool       SpO2Ready;
 /***********************
  * spo2.cpp
  ***********************/
-
-extern class SPO2 spo2;
-
 class SPO2
 {
   public:
@@ -185,7 +167,7 @@ class SPO2
   private:
     uint16_t  ppg_data_cnt;
 };
-
+extern class SPO2 spo2;
 /***********************
  * spo2_max3010x.cpp
  ***********************/

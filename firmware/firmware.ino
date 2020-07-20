@@ -15,6 +15,7 @@
 
 void initECG();
 void handleECG();
+void handleCLI();
 /*---------------------------------------------------------------------------------
  Temperature sensor (ONLY turn on one of them)
 ---------------------------------------------------------------------------------*/
@@ -91,7 +92,6 @@ void IRAM_ATTR button_interrupt_handler()
   portEXIT_CRITICAL_ISR(&buttonMux);
 }
 
-// if button was pressed
 void doButton() {
   if (buttonEventPending>0)
   {
@@ -307,7 +307,7 @@ after power-up or reset of the  board.
 void setup()
 {
   uint64_t chipid;
-  
+
   // Make sure serial port on first
   // Setup serial port U0UXD for programming and reset/boot
   Serial.begin  (115200);   // Baudrate for serial communication
@@ -321,10 +321,10 @@ void setup()
 
   // initialize the data ready and chip select pins:
   // pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
-  pinMode(ADS1292R_DRDY_PIN,  INPUT);  
-  pinMode(ADS1292R_CS_PIN,    OUTPUT);    
-  pinMode(ADS1292R_START_PIN, OUTPUT);
-  pinMode(ADS1292R_PWDN_PIN,  OUTPUT);  
+  pinMode(ADS1292_DRDY_PIN,  INPUT);  
+  pinMode(ADS1292_CS_PIN,    OUTPUT);    
+  pinMode(ADS1292_START_PIN, OUTPUT);
+  pinMode(ADS1292_PWDN_PIN,  OUTPUT);  
   pinMode(LED_PIN,            OUTPUT); 
   pinMode(SPO2_START_PIN,     OUTPUT);
   pinMode(AFE4490_CS_PIN,     OUTPUT);  // slave select
@@ -345,7 +345,7 @@ void setup()
   initSPI();                  // initialize SPI
   initECG();                  // with different CS pin and SPI mode.
   
-  attachInterrupt(digitalPinToInterrupt(ADS1292R_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
+  attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
   
   //------------------------------------------------
   spo2.init(); 
@@ -363,29 +363,36 @@ void setup()
   #if WEB_UPDATE
   setupWebServer();           // uploading by Web server
   #endif 
-  
+  //------------------------------------------------
   Serial.printf("Setup() done. Found %d errors\r\n\r\n",system_init_error);
+  //------------------------------------------------
+  #if CLI_FEATURE
+    Serial.println("command line interface (CLI) enabled.");
+    Serial.println("Type \"help\".");
+  #endif 
 }
 /*---------------------------------------------------------------------------------
  setup() => loop() 
 ---------------------------------------------------------------------------------*/
 void loop()
 {
+//FIXME test mode
+  handleCLI();
   doTimer();                  // process timer event
   
   doButton();                 // process button event
 
-  handleOTA();                // "On The Air" update function 
+//  handleOTA();                // "On The Air" update function 
 
-  handleBLE();                // handle bluetooth low energy
+//  handleBLE();                // handle bluetooth low energy
 
   handleECG();                // handle ECG and RESP
 
-  spo2.handleData();           // read and send spo2 data  
-  measureTemperature();       // battery power percent
-  handelAcceleromter();       // motion detection with accelerometer
+//  spo2.handleData();           // read and send spo2 data  
+//  measureTemperature();       // battery power percent
+//  handelAcceleromter();       // motion detection with accelerometer
 
-  measureBattery();           // measure body temperature
+//  measureBattery();           // measure body temperature
 
   #if WEB_UPDATE
   handleWebClient();          // web server
