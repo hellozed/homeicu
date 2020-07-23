@@ -1,6 +1,4 @@
 /*---------------------------------------------------------------------------------
- FIXME 3rd party code, needs tidy up
- 
  The code here is from healthypi project, 
  Code here requires tidy up and testing!
 
@@ -16,48 +14,58 @@ The typical ECG detection system internal converters is 12 bits, and 125 SPS.
 static void QRS_process_buffer();
 static void QRS_check_sample_crossing_threshold( uint16_t scaled_result);  
 static void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);
-static void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);
-static void Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *respirationRate);
 
 #define FILTERORDER         161
+/* DC Removal Numerator Coeff*/
 #define NRCOEFF           (0.992)
 
 //******* ecg filter *********
 #define MAX_PEAK_TO_SEARCH        5
-#define MAXIMA_SEARCH_WINDOW      25
-#define MINIMUM_SKIP_WINDOW       30
+//FIXME check if this number can improve performance
+//#define MAXIMA_SEARCH_WINDOW			40
+//#define MINIMUM_SKIP_WINDOW				50
+  #define MAXIMA_SEARCH_WINDOW      25  
+  #define MINIMUM_SKIP_WINDOW       30
+
 #define SAMPLING_RATE             125
 #define TWO_SEC_SAMPLES           2 * SAMPLING_RATE
 
-unsigned char Start_Sample_Count_Flag = 0;
-unsigned char first_peak_detect = false ;
+/*Flag which identifies the duration for which sample count has to be incremented*/
+static unsigned char Start_Sample_Count_Flag = 0;
+static unsigned char first_peak_detect = false ;
 /* Variable which will hold the calculated heart rate */
-unsigned int sample_count = 0 ; 
-unsigned int sample_index[MAX_PEAK_TO_SEARCH + 2] ;
+static unsigned int sample_count = 0 ; 
+static unsigned int sample_index[MAX_PEAK_TO_SEARCH + 2] ;
 
-int QRS_Second_Prev_Sample = 0 ;
-int QRS_Prev_Sample = 0 ;
-int QRS_Current_Sample = 0 ;
-int QRS_Next_Sample = 0 ;
-int QRS_Second_Next_Sample = 0 ;
+/* Variables to hold the sample data for calculating the 1st and 2nd */
+/* differentiation                          */
+static int QRS_Second_Prev_Sample = 0 ;
+static int QRS_Prev_Sample = 0 ;
+static int QRS_Current_Sample = 0 ;
+static int QRS_Next_Sample = 0 ;
+static int QRS_Second_Next_Sample = 0 ;
+/*   Variable which holds the threshold value to calculate the maxima*/
+static int16_t QRS_Threshold_Old = 0;
+static int16_t QRS_Threshold_New = 0;
 
-int RESP_Second_Prev_Sample = 0 ;
-int RESP_Prev_Sample = 0 ;
-int RESP_Current_Sample = 0 ;
-int RESP_Next_Sample = 0 ;
-int RESP_Second_Next_Sample = 0 ;
 
-uint8_t Respiration_Rate = 0 ;
-
-volatile uint16_t QRS_Heart_Rate = 0 ;
 /* Variable which holds the threshold value to calculate the maxima */
+uint16_t QRS_Heart_Rate = 0 ;
+/*  Pointer which points to the index in B4 buffer where the processed data*/
+/*  has to be filled */
 static uint16_t QRS_B4_Buffer_ptr = 0 ; 
 
-int16_t RESP_WorkingBuff[2 * FILTERORDER];
-int16_t Pvev_DC_Sample=0, Pvev_Sample=0;
-int16_t QRS_Threshold_Old = 0;
-int16_t QRS_Threshold_New = 0;
-int16_t ECG_WorkingBuff[2 * FILTERORDER];
+uint8_t Respiration_Rate = 0 ;
+static int RESP_Second_Prev_Sample = 0 ;
+static int RESP_Prev_Sample = 0 ;
+static int RESP_Current_Sample = 0 ;
+static int RESP_Next_Sample = 0 ;
+static int RESP_Second_Next_Sample = 0 ;
+static int16_t RESP_WorkingBuff[2 * FILTERORDER];
+static int16_t Pvev_DC_Sample=0, Pvev_Sample=0;
+
+static void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut);
+static void Respiration_Rate_Detection(int16_t Resp_wave,volatile uint8_t *respirationRate);
 
 //************** ecg *******************
 int16_t CoeffBuf_40Hz_LowPass[FILTERORDER] =
@@ -82,51 +90,6 @@ int16_t CoeffBuf_40Hz_LowPass[FILTERORDER] =
   105,   -121,      0,    117,    -99,    -31,    122,    -72
 };
 
-
-int16_t CoeffBuf_60Hz_Notch[FILTERORDER] = {             
-
-/* Coeff for Notch @ 60Hz for 500SPS/60Hz Notch coeff13102008*/
-      131,    -16,     85,     97,   -192,   -210,      9,    -37,    -11,
-      277,    213,   -105,    -94,   -100,   -324,   -142,    257,    211,
-      121,    242,    -38,   -447,   -275,    -39,    -79,    221,    543,
-      181,   -187,   -138,   -351,   -515,     34,    446,    260,    303,
-      312,   -344,   -667,   -234,    -98,    -46,    585,    702,    -17,
-     -241,   -197,   -683,   -552,    394,    540,    239,    543,    230,
-     -811,   -700,    -44,   -254,     81,   1089,    594,   -416,    -81,
-     -249,  -1195,   -282,   1012,    223,     80,   1170,   -156,  -1742,
-       21,    543,  -1503,    505,   3202,  -1539,  -3169,   9372,  19006,
-     9372,  -3169,  -1539,   3202,    505,  -1503,    543,     21,  -1742,
-     -156,   1170,     80,    223,   1012,   -282,  -1195,   -249,    -81,
-     -416,    594,   1089,     81,   -254,    -44,   -700,   -811,    230,
-      543,    239,    540,    394,   -552,   -683,   -197,   -241,    -17,
-      702,    585,    -46,    -98,   -234,   -667,   -344,    312,    303,
-      260,    446,     34,   -515,   -351,   -138,   -187,    181,    543,
-      221,    -79,    -39,   -275,   -447,    -38,    242,    121,    211,
-      257,   -142,   -324,   -100,    -94,   -105,    213,    277,    -11,
-      -37,      9,   -210,   -192,     97,     85,    -16,    131
-};
-int16_t CoeffBuf_50Hz_Notch[FILTERORDER] = {             
-/* Coeff for Notch @ 50Hz @ 500 SPS*/
-      -47,   -210,    -25,    144,     17,     84,    249,     24,   -177,
-      -58,   -144,   -312,    -44,    191,     78,    185,    357,     42,
-     -226,   -118,   -248,   -426,    -61,    243,    134,    290,    476,
-       56,   -282,   -169,   -352,   -549,    -70,    301,    177,    392,
-      604,     60,   -344,   -200,   -450,   -684,    -66,    369,    191,
-      484,    749,     44,   -420,   -189,   -535,   -843,    -32,    458,
-      146,    560,    934,    -16,   -532,    -89,   -600,  -1079,     72,
-      613,    -50,    614,   1275,   -208,   -781,    308,   -642,  -1694,
-      488,   1141,  -1062,    642,   3070,  -1775,  -3344,   9315,  19005,
-     9315,  -3344,  -1775,   3070,    642,  -1062,   1141,    488,  -1694,
-     -642,    308,   -781,   -208,   1275,    614,    -50,    613,     72,
-    -1079,   -600,    -89,   -532,    -16,    934,    560,    146,    458,
-      -32,   -843,   -535,   -189,   -420,     44,    749,    484,    191,
-      369,    -66,   -684,   -450,   -200,   -344,     60,    604,    392,
-      177,    301,    -70,   -549,   -352,   -169,   -282,     56,    476,
-      290,    134,    243,    -61,   -426,   -248,   -118,   -226,     42,
-      357,    185,     78,    191,    -44,   -312,   -144,    -58,   -177,
-       24,    249,     84,     17,    144,    -25,   -210,    -47
-};
-
 /* Coeff for lowpass Fc=2Hz @ 125 SPS*/
 int16_t RespCoeffBuf[FILTERORDER] = 
 { 120,    124,    126,    127,    127,    125,    122,    118,    113,  
@@ -148,15 +111,27 @@ int16_t RespCoeffBuf[FILTERORDER] =
    24,     38,     52,     65,     77,     88,     97,    106,    113,
   118,    122,    125,    127,    127,    126,    124,    120       };
 
-
-static void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
+/*********************************************************************************************************
+** Function Name : ECG_FilterProcess()                         **
+** Description    :                                    **
+**         The function process one sample filtering with 161 ORDER             **
+**         FIR multiband filter 0.5 t0 150 Hz and 50/60Hz line nose.            **
+**         The function supports compile time 50/60 Hz option              **
+**                                                **
+** Parameters    :                                    **
+**         - WorkingBuff    - In - input sample buffer                  **
+**         - CoeffBuf      - In - Co-eficients for FIR filter.              **
+**         - FilterOut      - Out - Filtered output                **
+** Return       : None                                    **
+*********************************************************************************************************/
+static void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t * FilterOut)
 {
-  int32_t acc = 0;   // accumulator for MACs
+  int acc = 0;   // accumulator for MACs
   int  k;
   // perform the multiply-accumulate
 
   for ( k = 0; k < 161; k++ )
-    acc += (int32_t)(*CoeffBuf++) * (int32_t)(*WorkingBuff--);
+    acc += (int)(*CoeffBuf++) * (int)(*WorkingBuff--);
   // saturate the result
 
   if ( acc > 0x3fffffff )
@@ -166,20 +141,31 @@ static void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t
   // convert from Q30 to Q15
   *FilterOut = (int16_t)(acc >> 15);
 }
-
-void Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t *FilteredOut)
+/*********************************************************************************************************
+** Function Name : ECG_ProcessCurrSample()                            **
+** Description    :                                    **
+**         The function process one sample of data at a time and           **
+**         which stores the filtered out sample in the Leadinfobuff.            **
+**         The function does the following :-                    **
+**                                                **
+**         - DC Removal of the current sample                    **
+**         - Multi band 161 Tab FIR Filter with Notch at 50Hz/60Hz.             **
+** Parameters    :                                    **
+**         - ECG_WorkingBuff    - In - ECG. input sample buffer                **
+**         - FilterOut      - Out - Filtered output                **
+** Return       : None                                    **
+*********************************************************************************************************/
+void Filter_CurrentECG_sample(int16_t CurrAqsSample, int16_t *FilteredOut)
 {
   static uint16_t ECG_bufStart = 0, ECG_bufCur = FILTERORDER - 1, ECGFirstFlag = 1;
   static int16_t ECG_Pvev_DC_Sample, ECG_Pvev_Sample;/* Working Buffer Used for Filtering*/
+  static int16_t ECG_WorkingBuff[2 * FILTERORDER];
   int16_t *CoeffBuf;
   int16_t temp1, temp2, ECGData;
   /* Count variable*/
   uint16_t Cur_Chan;
   int16_t FiltOut = 0;
-// FIXME
   CoeffBuf = CoeffBuf_40Hz_LowPass;   // filter option is 40Hz LowPass (Default)
-//CoeffBuf = CoeffBuf_50Hz_Notch;     // filter option is 50Hz Notch & 0.5-150 Hz Band
-//CoeffBuf = CoeffBuf_60Hz_Notch;     // filter option is 60Hz Notch & 0.5-150 Hz Band
 
   if  ( ECGFirstFlag )                // First Time initialize static variables.
   {
@@ -192,8 +178,8 @@ void Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t *FilteredOut)
   }
 
   temp1 = NRCOEFF * ECG_Pvev_DC_Sample;       //First order IIR
-  ECG_Pvev_DC_Sample = (CurrAqsSample[0]  - ECG_Pvev_Sample) + temp1;
-  ECG_Pvev_Sample = CurrAqsSample[0];
+  ECG_Pvev_DC_Sample = (CurrAqsSample - ECG_Pvev_Sample) + temp1;
+  ECG_Pvev_Sample = CurrAqsSample;
   temp2 = ECG_Pvev_DC_Sample >> 2;
   ECGData = (int16_t) temp2;
   /* Store the DC removed value in Working buffer in millivolts range*/
@@ -212,8 +198,22 @@ void Filter_CurrentECG_sample(int16_t *CurrAqsSample, int16_t *FilteredOut)
     ECG_bufCur = FILTERORDER - 1;
   }
 }
-
-void QRS_Algorithm_Interface(int16_t CurrSample)
+/*********************************************************************************************************
+**                                               **
+**   Function Name : QRS_Algorithm_Interface                          **
+**   Description -   This function is called by the main acquisition            **
+**      thread at every samples read.                **
+**             Before calling the process_buffer() the below check             **
+**      has to be done. i.e. We have always received +2            **
+**      samples before starting the processing  for each           **
+**      samples. This function basically checks the                **
+**      difference between the current  and  previous ECG          **
+**      Samples using 1st & 2nd differentiation calculations.           **
+**                                               **
+**   Parameters  : - Lead II sample CurrSample                  **
+**   Return    : None                                     **
+*********************************************************************************************************/
+void QRS_Calculate_Heart_Rate(int16_t CurrSample)
 {
   static int16_t prev_data[32] = {0};
   int16_t i;
@@ -235,42 +235,19 @@ void QRS_Algorithm_Interface(int16_t CurrSample)
   QRS_Second_Next_Sample = CurrSample ;
   QRS_process_buffer();
 }
-
-static void QRS_process_buffer(void)
-{
-  int16_t first_derivative = 0 ;
-  int16_t scaled_result = 0 ;
-  static int16_t Max = 0 ;
-  /* calculating first derivative*/
-  first_derivative = QRS_Next_Sample - QRS_Prev_Sample  ;
-  
-  /*taking the absolute value*/
-  if (first_derivative < 0)
-  {
-    first_derivative = -(first_derivative);
-  }
-
-  scaled_result = first_derivative;
-
-  if ( scaled_result > Max )
-    Max = scaled_result ;
-
-  QRS_B4_Buffer_ptr++;
-
-  if (QRS_B4_Buffer_ptr ==  TWO_SEC_SAMPLES)
-  {
-    QRS_Threshold_Old = ((Max * 7) / 10 ) ;
-    QRS_Threshold_New = QRS_Threshold_Old ;
-   // if (Max > 70)
-      first_peak_detect = true ;
-    Max = 0;
-    QRS_B4_Buffer_ptr = 0;
-  }
-
-  if ( true == first_peak_detect )
-    QRS_check_sample_crossing_threshold(scaled_result) ;
-}
-
+/*********************************************************************************************************
+**   Function Name : QRS_check_sample_crossing_threshold()                 **
+**   Description -                                     **
+**                                                **
+**      This function computes duration of QRS peaks using              **
+**      order differentiated input sample and computes             **
+**      QRS_Current_Sample.After we process the data we can             **
+**      Heart rate. It mutes comptation in case of leads off.           **
+**                                                **
+**   Parameters  - Scaled Result                                 **
+**   Global variables - QRS_Heart_Rate_new  and HR_flag                        **
+**   Return variables - None                     **
+*********************************************************************************************************/
 static void QRS_check_sample_crossing_threshold( uint16_t scaled_result)
 {
   /* array to hold the sample indexes S1,S2,S3 etc */
@@ -286,7 +263,6 @@ static void QRS_check_sample_crossing_threshold( uint16_t scaled_result)
   static unsigned int nopeak = 0;
   uint16_t Max = 0 ;
   uint16_t HRAvg;
-  uint16_t  RRinterval = 0;
 
   if ( true == threshold_crossed  )
   {
@@ -341,7 +317,6 @@ static void QRS_check_sample_crossing_threshold( uint16_t scaled_result)
       maxima_sum = maxima_sum / 10;
       QRS_Threshold_New = (int16_t)maxima_sum;
       /* Limiting the QRS Threshold to be in the permissible range*/
-
       if (QRS_Threshold_New > (4 * QRS_Threshold_Old))
         QRS_Threshold_New = QRS_Threshold_Old;
 
@@ -372,10 +347,8 @@ static void QRS_check_sample_crossing_threshold( uint16_t scaled_result)
     //!!!!!!!!!!!!!!!!!!!!
     //  storing sample index
     sample_index[ s_array_index ] = sample_count ;
-
     if ( s_array_index >= 1 )
       sample_sum += sample_index[ s_array_index ] - sample_index[ s_array_index - 1 ] ;
-
     s_array_index ++ ;
   }
   else if (( scaled_result < QRS_Threshold_New ) && (Start_Sample_Count_Flag == 1))
@@ -425,7 +398,60 @@ static void QRS_check_sample_crossing_threshold( uint16_t scaled_result)
     }
   }
 }
+/*********************************************************************************************************
+**   Function Name : QRS_process_buffer()                             **
+**   Description -                                     **
+**                                                **
+**      This function will be doing the first and second           **
+**      order differentiation for   input sample,                  **
+**      QRS_Current_Sample.After we process the data we can             **
+**      fill the   QRS_Proc_Data_Buffer which is the input             **
+**      for HR calculation Algorithm. This function is             **
+**      called for each n sample.Once we have received 6s of            **
+**      processed   data(i.e.Sampling rate*6) in the B4            **
+**      buffer we will start the heart rate calculation for             **
+**      first time and later we will do heart rate                 **
+**      calculations once we receive the defined   number              **
+**      of samples for the expected number of refresh              **
+**      seconds.                               **
+**                                                **
+**   Parameters  - Nil                                      **
+**   Return     - None                                     **
+*********************************************************************************************************/
+static void QRS_process_buffer(void)
+{
+  int16_t first_derivative = 0 ;
+  int16_t scaled_result = 0 ;
+  static int16_t Max = 0 ;
+  /* calculating first derivative*/
+  first_derivative = QRS_Next_Sample - QRS_Prev_Sample  ;
+  
+  /*taking the absolute value*/
+  if (first_derivative < 0)
+  {
+    first_derivative = -(first_derivative);
+  }
 
+  scaled_result = first_derivative;
+
+  if ( scaled_result > Max )
+    Max = scaled_result ;
+
+  QRS_B4_Buffer_ptr++;
+
+  if (QRS_B4_Buffer_ptr ==  TWO_SEC_SAMPLES)
+  {
+    QRS_Threshold_Old = ((Max * 7) / 10 ) ;
+    QRS_Threshold_New = QRS_Threshold_Old ;
+   // if (Max > 70)
+      first_peak_detect = true ;
+    Max = 0;
+    QRS_B4_Buffer_ptr = 0;
+  }
+
+  if ( true == first_peak_detect )
+    QRS_check_sample_crossing_threshold(scaled_result) ;
+}
 static void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
 {
   int32_t acc=0;     // accumulator for MACs

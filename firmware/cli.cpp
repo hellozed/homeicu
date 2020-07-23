@@ -38,23 +38,6 @@ const char *commands_str[] = {
  
 int num_commands = sizeof(commands_str) / sizeof(char *);
 
-void read_line(){
-    String line_string;
-
- //   while(!Serial.available());
- 
-    if(Serial.available()){
-        line_string = Serial.readStringUntil('\n');
-        if(line_string.length() < LINE_BUF_SIZE){
-          line_string.toCharArray(line, LINE_BUF_SIZE);
-          Serial.println(line_string);
-        }
-        else{
-          Serial.println("Input too long.");
-          error_flag = true;
-        }
-    }
-}
  
 void parse_line(){
     char *argument;
@@ -124,7 +107,7 @@ void help_reg(){
     Serial.println("  ");
 }
  
-extern void ecg_reg_set(uint8_t address, uint8_t data); 
+extern void set_ads1292_register(uint8_t address, uint8_t data); 
 int cmd_reg(){
     int8_t address, value;
 
@@ -135,18 +118,27 @@ int cmd_reg(){
     sscanf (args[2],"%x",&value);
 
     //Serial.printf("set register @ %x = %x.\r\n", address, value);
-    ecg_reg_set(address, value);
+    set_ads1292_register(address, value);
 }
- 
- 
 /*---------------------------------------------------------------------------------
  called from firmware.ino
 ---------------------------------------------------------------------------------*/
 void handleCLI(){
-   return;
-    Serial.print("> ");
-    
-    read_line();
+  static String line_string;
+    if(!Serial.available()) return; // check if there is new serial data
+ 
+    if(Serial.available()){
+        line_string = Serial.readStringUntil('\n');
+        if(line_string.length() < LINE_BUF_SIZE){
+          line_string.toCharArray(line, LINE_BUF_SIZE);
+          Serial.println(line_string);
+        }
+        else{
+          Serial.println("Input too long.");
+          error_flag = true;
+        }
+    }
+
     if(!error_flag){
         parse_line();
     }

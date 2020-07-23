@@ -65,9 +65,8 @@ sample rate = 125 SPS
 tCLK = (use 2us) 1775~2170 ns, when DVDD = 3.3V, when CLK_DIV = 0
 tMOD = (use 8us) 4 tCLK, when CLK_DIV = 0. 
 */
-#define CS_LOW_TIME    1 // tCSSC - CS low to first SCLK, setup time. > 6 ns 
-#define CS_HIGH_TIME   1 // tCSH  - CS high pulse, > 2 tCLK (use 4us)
-#define PWDN_TIME_LOW  2 // hold > 29 tMOD to power down the device is. (use 250 us)
+#define CS_LOW_TIME    0 // tCSSC - CS low to first SCLK, setup time. > 6 ns 
+#define CS_HIGH_TIME   0 // tCSH  - CS high pulse, > 2 tCLK (use 4us)
 #define PWDN_TIME_LOW  2 // hold > 29 tMOD to power down the device is. (use 250 us)
 #define PWDN_TIME_HIGH 40// tPOR Wait after power-up until reset > 4096 tMOD (32ms)
 #define START_TIME     3 // START Pin, wait >4100 tMOD to use (2ms)
@@ -86,60 +85,71 @@ tMOD = (use 8us) 4 tCLK, when CLK_DIV = 0.
 #define SDATAC	0x11		// stop   Read Data Continuously mode
 #define RDATA   0x12    // read data by command; supports multiple read back.
 
+enum registers {
+  REG_ID,	
+  REG_CONFIG1,
+  REG_CONFIG2,
+  REG_LOFF,
+  REG_CH1SET,
+  REG_CH2SET,
+  REG_RLDSENS,
+  REG_LOFFSENS,
+  REG_LOFFSTAT,
+  REG_RESP1,
+  REG_RESP2,
+  REG_GPIO
+};
 
-  // remember to change SAMPLING_RATE value if you change here
-const uint8_t register_settings[] = {
-//set value      register name        address
-  0x73,       // ADS1292_REG_ID			  0x00  read only
-  0x00,       // ADS1292_REG_CONFIG1	0x01  set sampling rate to 125 SPS
-  0b10100000, // ADS1292_REG_CONFIG2	0x02  lead-off comp off, test signal disabled
-  0b00010000, // ADS1292_REG_LOFF		  0x03  lead-off defaults
-  0b01000000, // ADS1292_REG_CH1SET		0x04  Ch 1 enabled, gain 6, connected to electrode in
-  0b01100000, // ADS1292_REG_CH2SET		0x05  Ch 2 enabled, gain 6, connected to electrode in
-  0b00101100, // ADS1292_REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
-  0x00,       // ADS1292_REG_LOFFSENS 0x07  LOFF settings: all disabled
-  0x00,       // ADS1292_REG_LOFFSTAT 0x08  Skip register 8, LOFF Settings default
-  0b11110010, // ADS1292_REG_RESP1	  0x09  respiration: MOD/DEMOD turned only, phase 0
-  0b00000011, // ADS1292_REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
-  0b00001100  // ADS1292_REG_GPIO     0x0B
-
-/*  
-  //TI 
-  0x73,       // REG_ID			  0x00  read only
-  0x00,       // REG_CONFIG1	0x01  set sampling rate to 125 SPS
-  0xE0, // REG_CONFIG2	0x02  lead-off DC comparators ON, test signal disabled
-  0xF0, // REG_LOFF		  0x03  lead-off comparator threshold. 000-least responsive, 111-max responsive. 
-  0x00, // REG_CH1SET		0x04  Ch 1 enabled, gain 6 , connected to electrode in
-  0x00, // REG_CH2SET		0x05  Ch 2 enabled, gain 12, connected to electrode in
-  0x2C, // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
-  0x0F,       // REG_LOFFSENS 0x07  LOFF settings: all disabled
-  0x00,       // REG_LOFFSTAT 0x08  Skip register 8, LOFF Settings default
-  0xEA, // REG_RESP1	  0x09  respiration: MOD/DEMOD turned only, phase 0
-  0x03, // REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
-  0b00001100  // REG_GPIO     0x0B
-*/
-/*  
-//set value      register name        address
-  0x73,       // REG_ID			  0x00  read only
-  0x00,       // REG_CONFIG1	0x01  set sampling rate to 125 SPS
-  0b10100000, // REG_CONFIG2	0x02  lead-off DC comparators ON, test signal disabled
-  0b00010000, // REG_LOFF		  0x03  lead-off comparator threshold. 000-least responsive, 111-max responsive. 
-  0b01000000, // REG_CH1SET		0x04  Ch 1 enabled, gain 6 , connected to electrode in
-  0b01100000, // REG_CH2SET		0x05  Ch 2 enabled, gain 12, connected to electrode in
-  0b00101100, // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
-  0x00,       // REG_LOFFSENS 0x07  LOFF settings: all disabled
-  0x00,       // REG_LOFFSTAT 0x08  Skip register 8, LOFF Settings default
-  0b11110010, // REG_RESP1	  0x09  respiration: MOD/DEMOD turned only, phase 0
-  0b00000011, // REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
-  0b00001100  // REG_GPIO     0x0B
-*/  
-}; 
+#define SETTING_SIZE     12
+uint8_t register_settings[SETTING_SIZE] = {  
+//last versin orginal
 /*
-  0b11000000, // REG_CONFIG2  0x02
-  0b00010000, // REG_LOFF		  0x03 
-  0b00101100, // REG_RLDSENS	0x06
-  0x00,       // REG_LOFFSENS 0x07
+  //# means same 
+  0x73,       //#REG_ID			  0x00  read only
+  0x00,       //#REG_CONFIG1	0x01  set sampling rate to 125 SPS (sample rate must compatible with SAMPLING_RATE)
+  0b11100000, //#REG_CONFIG2	0x02  lead-off DC comparators ON, test signal disabled
+  0b00010000, //#REG_LOFF		  0x03  lead-off comparator threshold. 000-least responsive, 111-max responsive. 
+  0x00,       //#REG_CH1SET		0x04  Ch 1 enabled, gain 6 , connected to electrode in
+  0b01100000, //#REG_CH2SET		0x05  Ch 2 enabled, gain 12, connected to electrode in
+  0b00111100, // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
+  0x00,       // REG_LOFFSENS 0x07  LOFF settings: all disabled
+  0x00,       //#REG_LOFFSTAT 0x08  Skip register 8, LOFF Settings default
+  0b11110010, //#!REG_RESP1	  0x09  respiration: MOD/DEMOD turned only, phase 0
+  0b00000011, //#REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
+  0b00001100  //#REG_GPIO     0x0B
 */
+//one code from online
+//simular to above
+//set value      register name        address
+/*
+  0x73,       //#REG_ID			  0x00  read only
+  0x00,       //#REG_CONFIG1	0x01  set sampling rate to 125 SPS
+  0b11100000, //#REG_CONFIG2	0x02  lead-off DC comparators ON, test signal disabled
+  0b00010000, //#REG_LOFF		  0x03  lead-off comparator threshold. 000-least responsive, 111-max responsive. 
+  0x00,       //#REG_CH1SET		0x04  Ch 1 enabled, gain 6 , connected to electrode in
+  0b01100000, //#REG_CH2SET		0x05  Ch 2 enabled, gain 12, connected to electrode in
+  0x30,       //!!REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD not connect any channel
+  0b00111111, //#!REG_LOFFSENS0x07  LOFF settings: all disabled
+  0x00,       //#REG_LOFFSTAT 0x08  Skip register 8, LOFF Settings default
+  0b11101010, //#REG_RESP1	  0x09  respiration: MOD/DEMOD turned only, phase 0
+  0b00000011, //#REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
+  0b00001100  //#REG_GPIO     0x0B
+
+*/
+  //TI - this copy works 
+  0x73,       //#REG_ID			  0x00  read only
+  0x00,       //#REG_CONFIG1	0x01  set sampling rate to 125 SPS
+  0xE0,       //#REG_CONFIG2	0x02  lead-off DC comparators ON, test signal disabled
+  0b00010000, //#REG_LOFF		  0x03  lead-off comparator threshold. 000-least responsive, 111-max responsive. 
+  0x00,       //#REG_CH1SET		0x04  Ch 1 enabled, gain 6 , connected to electrode in
+  0b01100000, //#REG_CH2SET		0x05  Ch 2 enabled, gain 12, connected to electrode in
+  0x3C,       // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
+  0x0F,       //#REG_LOFFSENS 0x07  LOFF settings: all disabled
+  0x00,       //#REG_LOFFSTAT 0x08  Skip register 8, LOFF Settings default
+  0b11101010, //#REG_RESP1	  0x09  respiration: MOD/DEMOD turned only, phase 0
+  0x03,       //#REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
+  0b00001100  //#REG_GPIO     0x0B
+}; 
 #define HISTGRM_CALC_TH        10
 
 uint32_t  heart_rate_histogram[HISTGRM_DATA_SIZE];
@@ -170,11 +180,6 @@ private:
 };
 
 ADS1292R    ads1292r;
-uint8_t     lead_flag = 0;
-uint8_t     ecg_data_buff[ECG_BUFFER_SIZE];
-int16_t     ecg_wave_sample,  ecg_filterout;
-int16_t     res_wave_sample,  resp_filterout;
-uint16_t    ecg_stream_cnt = 0;
 
 void IRAM_ATTR ads1292r_interrupt_handler(void)
 {
@@ -201,7 +206,7 @@ void pin_level_low(uint8_t pin, uint32_t ms)
 void ADS1292R :: init(void)
 {
   uint8_t data;
-  uint8_t r[12]; 
+  uint8_t data_rx[SETTING_SIZE]; 
   int i, address;
 
   SPI.setDataMode(SPI_MODE1);
@@ -215,9 +220,9 @@ void ADS1292R :: init(void)
 
   // reset device
   pin_level_high(ADS1292_CS_PIN,CS_HIGH_TIME); //initial CS
-
   pin_level_low(ADS1292_PWDN_PIN,PWDN_TIME_LOW);  
   pin_level_high(ADS1292_PWDN_PIN,PWDN_TIME_HIGH);  
+
   //------------------------------------------------
   // conversion stop, when "START pin is low" OR "receive STOP opcode"
   //------------------------------------------------
@@ -226,48 +231,59 @@ void ADS1292R :: init(void)
   //------------------------------------------------
   pin_level_low(ADS1292_CS_PIN,CS_LOW_TIME);
   //------------------------------------------------
-                     
-  //SPI.transfer(START);  
-  //SPI.transfer(STOP);  
+           
   SPI.transfer(SDATAC);         // stop data reading mode before write regiters
 
   //------------------------------------------------
+  // test functions (connect with 1Hz test square test signal)
+  //------------------------------------------------
+  /*
+  register_settings[REG_CONFIG2]|= 0b00000011;
+  register_settings[REG_CH1SET]  = register_settings[REG_CH1SET] & 0b11110000 | 0x05;
+  register_settings[REG_CH2SET]  = register_settings[REG_CH2SET] & 0b11110000 | 0x05;
+  register_settings[REG_RESP1 ]  = register_settings[REG_RESP1 ] & 0b01111111; 
+  */
+  //------------------------------------------------
   // write registers
-  //Write n nnnn registers starting @ address r rrrr
+  //------------------------------------------------
+  // write n nnnn registers starting @ address r rrrr
   // 010rrrrr, rrrrr = the starting register address.
   uint8_t OPCODE1 = 0x00 | WREG;  
   // 000nnnnn, nnnnn = the number of registers to write – 1
-  uint8_t OPCODE2 = sizeof(register_settings) - 1;                   
+  uint8_t OPCODE2 = SETTING_SIZE - 1;                   
   
   SPI.transfer(OPCODE1);   
   SPI.transfer(OPCODE2);	
-  
-  for(i = 0,address = 0x00; i<sizeof(register_settings); address++, i++)	
-  {
-    data = mask_register_bits(address, register_settings[i]);
-    SPI.transfer(data);	
-  } 
+     
+  for(i = 0,address = 0x00; i<SETTING_SIZE; address++, i++)	
+    register_settings[i] = mask_register_bits(address, register_settings[i]);
+  SPI.transferBytes(register_settings, data_rx, SETTING_SIZE);
+
   //------------------------------------------------
   // verify registers
-
-  //read n nnnn registers starting at address r rrrr  
+  //------------------------------------------------
+  // read n nnnn registers starting at address r rrrr  
   // 001r rrrr (rrrrr = the starting register address)
   OPCODE1 = 0x00 | RREG;  
   // 000nnnnn, nnnnn = the number of registers to write – 1
-  OPCODE2 = sizeof(r) - 1;                 
+  OPCODE2 = SETTING_SIZE - 1;                 
   SPI.transfer(OPCODE1);   
   SPI.transfer(OPCODE2);	
 
-  for(i=0; i<sizeof(r);i++)	
+  SPI.transferBytes(register_settings, data_rx, SETTING_SIZE);
+
+  for(i=0; i<SETTING_SIZE; i++)	
   {
-    r[i] = SPI.transfer(0x00);
-    if (r[i]!=register_settings[i])
+    //data_rx[i] = SPI.transfer(0x00);
+    if (i==8) continue; //not cheeck read only register at 0x08
+    if (data_rx[i]!=register_settings[i])
     {
       Serial.printf("!! ecg register error @%02x = %02x, expecting %02x\r\n", 
-                    i, r[i], register_settings[i]);
-      system_init_error++;
+                    i, data_rx[i], register_settings[i]);
+      system_init_error++;    
     }
   } 
+
   // start to read data continuously
   SPI.transfer(RDATAC);  
   
@@ -279,20 +295,26 @@ void ADS1292R :: init(void)
   pin_level_high (ADS1292_START_PIN,START_TIME);
 
   Serial.println("ECG config ok.");
+         
 }
-
+	
 void ADS1292R :: getData()
 {
-  uint8_t       LeadStatus;
-  static uint8_t old_LeadStatus = 0;
-  signed long   signed_24bits_temp;
-  unsigned long unsigned_24bits_temp;
-  unsigned long resultTemp= 0;
-
+  uint8_t     lead_flag = 0;
+  uint8_t     ecg_data_buff[ECG_BUFFER_SIZE];
+  int16_t     ecg_wave_sample,  ecg_filterout;
+  int16_t     res_wave_sample,  resp_filterout;
+  uint16_t    ecg_stream_cnt = 0;
+  uint8_t     LeadStatus;
+  union ads { uint16_t u_sample16;
+              uint8_t  u_sample8[2];
+            }sample;
+  
   #define   SPI_BUFFER_SIZE   9
-  uint8_t   SPI_ReadBuffer[SPI_BUFFER_SIZE];
-
-  // Sampling rate is set to 125SPS ,DRDY ticks for every 8ms
+  uint8_t   SPI_RxBuffer[SPI_BUFFER_SIZE];
+  uint8_t   SPI_TxBuffer[SPI_BUFFER_SIZE]={1,1,1, 1,1,1, 1,1,1}; //dummy data
+ 
+  // DRDY pin trigger interrupt every 8ms when sample rate is 125SPS
   if (ads1292r_interrupt_flag==false)
     return;   //wait data to be ready
 
@@ -300,85 +322,83 @@ void ADS1292R :: getData()
   ads1292r_interrupt_flag = false;
   portEXIT_CRITICAL_ISR (&ads1292rMux);  
 
-  // processing the data
   SPI.setDataMode(SPI_MODE1);
 
-  // Read the data to SPI_ReadBuffer
+  // read the data 
   pin_level_low (ADS1292_CS_PIN,CS_LOW_TIME);
-  for (int i = 0; i < SPI_BUFFER_SIZE; i++)
-    SPI_ReadBuffer[i] = SPI.transfer(SPI_DUMMY_DATA);
+  SPI.transferBytes(SPI_TxBuffer, SPI_RxBuffer, SPI_BUFFER_SIZE);
+
   pin_level_high(ADS1292_CS_PIN,CS_HIGH_TIME); 
 
+  //channel 1 - take the first 16 bits of respiration ADC
+  sample.u_sample8[1] = SPI_RxBuffer[3];
+  sample.u_sample8[0] = SPI_RxBuffer[4];
+  res_wave_sample  = (int16_t) sample.u_sample16;
 
-  unsigned_24bits_temp = (unsigned long)(((unsigned long)SPI_ReadBuffer[3] << 16)|  
-                                         ((unsigned long)SPI_ReadBuffer[4] << 8) |  
-                                          (unsigned long)SPI_ReadBuffer[5]);
-  unsigned_24bits_temp = (unsigned long)(unsigned_24bits_temp << 8);
-  signed_24bits_temp   =   (signed long)(unsigned_24bits_temp);
-  signed_24bits_temp   =   (signed long)(  signed_24bits_temp >> 8);
-  res_wave_sample   = (int16_t)(signed_24bits_temp >> 8); // ignore the lower 8 bits
+  //channel 2 - take the first 16 bits of ecg ADC
+  sample.u_sample8[1] = SPI_RxBuffer[6];
+  sample.u_sample8[0] = SPI_RxBuffer[7];
+  ecg_wave_sample  = (int16_t) sample.u_sample16;
   
-
-  unsigned_24bits_temp = (unsigned long)(((unsigned long)SPI_ReadBuffer[6] << 16) | 
-                                         ((unsigned long)SPI_ReadBuffer[7] <<  8) | 
-                                          (unsigned long)SPI_ReadBuffer[8]);
-  unsigned_24bits_temp = (unsigned long)(unsigned_24bits_temp << 8);
-  signed_24bits_temp   =   (signed long)(unsigned_24bits_temp);
-  signed_24bits_temp   = (signed long) (signed_24bits_temp >> 8);
-
-  ecg_wave_sample   = (int16_t)(signed_24bits_temp >> 8); // ignore the lower 8 bits
-
   /*
    the first 3 bytes is the status word, 24-bit as below:
    1100 + LOFF_STAT[4:0] + GPIO[1:0] + 13 '0's).
    0000 1111 | 1000 0000 |0000 0000 (0x0f8000)
-  */
   
-  // BIT 4    | BIT 3   | BIT 2   | BIT 1   | BIT 0
-  // RLD_STAT | IN2N_OFF| IN2P_OFF| IN1N_OFF| IN1P_OFF
-  LeadStatus    = ((SPI_ReadBuffer[0]<<1)|(SPI_ReadBuffer[1]>>7))&0x0F; //ignore RLD lead
-LeadStatus=1;//FIXME
-/*  
-  if(old_LeadStatus!=LeadStatus)
+  -> LeadStatus format as:
+  BIT 4    | BIT 3   | BIT 2   | BIT 1   | BIT 0
+  RLD_STAT | IN2N_OFF| IN2P_OFF| IN1N_OFF| IN1P_OFF
+  */
+  sample.u_sample8[1] = SPI_RxBuffer[0] & 0x0F;
+  sample.u_sample8[0] = SPI_RxBuffer[1];
+  sample.u_sample16   = sample.u_sample16>>7;
+  LeadStatus = sample.u_sample8[0]; 
+  /*
   {
-    old_LeadStatus=LeadStatus;
-    Serial.printf("%u %u %u %u\r\n", 
-                  (LeadStatus & 0b00001000)>>3,
-                  (LeadStatus & 0b00000100)>>2,
-                  (LeadStatus & 0b00000010)>>1,
-                  (LeadStatus & 0b00000001)>>0
-                  );
+    static uint8_t old_LeadStatus = 0;
+    if(old_LeadStatus!=LeadStatus)
+    {
+      old_LeadStatus=LeadStatus;
+      Serial.printf("%u %u %u %u %u\r\n", 
+                    (LeadStatus & 0b00010000)>>4,
+                    (LeadStatus & 0b00001000)>>3,
+                    (LeadStatus & 0b00000100)>>2,
+                    (LeadStatus & 0b00000010)>>1,
+                    (LeadStatus & 0b00000001)>>0);
+    }
   }
-
-  if (!(LeadStatus == 0))
+*/
+  LeadStatus &= 0b00001100; // only check channel 2 lead off
+  
+  if (LeadStatus != 0)
   { // measure lead is OFF the body 
     lead_flag         = 0;
     ecg_filterout     = 0;
     resp_filterout    = 0;      
+    QRS_Heart_Rate    = 0;
   }  
-  else */
+  else 
   { // the measure lead is ON the body 
     lead_flag         = 1;
     // filter out the line noise @40Hz cutoff 161 order
-    Filter_CurrentECG_sample  (&ecg_wave_sample,&ecg_filterout);   
-    QRS_Algorithm_Interface   (ecg_filterout); 
+    Filter_CurrentECG_sample(ecg_wave_sample, &ecg_filterout);   
+    QRS_Calculate_Heart_Rate(ecg_filterout);
 
-    Filter_CurrentRESP_sample (res_wave_sample, &resp_filterout);
-    Calculate_RespRate        (resp_filterout,  &respirationRate);   
-    
+    Filter_CurrentRESP_sample(res_wave_sample, &resp_filterout);
+    Calculate_RespRate       (resp_filterout,  &respirationRate);   
     //-------------------------------------------
     // only enable this line, and use Aduino 
     // Serial Plotter to display ecg graphic
     //-------------------------------------------  
-    Serial.printf("%d %d\r\n", ecg_filterout, QRS_Heart_Rate-30 );
+    Serial.printf("%d\r\n", ecg_filterout);// QRS_Heart_Rate-30 );
     //-------------------------------------------
     
     if(heart_rate_prev != QRS_Heart_Rate)
     {
-      heart_rate_pack[0] = (uint8_t) QRS_Heart_Rate; // calculated by QRS_Algorithm_Interface()
+      heart_rate_pack[0] = (uint8_t) QRS_Heart_Rate; // calculated by QRS_Calculate_Heart_Rate()
       heart_rate_pack[1] = (uint8_t) heart_rate_from_oximeter; 
       heart_rate_pack[2] = lead_flag; 
-      heart_rate_prev = QRS_Heart_Rate;
+      heart_rate_prev    = QRS_Heart_Rate;
     }  
 
     if(npeakflag == 1)
@@ -592,6 +612,45 @@ uint8_t ADS1292R::mask_register_bits(uint8_t address, uint8_t data_in)
   }
   return data;
 }
+
+void set_ads1292_register(uint8_t address, uint8_t data)
+{
+  //------------------------------------------------
+  pin_level_low(ADS1292_CS_PIN,CS_LOW_TIME);
+  SPI.transfer(SDATAC);         // stop data reading mode before write regiters
+  //------------------------------------------------
+  // write registers
+  // write n nnnn registers starting @ address r rrrr
+  // 010rrrrr, rrrrr = the starting register address.
+  uint8_t OPCODE1 = address | WREG;  
+  // 000nnnnn, nnnnn = the number of registers to write – 1
+  uint8_t OPCODE2 = 0x00; //write one byte                  
+  
+  SPI.transfer(OPCODE1);   
+  SPI.transfer(OPCODE2);	 
+  SPI.transfer(data);	
+  //------------------------------------------------
+  // verify registers
+
+  //read n nnnn registers starting at address r rrrr  
+  // 001r rrrr (rrrrr = the starting register address)
+  OPCODE1 = address | RREG;  
+  // 000nnnnn, nnnnn = the number of registers to write – 1
+  OPCODE2 = 0x00;         //read one byte    
+
+  SPI.transfer(OPCODE1);   
+  SPI.transfer(OPCODE2);	
+
+  if (SPI.transfer(0x00)==data)
+    Serial.println("write ok");
+  else   
+    Serial.println("write error!");
+  // start to read data continuously
+  SPI.transfer(RDATAC);  
+  
+  pin_level_high(ADS1292_CS_PIN,CS_HIGH_TIME);
+}
+
 /*---------------------------------------------------------------------------------
  fake ecg data for testing
 ---------------------------------------------------------------------------------*/
@@ -634,46 +693,3 @@ void ADS1292R :: getTestData(void)
  }
 }
 #endif //ECG_BLE_TEST
-
-
-void ecg_reg_set(uint8_t address, uint8_t data)
-{
-  //------------------------------------------------
-  pin_level_low(ADS1292_CS_PIN,CS_LOW_TIME);
-  SPI.transfer(SDATAC);         // stop data reading mode before write regiters
-  //------------------------------------------------
-  // write registers
-  //Write n nnnn registers starting @ address r rrrr
-  // 010rrrrr, rrrrr = the starting register address.
-  uint8_t OPCODE1 = address | WREG;  
-  // 000nnnnn, nnnnn = the number of registers to write – 1
-  uint8_t OPCODE2 = 0x00;                   
-  
-  SPI.transfer(OPCODE1);   
-  SPI.transfer(OPCODE2);	 
-  SPI.transfer(data);	
- 
-  //------------------------------------------------
-  // verify registers
-
-  //read n nnnn registers starting at address r rrrr  
-  // 001r rrrr (rrrrr = the starting register address)
-  OPCODE1 = address | RREG;  
-  // 000nnnnn, nnnnn = the number of registers to write – 1
-  OPCODE2 = 0x00;        
-
-  SPI.transfer(OPCODE1);   
-  SPI.transfer(OPCODE2);	
-
-  if (SPI.transfer(0x00)==data)
-    Serial.println("write ok");
-  else   
-    Serial.println("write error!");
-  // start to read data continuously
-  SPI.transfer(RDATAC);  
-  
-  pin_level_high(ADS1292_CS_PIN,CS_HIGH_TIME);
-  
-
-  //pin_level_high (ADS1292_START_PIN,START_TIME);
-}

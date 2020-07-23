@@ -98,7 +98,7 @@ void doButton() {
     if ((millis() - buttonInterruptTime) > 100)    //after a delay
     {
       if (digitalRead(PUSH_BUTTON_PIN) == 0)  //still LOW    
-      {
+      {    
         Serial.println("BUTTON Yes");
       }
       portENTER_CRITICAL(&buttonMux);
@@ -248,7 +248,6 @@ void measureBattery()
   //Serial.printf("adc:%u average+adjust %u battery: %u%% \r", 
   //              adcSample[0], adc, battery_percent);
   batteryDataReady = true; 
-
 }
 /*---------------------------------------------------------------------------------
  body temperature measurement
@@ -295,9 +294,6 @@ void initSPI()
   // the higher speed will cause ecg stop working
   // example code use SPI_CLOCK_DIV16 
   SPI.setClockDivider (SPI_CLOCK_DIV32);  
-  //FIXME SPI speed maybe can increase
-
-  delay(10);           // delay 10ms
 }
 /*---------------------------------------------------------------------------------
 The setup() function is called when a sketch starts. Use it to initialize variables, 
@@ -376,23 +372,24 @@ void setup()
 ---------------------------------------------------------------------------------*/
 void loop()
 {
-//FIXME test mode
   handleCLI();
+
   doTimer();                  // process timer event
   
   doButton();                 // process button event
 
-//  handleOTA();                // "On The Air" update function 
+  handleOTA();                // "On The Air" update function 
 
-//  handleBLE();                // handle bluetooth low energy
+  handleBLE();                // handle bluetooth low energy
 
   handleECG();                // handle ECG and RESP
 
+//FIXME test mode
 //  spo2.handleData();           // read and send spo2 data  
 //  measureTemperature();       // battery power percent
 //  handelAcceleromter();       // motion detection with accelerometer
 
-//  measureBattery();           // measure body temperature
+  measureBattery();           // measure body temperature
 
   #if WEB_UPDATE
   handleWebClient();          // web server

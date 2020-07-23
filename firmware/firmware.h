@@ -124,12 +124,12 @@ extern  bool          histogramReady;
 /***********************
  * ecg_resp.cpp
  ***********************/
-void Filter_CurrentECG_sample (int16_t *CurrAqsSample, int16_t *FilteredOut);
+void Filter_CurrentECG_sample (int16_t  CurrAqsSample, int16_t *FilteredOut);
 void Filter_CurrentRESP_sample(int16_t  CurrAqsSample, int16_t *FiltOut);
-void QRS_Algorithm_Interface  (int16_t  CurrSample);
+void QRS_Calculate_Heart_Rate (int16_t  CurrSample);
 void Calculate_RespRate       (int16_t  CurrSample,volatile uint8_t *respirationRate);
 
-extern volatile uint16_t  QRS_Heart_Rate;
+extern uint16_t QRS_Heart_Rate;
 extern volatile uint8_t   npeakflag;
 /***********************
  * oximeter_afe4490.cpp
