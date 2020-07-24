@@ -390,7 +390,7 @@ void ADS1292R :: getData()
     // only enable this line, and use Aduino 
     // Serial Plotter to display ecg graphic
     //-------------------------------------------  
-    Serial.printf("%d\r\n", ecg_filterout);// QRS_Heart_Rate-30 );
+    //Serial.printf("%d\r\n", ecg_filterout);// QRS_Heart_Rate-30 );
     //-------------------------------------------
     
     if(heart_rate_prev != QRS_Heart_Rate)

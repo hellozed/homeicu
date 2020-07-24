@@ -12,7 +12,6 @@
  kit is available for $56. 
 ---------------------------------------------------------------------------------*/
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
 //
 //    Arduino library for the MAX30205 body temperature sensor breakout board
@@ -35,7 +34,11 @@
 
 #if TEMP_SENSOR_MAX30325
 
-#define MAX30205_ADDRESS        0x48  // 8bit address converted to 7bit
+/* ZWang:
+ * when A2 A1 A0 = 0 0 0, the address in datasheet is 0x90 (8-bit address)
+ * the address below requires 7-bit format, which is removed the last R/W bit.
+ */
+#define MAX30205_ADDRESS        0x48  // A2 A1 A0 = 0 0 0
 
 // Registers
 #define MAX30205_TEMPERATURE    0x00  //  get temperature ,Read only
@@ -44,8 +47,6 @@
 #define MAX30205_TOS            0x03  //
 
 #define MAX30205_READ_INTERVAL  500
-
-typedef unsigned char uint8_t;
 
 typedef enum{   	  // For configuration registers
   SHUTDOWN,    		  // shut down mode to reduce power consumption <3.5uA
@@ -58,8 +59,6 @@ typedef enum{   	  // For configuration registers
   ONE_SHOT          //  1= One shot, 0 = Continuos
 }configuration;
 
-
-
 class MAX30205
 {
   public:
@@ -70,53 +69,61 @@ class MAX30205
    float getTemperature(void);
 
   private:
-    void    I2CwriteByte(uint8_t address, uint8_t subAddress, uint8_t data);
-    void    I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count);
-    uint8_t I2CreadByte(uint8_t address, uint8_t subAddress);   
+    uint8_t writeByte(uint8_t address, uint8_t subAddress, uint8_t data);
+    void    readBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count);
+    uint8_t readByte(uint8_t address, uint8_t subAddress);   
 };
 
 
 float MAX30205::getTemperature(void)
 {
   uint8_t readRaw[2] = {0};
-  I2CreadBytes(MAX30205_ADDRESS,MAX30205_TEMPERATURE, &readRaw[0] ,2); // read two bytes
-  int16_t raw = readRaw[0] << 8 | readRaw[1];  //combine two bytes
+  readBytes(MAX30205_ADDRESS,MAX30205_TEMPERATURE, &readRaw[0] ,2); // read two bytes
+  uint16_t raw = readRaw[0] << 8 | readRaw[1];  //combine two bytes
   temperature = raw  * 0.00390625;     // convert to temperature
+
+  Serial.printf("body temperature: %3.1f\r\n",temperature);
+
   return  temperature;
 }
 
 void MAX30205::shutdown(void)
 {
-  uint8_t reg = I2CreadByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION);  // Get the current register
-  I2CwriteByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION, reg | 0x80);
+  uint8_t reg = readByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION);  // Get the current register
+  writeByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION, reg | 0x80);
 }
 
 bool MAX30205::begin(void)
-{
-  I2CwriteByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION, 0x00); //mode config
-  I2CwriteByte(MAX30205_ADDRESS, MAX30205_THYST , 		 0x00); // set threshold
-  I2CwriteByte(MAX30205_ADDRESS, MAX30205_TOS, 			 0x00); //
-  return true;
+{ uint8_t error = 0;
+  error += writeByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION, 0x00); //mode config
+  error += writeByte(MAX30205_ADDRESS, MAX30205_THYST , 		 0x00); // set threshold
+  error += writeByte(MAX30205_ADDRESS, MAX30205_TOS, 			 0x00); //
+  if (error == 0)
+    return true;
+  else 
+    return false;  
 }
 
 void MAX30205::printRegisters(void)
 {
-  Serial.println(I2CreadByte(MAX30205_ADDRESS, MAX30205_TEMPERATURE),  BIN);
-  Serial.println(I2CreadByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION),  BIN);
-  Serial.println(I2CreadByte(MAX30205_ADDRESS, MAX30205_THYST), BIN);
-  Serial.println(I2CreadByte(MAX30205_ADDRESS, MAX30205_TOS), BIN);
+  Serial.println(readByte(MAX30205_ADDRESS, MAX30205_TEMPERATURE),  BIN);
+  Serial.println(readByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION),  BIN);
+  Serial.println(readByte(MAX30205_ADDRESS, MAX30205_THYST), BIN);
+  Serial.println(readByte(MAX30205_ADDRESS, MAX30205_TOS), BIN);
 }
 
 // Wire.h read and write protocols
-void MAX30205::I2CwriteByte(uint8_t address, uint8_t subAddress, uint8_t data)
+uint8_t MAX30205::writeByte(uint8_t address, uint8_t subAddress, uint8_t data)
 {
+  uint8_t error;
   Wire.beginTransmission(address);  // Initialize the Tx buffer
   Wire.write(subAddress);           // Put slave register address in Tx buffer
   Wire.write(data);                 // Put data in Tx buffer
-  Wire.endTransmission();           // Send the Tx buffer
+  error = Wire.endTransmission();   // Send the Tx buffer
+  return error;
 }
 
-uint8_t MAX30205::I2CreadByte(uint8_t address, uint8_t subAddress)
+uint8_t MAX30205::readByte(uint8_t address, uint8_t subAddress)
 {
   uint8_t data; // `data` will store the register data
   Wire.beginTransmission(address);
@@ -127,7 +134,7 @@ uint8_t MAX30205::I2CreadByte(uint8_t address, uint8_t subAddress)
   return data;
 }
 
-void MAX30205::I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count)
+void MAX30205::readBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count)
 {
 	Wire.beginTransmission(address);   // Initialize the Tx buffer
 	// Next send the register to be read. OR with 0x80 to indicate multi-read.
@@ -142,21 +149,12 @@ void MAX30205::I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest,
 	}
 	
 }
-
-
 // -------------------------------------------
-
 MAX30205  tempSensor;
 
-float getTemperature()
-{
-  return tempSensor.getTemperature()*100;
-}
-
-boolean initTemperature()
-{
-  return tempSensor.begin();
-}
+float   getTemperature()  {return tempSensor.getTemperature();}
+boolean initTemperature() {return tempSensor.begin();}
+// -------------------------------------------
 #elif (TEMP_SENSOR_TMP117==false)
 
 //if none of temperature sensor enabled
@@ -164,3 +162,34 @@ float getTemperature()    {return 0;}
 boolean initTemperature() {return false;}
 
 #endif //TEMP_SENSOR_MAX30325
+
+// -------------------------------------------
+// scan and print i2c device address
+// -------------------------------------------
+/*
+void scan_i2c_device() {
+  byte error, address;
+  int nDevices;
+  Serial.println("Scanning...");
+  nDevices = 0;
+  for(address = 1; address < 127; address++ ) {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0) {
+      Serial.print("I2C device found at address 0x");
+      if (address<16) Serial.print("0");
+      Serial.println(address,HEX);
+      nDevices++;
+    }
+    else if (error==4) {
+      Serial.print("Unknow error at address 0x");
+      if (address<16) Serial.print("0");
+      Serial.println(address,HEX);
+    }    
+  }
+  if (nDevices == 0) 
+    Serial.println("No I2C devices found\n");
+  else 
+    Serial.println("done\n");
+}
+*/

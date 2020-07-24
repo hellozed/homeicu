@@ -267,7 +267,6 @@ void measureTemperature()
     #if SIM_TEMPERATURE
     bodyTemperature.f =  (float)analogRead(SENSOR_TEMP)*100/4096;
     #endif
-  
     temperatureReady = true;
   }
 }
@@ -333,16 +332,14 @@ void setup()
 
   initBLE();                  // low energy blue tooth 
   //------------------------------------------------ 
+  Wire.begin( I2C_SDA_PIN,    // initialize I2C
+              I2C_SCL_PIN,
+              400000);        //standard speed is 100000, fast speed is 400000
 
-  #define I2C_SPEED_STANDARD        100000
-  #define I2C_SPEED_FAST            400000
-  Wire.begin(25,22,I2C_SPEED_FAST); // initialize I2C, SDA=25pin SCL=22pin
   //------------------------------------------------ 
   initSPI();                  // initialize SPI
-  initECG();                  // with different CS pin and SPI mode.
-  
   attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
-  
+  initECG();                  // with different CS pin and SPI mode.
   //------------------------------------------------
   spo2.init(); 
   initAcceleromter();
@@ -386,10 +383,10 @@ void loop()
 
 //FIXME test mode
 //  spo2.handleData();           // read and send spo2 data  
-//  measureTemperature();       // battery power percent
+  measureTemperature();       //  body temperature
 //  handelAcceleromter();       // motion detection with accelerometer
 
-  measureBattery();           // measure body temperature
+  measureBattery();           // measure battery power percent
 
   #if WEB_UPDATE
   handleWebClient();          // web server

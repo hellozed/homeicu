@@ -27,8 +27,8 @@
 #define HUMAN_BODY_PRESENT_IR_THRESHOLD   1000  //FIXME this number need define
 
 // temperature sensor define
-#define TEMP_SENSOR_MAX30325  false
-#define TEMP_SENSOR_TMP117    true
+#define TEMP_SENSOR_MAX30325  true
+#define TEMP_SENSOR_TMP117    false
 #if (TEMP_SENSOR_MAX30325&&TEMP_SENSOR_TMP117)
   #error You must only enable at least one!
 #endif 
@@ -37,18 +37,19 @@
 ---------------------------------------------------------------------------------*/
 #define TEST_PRINT      true    // show  more print out
 #define SIM_BATTERY     true    // potentiometer A simulates the bettery voltage detction
-#define SIM_TEMPERATURE true    // potentiometer B to simulate the temperature sensor
+#define SIM_TEMPERATURE false    // potentiometer B to simulate the temperature sensor
 #define JOYTICK_TEST    true    // use joy stick y to simulate 
 #define ECG_BLE_TEST    false   // send fake ecg data to BLE
 #define SIM_PPG         true    // use joy stick x to simulate PPG
 /*---------------------------------------------------------------------------------
   PIN number defined by ESP-WROOM-32 IO port number
 ---------------------------------------------------------------------------------*/
-const uint8_t ADS1292_CS_PIN   = 13;
-const uint8_t ADS1292_START_PIN= 14;
-const uint8_t ADS1292_DRDY_PIN = 26;
-const uint8_t ADS1292_PWDN_PIN = 27;
-
+const uint8_t ADS1292_CS_PIN    = 13;
+const uint8_t ADS1292_START_PIN = 14;
+const uint8_t ADS1292_DRDY_PIN  = 26;
+const uint8_t ADS1292_PWDN_PIN  = 27;
+const uint8_t I2C_SDA_PIN       = 25;
+const uint8_t I2C_SCL_PIN       = 22;
 const uint8_t AFE4490_CS_PIN    = 21;   //this IO pin is not used if not usxing AFE4490
 const uint8_t OXIMETER_INT_PIN  = 39; 
 const uint8_t SPO2_START_PIN    = 4;    //high to power on SPO2 chip, low to power off
