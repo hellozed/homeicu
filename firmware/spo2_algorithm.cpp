@@ -1,13 +1,14 @@
 /*---------------------------------------------------------------------------------
   modified by: ZWang
 
-  merge spo2_algorithm.h into this .cpp file.
+  1. merge spo2_algorithm.h into this .cpp file.
+
+  2. The original code from Maxim Integrated has bugs, and fixed by Robert Fraczkiewicz
+  https://github.com/aromring/MAX30102_by_RF
 ---------------------------------------------------------------------------------*/
 
-
-
 /** algorithm.cpp ******************************************************
-*
+* 
 * Project: MAXREFDES117#
 * Filename: algorithm.cpp
 * Description: This module calculates the heart rate/SpO2 level
@@ -48,23 +49,28 @@
 #define FreqS 25    //sampling frequency
 #define BUFFER_SIZE (FreqS * 4) 
 #define MA4_SIZE 4 // DONOT CHANGE
-//#define min(x,y) ((x) < (y) ? (x) : (y)) //Defined in Arduino.h
+//#define min(x,y) ((x) < (y) ? (x) : (y))
+#define BUFFER_SIZE_MA4 BUFFER_SIZE-MA4_SIZE
 
 //uch_spo2_table is approximated as  -45.060*ratioAverage* ratioAverage + 30.354 *ratioAverage + 94.845 ;
-const uint8_t uch_spo2_table[184]={ 95, 95, 95, 96, 96, 96, 97, 97, 97, 97, 97, 98, 98, 98, 98, 98, 99, 99, 99, 99, 
-              99, 99, 99, 99, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
-              100, 100, 100, 100, 99, 99, 99, 99, 99, 99, 99, 99, 98, 98, 98, 98, 98, 98, 97, 97, 
-              97, 97, 96, 96, 96, 96, 95, 95, 95, 94, 94, 94, 93, 93, 93, 92, 92, 92, 91, 91, 
-              90, 90, 89, 89, 89, 88, 88, 87, 87, 86, 86, 85, 85, 84, 84, 83, 82, 82, 81, 81, 
-              80, 80, 79, 78, 78, 77, 76, 76, 75, 74, 74, 73, 72, 72, 71, 70, 69, 69, 68, 67, 
-              66, 66, 65, 64, 63, 62, 62, 61, 60, 59, 58, 57, 56, 56, 55, 54, 53, 52, 51, 50, 
-              49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 31, 30, 29, 
-              28, 27, 26, 25, 23, 22, 21, 20, 19, 17, 16, 15, 14, 12, 11, 10, 9, 7, 6, 5, 
-              3, 2, 1 } ;
+const float uch_spo2_table[184]=
+              {94.845,95.144034,95.434056,95.715066,95.987064,96.25005,96.504024,96.748986,96.984936,97.211874,97.4298,97.638714,97.838616,98.029506,
+              98.211384,98.38425,98.548104,98.702946,98.848776,98.985594,99.1134,99.232194,99.341976,99.442746,99.534504,99.61725,99.690984,99.755706,
+              99.811416,99.858114,99.8958,99.924474,99.944136,99.954786,99.956424,99.94905,99.932664,99.907266,99.872856,99.829434,99.777,99.715554,
+              99.645096,99.565626,99.477144,99.37965,99.273144,99.157626,99.033096,98.899554,98.757,98.605434,98.444856,98.275266,98.096664,97.90905,
+              97.712424,97.506786,97.292136,97.068474,96.8358,96.594114,96.343416,96.083706,95.814984,95.53725,95.250504,94.954746,94.649976,94.336194,
+              94.0134,93.681594,93.340776,92.990946,92.632104,92.26425,91.887384,91.501506,91.106616,90.702714,90.2898,89.867874,89.436936,88.996986,
+              88.548024,88.09005,87.623064,87.147066,86.662056,86.168034,85.665,85.152954,84.631896,84.101826,83.562744,83.01465,82.457544,81.891426,
+              81.316296,80.732154,80.139,79.536834,78.925656,78.305466,77.676264,77.03805,76.390824,75.734586,75.069336,74.395074,73.7118,73.019514,
+              72.318216,71.607906,70.888584,70.16025,69.422904,68.676546,67.921176,67.156794,66.3834,65.600994,64.809576,64.009146,63.199704,62.38125,
+              61.553784,60.717306,59.871816,59.017314,58.1538,57.281274,56.399736,55.509186,54.609624,53.70105,52.783464,51.856866,50.921256,49.976634,
+              49.023,48.060354,47.088696,46.108026,45.118344,44.11965,43.111944,42.095226,41.069496,40.034754,38.991,37.938234,36.876456,35.805666,
+              34.725864,33.63705,32.539224,31.432386,30.316536,29.191674,28.0578,26.914914,25.763016,24.602106,23.432184,22.25325,21.065304,19.868346,
+              18.662376,17.447394,16.2234,14.990394,13.748376,12.497346,11.237304,9.96825,8.690184,7.403106,6.107016,4.801914,3.4878,2.164674,0.832536,
+              0.0};
 static  int32_t an_x[ BUFFER_SIZE]; //ir
 static  int32_t an_y[ BUFFER_SIZE]; //red
 
-void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_ir_buffer_length, uint32_t *pun_red_buffer, int32_t *pn_spo2, int8_t *pch_spo2_valid, int32_t *pn_heart_rate, int8_t *pch_hr_valid);
 void maxim_find_peaks(int32_t *pn_locs, int32_t *n_npks,  int32_t  *pn_x, int32_t n_size, int32_t n_min_height, int32_t n_min_distance, int32_t n_max_num);
 void maxim_peaks_above_min_height(int32_t *pn_locs, int32_t *n_npks,  int32_t  *pn_x, int32_t n_size, int32_t n_min_height);
 void maxim_remove_close_peaks(int32_t *pn_locs, int32_t *pn_npks, int32_t *pn_x, int32_t n_min_distance);
@@ -72,7 +78,8 @@ void maxim_sort_ascend(int32_t  *pn_x, int32_t n_size);
 void maxim_sort_indices_descend(int32_t  *pn_x, int32_t *pn_indx, int32_t n_size);
 
 //*******************************************************************************
-void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_ir_buffer_length, uint32_t *pun_red_buffer, int32_t *pn_spo2, int8_t *pch_spo2_valid, 
+void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_ir_buffer_length, uint32_t *pun_red_buffer, 
+                float *pn_spo2, int8_t *pch_spo2_valid, 
                 int32_t *pn_heart_rate, int8_t *pch_hr_valid)
 /**
 * \brief        Calculate the heart rate and SpO2 level
@@ -100,41 +107,39 @@ void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_i
   int32_t n_peak_interval_sum;
   
   int32_t n_y_ac, n_x_ac;
-  int32_t n_spo2_calc; 
   int32_t n_y_dc_max, n_x_dc_max; 
-  int32_t n_y_dc_max_idx = 0;
-  int32_t n_x_dc_max_idx = 0; 
+  int32_t n_y_dc_max_idx, n_x_dc_max_idx; 
   int32_t an_ratio[5], n_ratio_average; 
   int32_t n_nume, n_denom ;
 
-  // calculates DC mean and subtract DC from ir
+  // calculates DC mean and subtracts DC from ir
   un_ir_mean =0; 
   for (k=0 ; k<n_ir_buffer_length ; k++ ) un_ir_mean += pun_ir_buffer[k] ;
   un_ir_mean =un_ir_mean/n_ir_buffer_length ;
-    
+  
   // remove DC and invert signal so that we can use peak detector as valley detector
   for (k=0 ; k<n_ir_buffer_length ; k++ )  
-    an_x[k] = -1*(pun_ir_buffer[k] - un_ir_mean) ; 
-    
+    an_x[k] = un_ir_mean - pun_ir_buffer[k] ; 
+
   // 4 pt Moving Average
-  for(k=0; k< BUFFER_SIZE-MA4_SIZE; k++){
+  for(k=0; k< BUFFER_SIZE_MA4; k++){
     an_x[k]=( an_x[k]+an_x[k+1]+ an_x[k+2]+ an_x[k+3])/(int)4;        
   }
   // calculate threshold  
   n_th1=0; 
-  for ( k=0 ; k<BUFFER_SIZE ;k++){
+  for ( k=0 ; k<BUFFER_SIZE_MA4 ;k++){
     n_th1 +=  an_x[k];
   }
-  n_th1=  n_th1/ ( BUFFER_SIZE);
+  n_th1= n_th1/ (BUFFER_SIZE_MA4);
   if( n_th1<30) n_th1=30; // min allowed
   if( n_th1>60) n_th1=60; // max allowed
 
   for ( k=0 ; k<15;k++) an_ir_valley_locs[k]=0;
   // since we flipped signal, we use peak detector as valley detector
-  maxim_find_peaks( an_ir_valley_locs, &n_npks, an_x, BUFFER_SIZE, n_th1, 4, 15 );//peak_height, peak_distance, max_num_peaks 
+  maxim_find_peaks( an_ir_valley_locs, &n_npks, an_x, BUFFER_SIZE_MA4, n_th1, 4, 15 );//peak_height, peak_distance, max_num_peaks 
   n_peak_interval_sum =0;
   if (n_npks>=2){
-    for (k=1; k<n_npks; k++) n_peak_interval_sum += (an_ir_valley_locs[k] -an_ir_valley_locs[k -1] ) ;
+    for (k=1; k<n_npks; k++) n_peak_interval_sum += (an_ir_valley_locs[k] - an_ir_valley_locs[k -1] ) ;
     n_peak_interval_sum =n_peak_interval_sum/(n_npks-1);
     *pn_heart_rate =(int32_t)( (FreqS*60)/ n_peak_interval_sum );
     *pch_hr_valid  = 1;
@@ -153,7 +158,7 @@ void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_i
   // find precise min near an_ir_valley_locs
   n_exact_ir_valley_locs_count =n_npks; 
   
-  //using exact_ir_valley_locs , find ir-red DC andir-red AC for SPO2 calibration an_ratio
+  //using exact_ir_valley_locs , find ir-red DC and ir-red AC for SPO2 calibration an_ratio
   //finding AC/DC maximum of raw
 
   n_ratio_average =0; 
@@ -201,8 +206,7 @@ void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_i
     n_ratio_average = an_ratio[n_middle_idx ];
 
   if( n_ratio_average>2 && n_ratio_average <184){
-    n_spo2_calc= uch_spo2_table[n_ratio_average] ;
-    *pn_spo2 = n_spo2_calc ;
+    *pn_spo2 = uch_spo2_table[n_ratio_average];
     *pch_spo2_valid  = 1;//  float_SPO2 =  -45.060*n_ratio_average* n_ratio_average/10000 + 30.354 *n_ratio_average/100 + 94.845 ;  // for comparison with table
   }
   else{
@@ -210,7 +214,6 @@ void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_i
     *pch_spo2_valid  = 0; 
   }
 }
-
 
 void maxim_find_peaks( int32_t *pn_locs, int32_t *n_npks,  int32_t  *pn_x, int32_t n_size, int32_t n_min_height, int32_t n_min_distance, int32_t n_max_num )
 /**
@@ -247,7 +250,7 @@ void maxim_peaks_above_min_height( int32_t *pn_locs, int32_t *n_npks,  int32_t  
         pn_locs[(*n_npks)++] = i;    
         // for flat peaks, peak location is left edge
         i += n_width+1;
-      }
+      } 
       else
         i += n_width;
     }
@@ -320,7 +323,3 @@ void maxim_sort_indices_descend(  int32_t  *pn_x, int32_t *pn_indx, int32_t n_si
     pn_indx[j] = n_temp;
   }
 }
-
-
-
-

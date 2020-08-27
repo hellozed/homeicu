@@ -195,41 +195,41 @@ void handelAcceleromter() {
   if (accel.available()) {      // Wait for new data from accelerometer
     
 	// Acceleration of x, y, and z directions in g units
-	
-    Serial.print(accel.getCalculatedX(), 3);
-    Serial.print("\t");
-    Serial.print(accel.getCalculatedY(), 3);
-    Serial.print("\t");
-    Serial.print(accel.getCalculatedZ(), 3);
-    Serial.println();
+/*
+	Serial.printf("\r\n%1.2f %1.2f %1.2f ",
+		accel.getCalculatedX(), 
+		accel.getCalculatedY(), 
+		accel.getCalculatedZ());
 
 	// read raw data of acceleration of x, y, and z directions
     // Serial.print(accel.getX());
   	// Serial.print(accel.getX());
   	// Serial.print(accel.getX());
 
-   	// Prints "Tap" each time accelerometer detects a tap
-    if (accel.readTap() > 0) {
-      Serial.println("Acc: Tap");
-    }
-
 	// Orientation of board (Right, Left, Down, Up);
     if (accel.isRight() == true) {
-      Serial.println("Acc: Right");
+      Serial.print("Right");
     }
     else if (accel.isLeft() == true) {
-      Serial.println("Acc: Left");
+      Serial.print("Left");
     }
     else if (accel.isUp() == true) {
-      Serial.println("Acc: Up");
+      Serial.print("Up");
     }
     else if (accel.isDown() == true) {
-      Serial.println("Acc: Down");
+      Serial.print("Down");
     }
     else if (accel.isFlat() == true) {
-      Serial.println("Acc: Flat");
+      Serial.print("Flat");
+    }
+*/
+
+   	// Prints "Tap" each time accelerometer detects a tap
+    if (accel.readTap() > 0) {
+      Serial.print("Tap");
     }
   }
+
 }
 
 

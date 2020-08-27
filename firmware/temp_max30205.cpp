@@ -37,6 +37,7 @@
 /* ZWang:
  * when A2 A1 A0 = 0 0 0, the address in datasheet is 0x90 (8-bit address)
  * the address below requires 7-bit format, which is removed the last R/W bit.
+ * https://www.totalphase.com/support/articles/200349176-7-bit-8-bit-and-10-bit-I2C-Slave-Addressing
  */
 #define MAX30205_ADDRESS        0x48  // A2 A1 A0 = 0 0 0
 
@@ -62,7 +63,6 @@ typedef enum{   	  // For configuration registers
 class MAX30205
 {
   public:
-   float temperature = 0;      // Last temperature
    void  shutdown(void);   // Instructs device to power-save
    void  printRegisters(void); // Dumps contents of registers for debug
    bool  begin(void);
@@ -77,14 +77,20 @@ class MAX30205
 
 float MAX30205::getTemperature(void)
 {
+  static float last_temperature = 0; 
+  float current_temperature;
   uint8_t readRaw[2] = {0};
   readBytes(MAX30205_ADDRESS,MAX30205_TEMPERATURE, &readRaw[0] ,2); // read two bytes
   uint16_t raw = readRaw[0] << 8 | readRaw[1];  //combine two bytes
-  temperature = raw  * 0.00390625;     // convert to temperature
+  current_temperature = raw  * 0.00390625;     // convert to temperature
 
-  Serial.printf("body temperature: %3.1f\r\n",temperature);
+  current_temperature = ((int)(current_temperature * 10) / 10.0); //keep 0.1 resolution
 
-  return  temperature;
+  if (current_temperature != last_temperature){
+    last_temperature = current_temperature;
+    Serial.printf("body = %3.1f°C\r\n",current_temperature);
+  }
+  return  current_temperature;
 }
 
 void MAX30205::shutdown(void)
@@ -163,33 +169,5 @@ boolean initTemperature() {return false;}
 
 #endif //TEMP_SENSOR_MAX30325
 
-// -------------------------------------------
-// scan and print i2c device address
-// -------------------------------------------
-/*
-void scan_i2c_device() {
-  byte error, address;
-  int nDevices;
-  Serial.println("Scanning...");
-  nDevices = 0;
-  for(address = 1; address < 127; address++ ) {
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0) {
-      Serial.print("I2C device found at address 0x");
-      if (address<16) Serial.print("0");
-      Serial.println(address,HEX);
-      nDevices++;
-    }
-    else if (error==4) {
-      Serial.print("Unknow error at address 0x");
-      if (address<16) Serial.print("0");
-      Serial.println(address,HEX);
-    }    
-  }
-  if (nDevices == 0) 
-    Serial.println("No I2C devices found\n");
-  else 
-    Serial.println("done\n");
-}
-*/
+
+

@@ -20,11 +20,7 @@
 //#define OXI_MAX30101    3   // with 3 color LEDs, two power supply
 //#define OXI_MAXM86161   4   // with 3 color LEDs, single power
 
-#define SPO2_TYPE        OXI_NULL   
-
-// this number need change according to hardware
-// it = read_unblocked_IR_value() + tolerance range
-#define HUMAN_BODY_PRESENT_IR_THRESHOLD   1000  //FIXME this number need define
+#define SPO2_TYPE        OXI_MAX30102   
 
 // temperature sensor define
 #define TEMP_SENSOR_MAX30325  true
@@ -40,7 +36,6 @@
 #define SIM_TEMPERATURE false    // potentiometer B to simulate the temperature sensor
 #define JOYTICK_TEST    true    // use joy stick y to simulate 
 #define ECG_BLE_TEST    false   // send fake ecg data to BLE
-#define SIM_PPG         true    // use joy stick x to simulate PPG
 /*---------------------------------------------------------------------------------
   PIN number defined by ESP-WROOM-32 IO port number
 ---------------------------------------------------------------------------------*/
@@ -60,10 +55,6 @@ const uint8_t SENSOR_VP_PIN     = 36;
 #if JOYTICK_TEST
 const int JOYY_PIN          = 34;   //GPIO34 ADC
 #endif
-
-#if SIM_PPG
-const int JOYX_PIN          = 32;   //GPIO32 ADC
-#endif 
 
 #if SIM_TEMPERATURE
 const int SENSOR_TEMP       = 35;   //GPIO35 ADC
@@ -160,7 +151,6 @@ class SPO2
   public:
     void init();
     void handleData();
-    void simulateData();
     void clear_interrupt();
     void save_to_ppg_buffer(uint8_t i);
     

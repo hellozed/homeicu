@@ -102,11 +102,11 @@ static const uint8_t MAX3010X_ADCRANGE_4096   = 	0x20;
 static const uint8_t MAX3010X_ADCRANGE_8192   = 	0x40;
 static const uint8_t MAX3010X_ADCRANGE_16384  = 	0x60;
 
-static const uint8_t MAX3010X_SAMPLERATE_MASK =   0xE3;
-static const uint8_t MAX3010X_SAMPLERATE_50   = 	0x00;
-static const uint8_t MAX3010X_SAMPLERATE_100  = 	0x04;
-static const uint8_t MAX3010X_SAMPLERATE_200  = 	0x08;
-static const uint8_t MAX3010X_SAMPLERATE_400  = 	0x0C;
+static const uint8_t MAX3010X_SAMPLERATE_MASK =   0xE3; //(byte)~0b0001 1100;
+static const uint8_t MAX3010X_SAMPLERATE_50   = 	0x00; //         0000 0000
+static const uint8_t MAX3010X_SAMPLERATE_100  = 	0x04; //         0000 0100 
+static const uint8_t MAX3010X_SAMPLERATE_200  = 	0x08; //         0000 1000
+static const uint8_t MAX3010X_SAMPLERATE_400  = 	0x0C; //         0000 1100
 static const uint8_t MAX3010X_SAMPLERATE_800  = 	0x10;
 static const uint8_t MAX3010X_SAMPLERATE_1000 =   0x14;
 static const uint8_t MAX3010X_SAMPLERATE_1600 =   0x18;
@@ -223,11 +223,6 @@ class MAX3010X {
 
   // Die Temperature
   float readTemperature();
-  float readTemperatureF();
-
-  // Detecting ID/Revision
-  uint8_t getRevisionID();
-  uint8_t readPartID();  
 
   // Setup the IC with user selectable settings
   void setup(byte powerLevel = 0x1F, byte sampleAverage = 4, byte ledMode = 3, int sampleRate = 400, int pulseWidth = 411, int adcRange = 4096);
@@ -246,11 +241,10 @@ class MAX3010X {
   
   uint8_t revisionID; 
 
-  void readRevisionID();
-
   void bitMask(uint8_t reg, uint8_t mask, uint8_t thing);
  
-  #define STORAGE_SIZE 4 //Each long is 4 bytes so limit this to fit on your micro
+  #define STORAGE_SIZE 250  //Each long is 4 bytes so limit this to fit on your micro
+
   typedef struct Record
   {
     uint32_t red[STORAGE_SIZE];
@@ -261,5 +255,4 @@ class MAX3010X {
   } sense_struct; //This is our circular buffer of readings from the sensor
 
   sense_struct sense;
-
 };

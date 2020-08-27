@@ -168,10 +168,7 @@ void doTimer()
     #if ECG_BLE_TEST
     ads1292r.getTestData();
     #endif 
-    
-    #if SIM_PPG
-    spo2.simulateData();
-    #endif 
+   
   }  
 }
 /*---------------------------------------------------------------------------------
@@ -316,10 +313,10 @@ void setup()
 
   // initialize the data ready and chip select pins:
   // pin numbers are defined as ESP-WROOM-32, not as ESP32 processor
-  pinMode(ADS1292_DRDY_PIN,  INPUT);  
-  pinMode(ADS1292_CS_PIN,    OUTPUT);    
-  pinMode(ADS1292_START_PIN, OUTPUT);
-  pinMode(ADS1292_PWDN_PIN,  OUTPUT);  
+  pinMode(ADS1292_DRDY_PIN,   INPUT);  
+  pinMode(ADS1292_CS_PIN,     OUTPUT);    
+  pinMode(ADS1292_START_PIN,  OUTPUT);
+  pinMode(ADS1292_PWDN_PIN,   OUTPUT);  
   pinMode(LED_PIN,            OUTPUT); 
   pinMode(SPO2_START_PIN,     OUTPUT);
   pinMode(AFE4490_CS_PIN,     OUTPUT);  // slave select
@@ -332,10 +329,24 @@ void setup()
 
   initBLE();                  // low energy blue tooth 
   //------------------------------------------------ 
+  // initilize, and scan i2c device address
+  // -----------------------------------------------
   Wire.begin( I2C_SDA_PIN,    // initialize I2C
               I2C_SCL_PIN,
               400000);        //standard speed is 100000, fast speed is 400000
-
+  {
+    byte error, address;
+    Serial.println("Scanning I2C...");
+    for(address = 1; address < 127; address++ ) {
+      Wire.beginTransmission(address);
+      error = Wire.endTransmission();
+      if (error == 0) {
+        Serial.print("I2C device found at address 0x");
+        if (address<16) Serial.print("0");
+          Serial.println(address,HEX);
+      }
+    }
+  }
   //------------------------------------------------ 
   initSPI();                  // initialize SPI
   attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
@@ -381,10 +392,10 @@ void loop()
 
   handleECG();                // handle ECG and RESP
 
-//FIXME test mode
-//  spo2.handleData();           // read and send spo2 data  
+  spo2.handleData();           // read and send spo2 data  
+
   measureTemperature();       //  body temperature
-//  handelAcceleromter();       // motion detection with accelerometer
+  handelAcceleromter();       // motion detection with accelerometer
 
   measureBattery();           // measure battery power percent
 

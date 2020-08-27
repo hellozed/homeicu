@@ -19,7 +19,6 @@ by including I2C_SPEED_FAST when you call .begin() as well.
 .getGreen() - Returns the immediate Green value
 .available() - Returns how many new samples are available
 .readTemperature() - Returns the temperature of the IC in C
-.readTemperatureF() - Returns the temperature of the IC in F
 .softReset() - Resets everything including data and configuration
 .shutDown() - Powers down the IC but retains all configuration
 .wakeUp() - Opposite of shutDown
@@ -77,24 +76,25 @@ MAX3010X::MAX3010X() {
 boolean MAX3010X::begin(TwoWire &wirePort, uint8_t i2c_read_addr, uint8_t i2c_write_addr) {
   // Note by ZWang: disabled speed setting, and make the whole I2C same speed
   _i2cPort = &wirePort; //Grab which port the user wants us to use
-
-  // _i2cPort->begin();
-  // _i2cPort->setClock(i2cSpeed);
-
   _i2c_read_addr  = i2c_read_addr;
   _i2c_write_addr = i2c_write_addr;
 
+  writeRegister8( i2c_write_addr,  MAX3010X_MODECONFIG, 0x40); //reset
+
   // Step 1: Initial Communication and Verification
   // Check that a board is connected
-  if (readPartID() != MAX_30105_EXPECTEDPARTID) {
+
+  // Device ID and Revision
+  if (readRegister8(_i2c_read_addr, MAX3010X_PARTID) != MAX_30105_EXPECTEDPARTID) {
     // Error -- Part ID read from MAX30105 does not match expected part ID.
     // This may mean there is a physical connectivity problem (broken wire, unpowered, etc).
     return false;
   }
 
   // Populate revision ID
-  readRevisionID();
-  
+  revisionID = readRegister8(_i2c_read_addr, MAX3010X_REVISIONID);
+  Serial.printf("SPO2 Rev: 0x%x\r\n", revisionID);
+
   return true;
 }
 
@@ -331,14 +331,6 @@ float MAX3010X::readTemperature() {
   return (float)tempInt + ((float)tempFrac * 0.0625);
 }
 
-// Returns die temp in F
-float MAX3010X::readTemperatureF() {
-  float temp = readTemperature();
-
-  if (temp != -999.0) temp = temp * 1.8 + 32.0;
-
-  return (temp);
-}
 
 // Set the PROX_INT_THRESHold
 void MAX3010X::setPROXINTTHRESH(uint8_t val) {
@@ -346,20 +338,6 @@ void MAX3010X::setPROXINTTHRESH(uint8_t val) {
 }
 
 
-//
-// Device ID and Revision
-//
-uint8_t MAX3010X::readPartID() {
-  return readRegister8(_i2c_read_addr, MAX3010X_PARTID);
-}
-
-void MAX3010X::readRevisionID() {
-  revisionID = readRegister8(_i2c_read_addr, MAX3010X_REVISIONID);
-}
-
-uint8_t MAX3010X::getRevisionID() {
-  return revisionID;
-}
 
 
 //Setup the sensor
@@ -435,17 +413,11 @@ void MAX3010X::setup(byte powerLevel, byte sampleAverage, byte ledMode, int samp
   setPulseAmplitudeIR(powerLevel);
   setPulseAmplitudeGreen(powerLevel);
   setPulseAmplitudeProximity(powerLevel);
-  //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
   //Multi-LED Mode Configuration, Enable the reading of the three LEDs
-  //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   enableSlot(1, SLOT_RED_LED);
   if (ledMode > 1) enableSlot(2, SLOT_IR_LED);
   if (ledMode > 2) enableSlot(3, SLOT_GREEN_LED);
-  //enableSlot(1, SLOT_RED_PILOT);
-  //enableSlot(2, SLOT_IR_PILOT);
-  //enableSlot(3, SLOT_GREEN_PILOT);
-  //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
   clearFIFO(); //Reset the FIFO before we begin checking the sensor
 }
