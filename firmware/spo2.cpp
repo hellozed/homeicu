@@ -7,9 +7,6 @@
 
 extern  portMUX_TYPE oximeterMux;
 
-bool      ppgBufferReady      = false;
-uint8_t   ppg_data_buff[PPG_BUFFER_SIZE];
-
 class SPO2 spo2;
 
 void IRAM_ATTR oximeter_interrupt_handler()
@@ -22,7 +19,6 @@ void IRAM_ATTR oximeter_interrupt_handler()
 
 void SPO2::init()
 {
-  ppg_data_cnt    = 0;
   interrupt_flag  = false;
   
   digitalWrite(SPO2_START_PIN, LOW);
@@ -56,16 +52,6 @@ void SPO2::handleData()
   #else 
     #error define here!
   #endif   
-}
-
-void SPO2::save_to_ppg_buffer(uint8_t i)
-{//FIXME MAX3010x implementation
-    ppg_data_buff[ppg_data_cnt++] = i;
-    if(ppg_data_cnt >=PPG_BUFFER_SIZE)
-    {
-        ppgBufferReady = true;
-        ppg_data_cnt = 0;
-    }
 }
 
 void SPO2::clear_interrupt()

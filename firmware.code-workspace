@@ -48,7 +48,10 @@
 			"system_error": "cpp",
 			"tuple": "cpp",
 			"type_traits": "cpp",
-			"utility": "cpp"
+			"utility": "cpp",
+			"cstddef": "cpp",
+			"ios": "cpp",
+			"ctime": "cpp"
 		}
 	},
 	"arduino.ignoreBoards": []

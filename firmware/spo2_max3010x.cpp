@@ -63,17 +63,10 @@ https://github.com/aromring/MAX30102_by_RF
 #include "firmware.h"
 #include <Wire.h>
 #include "spo2_max3010x.h"
-
-void maxim_heart_rate_and_oxygen_saturation(
-    uint32_t *pun_ir_buffer, int32_t n_ir_buffer_length, uint32_t *pun_red_buffer,
-    float *pn_spo2, int8_t *pch_spo2_valid, int32_t *pn_heart_rate, int8_t *pch_hr_valid);
+#include "cppQueue.h"
+extern  Queue ppg_queue;
 
 MAX3010X spo2Sensor;
-
-uint32_t unblocked_IR_value; //Average IR without attached to human body
-// threshold of detect human body = read_unblocked_IR_value() + tolerance range
-#define HUMAN_BODY_PRESENT_IR_THRESHOLD   1000
-
 /*---------------------------------------------------------------------------------
  DC offset filter (high pass)
  use EMA Exponential Moving Average to remove DC signal from the samples.
@@ -83,29 +76,27 @@ uint32_t unblocked_IR_value; //Average IR without attached to human body
  https://www.norwegiancreations.com/2016/03/arduino-tutorial-simple-high-pass-band-pass-and-band-stop-filtering/ 
 
 ---------------------------------------------------------------------------------*/
-int32_t EMA_algorithm_Red(int32_t sensorValue)
-{
-  // sensorValue equivalent to EMA Y
-  static float   EMA_a = 0.2;     //initialization of EMA alpha
-  static int32_t EMA_S = 0;        //initialization of EMA S
-  uint32_t highpass = 0;
- 
-  EMA_S = (EMA_a * sensorValue) + ((1-EMA_a)*EMA_S);  //run the EMA
-  highpass = sensorValue - EMA_S;                   //calculate the high-pass signal
-  return highpass;
-}
-
-int32_t EMA_algorithm_InfraRed(int32_t sensorValue)
-{
-  // sensorValue equivalent to EMA Y
-  static float   EMA_a = 0.2;     //initialization of EMA alpha
-  static int32_t EMA_S = 0;        //initialization of EMA S
-  uint32_t highpass = 0;
- 
-  EMA_S = (EMA_a * sensorValue) + ((1-EMA_a)*EMA_S);  //run the EMA
-  highpass = sensorValue - EMA_S;                   //calculate the high-pass signal
-  return highpass;
-}
+class EMA_algorithm{
+  private:
+    const float  EMA_a = 0.2;     //initialization of EMA alpha
+    uint32_t EMA_S;
+  
+  public:
+    EMA_algorithm(void)           //constrator
+    {
+      static uint32_t EMA_S = 0;   //initialization of EMA S 
+    }  
+  
+    int32_t high_pass_filter(uint32_t data_input)
+    {
+      // data_input equivalent to EMA Y
+      EMA_S = (EMA_a * data_input) + ((1-EMA_a)*EMA_S);  //run the EMA
+      return data_input - EMA_S;
+    }
+};
+EMA_algorithm EMA_ppg;
+/*---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------*/
 void initMax3010xSpo2()
 {
   // Initialize sensor
@@ -115,60 +106,73 @@ void initMax3010xSpo2()
     system_init_error++;  
   }
 
-  byte ledBrightness = 60;  //Options: 0=Off to 255=50mA
-  byte sampleAverage = 4;   //Options: 1, 2, 4, 8, 16, 32
+  uint8_t ledBrightness = 60;  //Options: 0=Off to 255=50mA
+  uint8_t sampleAverage = 4;   //Options: 1, 2, 4, 8, 16, 32
 
   //Options: 1 = Red only, 2 = Red + IR, 3 = Red + IR + Green
   #if     (SPO2_TYPE==OXI_MAX30102)  // with 2 color LEDs
-    byte ledMode = 2;         
+    uint8_t ledMode = 2;         
   #elif if(SPO2_TYPE==OXI_MAX30101)  // with 3 color LEDs
-    byte ledMode = 3;     
+    uint8_t ledMode = 3;     
     #error double check this code                      
   #elif if(SPO2_TYPE==OXI_MAXM86161) // with 3 color LEDs
-    byte ledMode = 3;                 
+    uint8_t ledMode = 3;                 
     #error double check this code     
   #endif           
 
   // sampleRate, FreqS, sampleAverage are related, do not change them.
-  byte sampleRate = 100;    //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
+  uint8_t sampleRate = 100; //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
   int pulseWidth  = 411;    //Options: 69, 118, 215, 411
-  int adcRange    = 4096;  //Options: 2048, 4096, 8192, 16384
+  int adcRange    = 4096;   //Options: 2048, 4096, 8192, 16384
 
   //Configure sensor with these settings
   spo2Sensor.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange); 
 
   spo2Sensor.clearFIFO();
 
-  //Take an average of IR readings at power up
-  for (int x = 0 ; x < 32 ; x++)
-    unblocked_IR_value += spo2Sensor.getIR(); //Read the IR value
-  unblocked_IR_value = unblocked_IR_value/32 + HUMAN_BODY_PRESENT_IR_THRESHOLD;
-  Serial.print("IR value without human body: ");
-  Serial.println(unblocked_IR_value);
-
   //maxim_max30102_write_reg(REG_INTR_ENABLE_1,0xc0); // INTR setting
   //maxim_max30102_write_reg(REG_INTR_ENABLE_2,0x00);
   //maxim_max30102_read_reg(REG_INTR_STATUS_1,&uch_dummy);  //Reads/clears the interrupt status register
   //uint8_t uch_dummy;
   //pinMode(OXIMETER_INT_PIN, INPUT);  //pin D10 connects to the interrupt output pin of the MAX30102
-
 }
 /*---------------------------------------------------------------------------------
  IC internal FIFO size is 32 samples, make sure the sample rate, average, 
  and .check() is called frequently to meet that buffer not overflow.
 ---------------------------------------------------------------------------------*/
+#define SPO2_BUFFER_SIZE  100
+uint32_t irBuffer [SPO2_BUFFER_SIZE]; //infrared LED samples
+uint32_t redBuffer[SPO2_BUFFER_SIZE]; //red LED samples
+
+void calculate_spo2(uint32_t *ir_buffer)
+{ 
+  float   spo2_value;
+  int8_t  spo2_valid;       // = 1 when the SPO2 calculation is valid
+  int32_t heart_rate_value;     
+  int8_t  heart_rate_valid; // = 1 when the heart rate calculation is valid
+
+  maxim_heart_rate_and_oxygen_saturation
+      (irBuffer, SPO2_BUFFER_SIZE, redBuffer, 
+      &spo2_value, &spo2_valid, 
+      &heart_rate_value, &heart_rate_valid);
+      
+  if (spo2_valid==true) 
+    spo2_percent = (uint8_t) spo2_value;
+  else
+    spo2_percent = old_spo2_percent;  // new data not valid, restore the previous one
+    
+  if (heart_rate_valid)
+    ppg_heart_rate = (uint8_t)heart_rate_value;       
+  else
+    ppg_heart_rate = old_ppg_heart_rate;  // new data not valid, restore the previous one  
+}
+  
 void handleMax3010xSpo2()
 {
   static int buffer_index = 0;
 
-  #define SPO2_BUFFER_SIZE  100
-  static uint32_t irBuffer [SPO2_BUFFER_SIZE]; //infrared LED samples
-  static uint32_t redBuffer[SPO2_BUFFER_SIZE]; //red LED samples
-
-  float   spo2_value;
-  int8_t  spo2_valid;       // = 1 when the SPO2 calculation is valid
-  int32_t heart_rate;     
-  int8_t  heart_rate_valid; // = 1 when the heart rate calculation is valid
+  int32_t  sample32; 
+  int16_t  sample16;
 
   spo2Sensor.check(); //Check the sensor, read up to 3 samples
   if (spo2Sensor.available() < SPO2_BUFFER_SIZE) 
@@ -184,57 +188,45 @@ void handleMax3010xSpo2()
 
     spo2Sensor.nextSample(); //We're finished with this sample so move to next sample
 
-    /*------------------------------------------------------
-    Take IR reading to sense whether the human body presence
-    -------------------------------------------------------*/ 
-    //if (irBuffer [buffer_index] > unblocked_IR_value)
-    //Serial.printf("%d %d\r\n", 
-    //              -EMA_algorithm_Red((int32_t)redBuffer[buffer_index]), 
-    //              -EMA_algorithm_InfraRed((int32_t)irBuffer[buffer_index]));
-    //Serial.printf("%u\r\n", ((int32_t)redBuffer[buffer_index]));
+    //the ADC is 18 bits -> 16 bits by removing DC offset, and push to BLE tx queue
+    sample32 = irBuffer [buffer_index];  //uint32 -> int32
+    sample32 = EMA_ppg.high_pass_filter(sample32);
+    sample16 = (int16_t)sample32;
+    sample16 = - sample16;        //reverse the signal
 
-    buffer_index++;
-    if (buffer_index>=SPO2_BUFFER_SIZE)
-        buffer_index = 0;
+    //FIXME
+    {// TEST Code vvv
+    static int16_t  x = 0;
+    if (x >= 100)   x = 0;
+    sample16 = x++;
+    }
+    // TEST Code ^^^  
+
+    if (bleDeviceConnected)
+      ppg_queue.push(&sample16);    //FIFO for BLE
   }
   
-  maxim_heart_rate_and_oxygen_saturation(irBuffer, SPO2_BUFFER_SIZE, redBuffer, 
-                                        &spo2_value, &spo2_valid, 
-                                        &heart_rate, &heart_rate_valid);
-
-  //while(digitalRead(OXIMETER_INT_PIN)==1);  //wait until the interrupt pin asserts
-  //FIXME: spo2.save_to_ppg_buffer implementation here
- 
-  //if ((heart_rate_valid==1)&&(spo2_valid==1))
+  calculate_spo2(irBuffer);
   
-  Serial.printf("HR %d SPO2 %f\r\n", 
-                heart_rate, //heart_rate_valid,
-                spo2_value //spo2_valid,
-                );
-                
-  if (spo2_valid)
-  {
-    SpO2Level = (uint8_t) spo2_value;
-    SpO2Ready = true;
-  }  
-  digitalWrite (LED_PIN, LOW);  // LED off
-}
-/*---------------------------------------------------------------------------------
----------------------------------------------------------------------------------*/
-#if 0 //temperature sensor
-  //FIXME need test LED heat
+  //while(digitalRead(OXIMETER_INT_PIN)==1);  //wait until the interrupt pin asserts
 
   /*
-  onboard temperature sensor
+  max30102 temperature function
   
-  The accuracy is +/-1 C, but the real precision of 0.0625 C.
-  
-  The LEDs are very low power and won't affect the temp reading much but
-  you may want to turn off the LEDs to avoid any local heating
+  1. the accuracy is +/-1 C, but the real precision of 0.0625 C.
+  2. the enviroment measurement is 2°C higher than the real temperature sensor.
+     due to the LED heating. The LEDs are very low power and won't affect the 
+     temp reading much but you may want to turn off the LEDs to avoid any 
+     local heating.
+  3. the body measurement is 1°C lower than real temperature sensor.
   */
-  spo2Sensor.enableDIETEMPRDY(); //Enable the temp ready interrupt. This is required.
+  
+  /*
+  float   spo2_temperature;
+  spo2_temperature = spo2Sensor.readTemperature();
+  */              
+          
+  digitalWrite (LED_PIN, LOW);  // LED off
+}
 
-  float temperature = spo2Sensor.readTemperature();
-  Serial.print("temperatureC=");
-  Serial.print(temperature, 4);
-#endif ////temperature sensor
+

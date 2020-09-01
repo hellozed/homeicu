@@ -56,7 +56,9 @@ The tri-wavelength MAX30101 sensor and bi-wavelength MAX30102 sensor were evalua
 ---------------------------------------------------------------------------------*/
 #include "firmware.h" 
 #include <SPI.h>
-
+#include "cppQueue.h"
+extern Queue ecg_queue;
+ 
 #define SPI_DUMMY_DATA  0xFF
 
 /*
@@ -157,13 +159,11 @@ uint8_t   histogram_percent   [HISTGRM_PERCENT_SIZE];
 uint8_t   hr_percent_count    = 0;
 uint8_t   hrv_array[HVR_ARRAY_SIZE];
 uint8_t   heart_rate_pack  [3];
-bool      ecgBufferReady      = false;
 bool      hrvDataReady        = false;
 bool      histogramReady      = false;
-bool      heartRateReady      = false;
+uint8_t   ecg_lead_off        = false;
 
 volatile uint8_t    npeakflag   = 0;
-volatile uint16_t   heart_rate_prev = 0;
 volatile uint8_t    respirationRate = 0;
 volatile bool       ads1292r_interrupt_flag   = false;
 
@@ -172,7 +172,6 @@ class ADS1292R
 public:
   void      init(void);
   void      getData(void);
-  void      getTestData(void);
 private:
   uint8_t * fillTxBuffer  (uint8_t peakvalue,uint8_t respirationRate);
   void      add_heart_rate_histogram(uint8_t hr);
@@ -300,8 +299,6 @@ void ADS1292R :: init(void)
 	
 void ADS1292R :: getData()
 {
-  uint8_t     lead_flag = 0;
-  uint8_t     ecg_data_buff[ECG_BUFFER_SIZE];
   int16_t     ecg_wave_sample,  ecg_filterout;
   int16_t     res_wave_sample,  resp_filterout;
   uint16_t    ecg_stream_cnt = 0;
@@ -372,14 +369,14 @@ void ADS1292R :: getData()
   
   if (LeadStatus != 0)
   { // measure lead is OFF the body 
-    lead_flag         = 0;
+    ecg_lead_off      = true;
     ecg_filterout     = 0;
     resp_filterout    = 0;      
-    QRS_Heart_Rate    = 0;
+    ecg_heart_rate    = 0;
   }  
   else 
   { // the measure lead is ON the body 
-    lead_flag         = 1;
+    ecg_lead_off      = false;
     // filter out the line noise @40Hz cutoff 161 order
     Filter_CurrentECG_sample(ecg_wave_sample, &ecg_filterout);   
     QRS_Calculate_Heart_Rate(ecg_filterout);
@@ -390,33 +387,20 @@ void ADS1292R :: getData()
     // only enable this line, and use Aduino 
     // Serial Plotter to display ecg graphic
     //-------------------------------------------  
-    //Serial.printf("%d\r\n", ecg_filterout);// QRS_Heart_Rate-30 );
+    //Serial.printf("%d\r\n", ecg_filterout);// ecg_heart_rate-30 );
     //-------------------------------------------
     
-    if(heart_rate_prev != QRS_Heart_Rate)
-    {
-      heart_rate_pack[0] = (uint8_t) QRS_Heart_Rate; // calculated by QRS_Calculate_Heart_Rate()
-      heart_rate_pack[1] = (uint8_t) heart_rate_from_oximeter; 
-      heart_rate_pack[2] = lead_flag; 
-      heart_rate_prev    = QRS_Heart_Rate;
-    }  
 
     if(npeakflag == 1)
     {
-      fillTxBuffer((uint8_t)QRS_Heart_Rate, respirationRate);
-      add_heart_rate_histogram((uint8_t)QRS_Heart_Rate);
+      fillTxBuffer((uint8_t)ecg_heart_rate, respirationRate);
+      add_heart_rate_histogram((uint8_t)ecg_heart_rate);
       npeakflag = 0;
     }
-  
-    //FIXME
-    ecg_data_buff[ecg_stream_cnt++] = (uint8_t)ecg_filterout; 
-    ecg_data_buff[ecg_stream_cnt++] = (ecg_filterout>>8);
-    
-    if(ecg_stream_cnt >=ECG_BUFFER_SIZE)
-    {
-      ecgBufferReady = true;
-      ecg_stream_cnt = 0;
-    }
+
+    // store to ble tx queque
+    if (bleDeviceConnected)
+      ecg_queue.push(&ecg_filterout);
   }
 } 
 /*--------------------------------------------------------------------------------- 
@@ -654,7 +638,6 @@ void set_ads1292_register(uint8_t address, uint8_t data)
 /*---------------------------------------------------------------------------------
  fake ecg data for testing
 ---------------------------------------------------------------------------------*/
-#if ECG_BLE_TEST
 const uint8_t fakeEcgSample[180] = { \
 223, 148, 148,  30, 178, 192, 214, 184, 180, 162, \
 168, 176, 229, 152, 182, 112, 184, 218, 231, 203, \
@@ -676,20 +659,22 @@ const uint8_t fakeEcgSample[180] = { \
 223, 211, 197, 201, 204, 208, 216, 188,  94, 211, \
 };
 
-void ADS1292R :: getTestData(void)
+void getTestData(void)
 {
-  static uint8_t index=0;
-  if (ecgBufferReady == false )     // refill the data
-  {
-    // build the data when the function called at the first time 
-    for(int i=0;i<ECG_BUFFER_SIZE;i++)
+  static uint16_t index=0;
+  // build the data when the function called at the first time 
+  Serial.println("");
+  for(int i=0;i<5;i++)
+    {
+      // store to ble tx queque
+      if (!ecg_queue.isFull())
       {
-        ecg_data_buff[i] = fakeEcgSample[index];
+        if (bleDeviceConnected)
+          ecg_queue.push(&index);//(fakeEcgSample[index]);
+        Serial.printf("[%d] ", index);
         index++;
-        if (index == 180) 
+        if (index >= 180) 
           index = 0;
       }
-    ecgBufferReady = true; 
- }
+    }
 }
-#endif //ECG_BLE_TEST

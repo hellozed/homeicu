@@ -17,10 +17,11 @@
 
 ---------------------------------------------------------------------------------*/
 #include "firmware.h"
+#if   (SPO2_TYPE==OXI_AFE4490)
 #include <SPI.h>
 #include <string.h>
 #include <math.h>
-extern  void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_ir_buffer_length, uint32_t *pun_red_buffer, int32_t *pn_spo2, int8_t *pch_spo2_valid, int32_t *pn_heart_rate, int8_t *pch_hr_valid);
+#include "cppQueue.h"
 
 
 //afe4490 Register definition
@@ -80,16 +81,18 @@ volatile int8_t   n_buffer_count; //data length
 int dec=0;
 
 
-static uint32_t irBuffer [100];     //infrared LED sensor data
-static uint32_t redBuffer[100];     //red LED sensor data
-
+extern uint32_t irBuffer [];     //infrared LED sensor data
+extern uint32_t redBuffer[];     //red LED sensor data
+void calculate_spo2(uint32_t *ir_buffer);
 
 class AFE4490  afe4490;
+extern Queue	ppg_queue;
 
 void AFE4490 :: getData(void)
 {
   signed   long afe4490_IR_data, afe4490_RED_data;
   unsigned long IRtemp,REDtemp;
+  uint16_t  sample16;
 
   if (spo2.interrupt_flag == false) 
     return;   // continue wait for data ready pin interrupt
@@ -124,37 +127,16 @@ void AFE4490 :: getData(void)
   }
   dec++;
 
-  //////////////////////////
+  // save PPG in BLE buffer
+  sample16 = (uint16_t)(afe4490_IR_data>>8);  
+  if (bleDeviceConnected)
+    ppg_queue.push(&sample16);
+
   // save SPO2 to BLE buffer
-  //////////////////////////
   if (n_buffer_count > 99)
   {
-    int32_t spo2_value;
-    int8_t ch_spo2_valid;             //if the SPO2 calculation is valid
-    int8_t ch_hr_valid;               //if the heart rate calculation is valid
-
-    maxim_heart_rate_and_oxygen_saturation(
-      irBuffer, 100, redBuffer, 
-      &spo2_value, &ch_spo2_valid, 
-      &heart_rate_from_oximeter, &ch_hr_valid);
-
+    calculate_spo2(irBuffer);
     n_buffer_count = 0;
-    
-    if (ch_spo2_valid)
-    {
-      SpO2Level = (uint8_t)spo2_value;       
-      SpO2Ready = true;
-    }
-  }
-
-  //////////////////////////
-  // save PPG in BLE buffer
-  //////////////////////////
-  {
-  uint16_t  ppg_wave_ir;
-  ppg_wave_ir = (uint16_t)(afe4490_IR_data>>8);  
-  spo2.save_to_ppg_buffer((uint8_t)ppg_wave_ir);
-  spo2.save_to_ppg_buffer((uint8_t)ppg_wave_ir>>8);
   }
 }
 
@@ -221,3 +203,5 @@ unsigned long AFE4490 :: readData (uint8_t address)
   digitalWrite (AFE4490_CS_PIN, HIGH);    // disable device
   return data;                            // return with 24 bits of read data
 }
+
+#endif   //(SPO2_TYPE==OXI_AFE4490)

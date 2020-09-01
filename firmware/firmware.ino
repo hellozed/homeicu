@@ -12,9 +12,11 @@
 #include <SPI.h>
 #include <Wire.h>         // i2c library
 #include "version.h"
+#include <Smoothed.h> 	  // SMA library, need be installed from Arduino/Sketch/Include libraries 
 
 void initECG();
 void handleECG();
+void getTestData(void);
 void handleCLI();
 /*---------------------------------------------------------------------------------
  Temperature sensor (ONLY turn on one of them)
@@ -34,16 +36,15 @@ portMUX_TYPE ads1292rMux  = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE oximeterMux  = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE timerMux     = portMUX_INITIALIZER_UNLOCKED;
 
-bool temperatureReady   = false;
-bool batteryDataReady   = false;
+Smoothed <float> batteryADC; 
 
-int32_t heart_rate_from_oximeter;  //heart rate value
-uint8_t SpO2Level;
-bool    SpO2Ready           = false;
+uint16_t  ecg_heart_rate, old_ecg_heart_rate  = 0;
+uint8_t   ppg_heart_rate, old_ppg_heart_rate  = 0;
+uint8_t   spo2_percent,   old_spo2_percent    = 0;
+uint8_t   battery_percent,old_battery_percent = 120; // number outside 0~100 will trigger ble sending
 
-uint8_t battery_percent = 100;
-
-union FloatByte bodyTemperature;
+union FloatByte body_temp;
+float old_temperature = 120; // number outside 0~45 will trigger ble sending
 
 int system_init_error = 0;  
 /*---------------------------------------------------------------------------------
@@ -139,7 +140,7 @@ void initTimer() {
   // Set alarm to call onTimer function every x microseconds).
   // Repeat the alarm (third parameter)
 
-  #define TIMER_MICRO_SECONDS 1000000*0.2 // * second
+  #define TIMER_MICRO_SECONDS 1000000*1 // * second
   timerAlarmWrite(timer, TIMER_MICRO_SECONDS, true); 
 
   // Start an alarm
@@ -154,97 +155,67 @@ void doTimer()
     portENTER_CRITICAL(&timerMux);
 
     portEXIT_CRITICAL (&timerMux);
-
-    #if JOYTICK_TEST
-    // ESP32 ADC return a 12bit value 0~4095 (uint16_t) 
-    {
-    int x, y;
-    pinMode(JOYY_PIN,   INPUT);  
-    y = analogRead(JOYY_PIN);
-    // Serial.printf("Y:%05d BAT:%3d Tmp:%4f\r", y, battery_percent, bodyTemperature.f);
-    }
-    #endif 
-
-    #if ECG_BLE_TEST
-    ads1292r.getTestData();
-    #endif 
-   
   }  
 }
 /*---------------------------------------------------------------------------------
- battery measurement
----------------------------------------------------------------------------------*/
+ messure battery voltage levle
+
+ get smoothed values and filter out noise: 
+ -----------------------------------------------*/
 void measureBattery()
 {
-  #define BAT_SAMPLE  5     
-  
-  static    uint16_t    adcSample[BAT_SAMPLE];
+  unsigned int adc;
+
   static unsigned long  LastReadTime = 0;
-
-  unsigned int          adc = 0;
-  int i;
-
-  #define BATTERY_READ_INTERVAL     (0.2*1000)   //millis
+  #define BATTERY_READ_INTERVAL     1000   //millis
   
   // check if the right time to read
-  if (millis() - LastReadTime < BATTERY_READ_INTERVAL)
-    return;   // not the right time
+  if (millis() - LastReadTime > BATTERY_READ_INTERVAL)
+  {
 
-  // it is the right time, continue read adc
-  LastReadTime = millis();    
+    LastReadTime = millis();    
 
-  // average several adc sample to reduce noise
-  
-  // shift adc sample into buffer      
-  for (i=BAT_SAMPLE-1; i>0; i--)
-    adcSample[i] = adcSample[i-1];
-  adcSample[0] = analogRead(SENSOR_VP_PIN);
+    // get adc sample and smooth it    
+    batteryADC.add(analogRead(SENSOR_VP_PIN));
+    adc = batteryADC.get();
 
-  // sum sample data together   
-  for (i=0; i<BAT_SAMPLE; i++)
-    adc += adcSample[i];
+    #if SIM_BATTERY
+    // ESP32 ADC return a 12bit value 0~4095 (uint16_t) 
+    // i = 0~4095 simulate y = 3600~4100
+    // y = 3600 + (4100-3600)*i/4095
+    adc = 3600 + (4100-3600)*adc/4095;
+    #endif 
+    
+    /*
+    ADC value (3600~4100) -> Battery Life (20%~100%)
+    It is not linear relationship between ADC and battery.
+    Adc : Batterry 
+    4100 100%
+    4000 80%
+    3900 60%
+    3800 45%
+    3700 30%
+    3600 20%
+    Batter Life = x Hours
+    */
+    #define Percent(adcNow, adcH, adcL, percentH, percentL) \
+            (percentL+(percentH-percentL)*(adcNow-adcL)/(adcH-adcL))
 
-  // divide it by sample number  
-  adc = adc/BAT_SAMPLE;
+    if (adc >=4000)
+      battery_percent = Percent(adc, 4100, 4000,100, 80);
+    else if (adc >=3900)
+      battery_percent = Percent(adc, 4000, 3900, 80, 60);
+    else if (adc >=3800)
+      battery_percent = Percent(adc, 3900, 3800, 60, 45);
+    else if (adc >=3700)
+      battery_percent = Percent(adc, 3800, 3700, 45, 30);
+    else if (adc >=3600)
+      battery_percent = Percent(adc, 3700, 3600, 30, 20);         
+    else
+      battery_percent = 10;
 
-  #if SIM_BATTERY
-  // ESP32 ADC return a 12bit value 0~4095 (uint16_t) 
-  // i = 0~4095 simulate y = 3600~4100
-  // y = 3600 + (4100-3600)*i/4095
-  adc = 3600 + (4100-3600)*adc/4095;
-  #endif 
-  
-  /*
-  ADC value (3600~4100) -> Battery Life (20%~100%)
-  It is not linear relationship between ADC and battery.
-  Adc : Batterry 
-  4100 100%
-  4000 80%
-  3900 60%
-  3800 45%
-  3700 30%
-  3600 20%
-  Batter Life = x Hours
-  */
-  #define Percent(adcNow, adcH, adcL, percentH, percentL) \
-          (percentL+(percentH-percentL)*(adcNow-adcL)/(adcH-adcL))
-
-  if (adc >=4000)
-    battery_percent = Percent(adc, 4100, 4000,100, 80);
-  else if (adc >=3900)
-    battery_percent = Percent(adc, 4000, 3900, 80, 60);
-  else if (adc >=3800)
-    battery_percent = Percent(adc, 3900, 3800, 60, 45);
-  else if (adc >=3700)
-    battery_percent = Percent(adc, 3800, 3700, 45, 30);
-  else if (adc >=3600)
-    battery_percent = Percent(adc, 3700, 3600, 30, 20);         
-  else
-    battery_percent = 10;
-
-  //Serial.printf("adc:%u average+adjust %u battery: %u%% \r", 
-  //              adcSample[0], adc, battery_percent);
-  batteryDataReady = true; 
+    battery_percent = battery_percent & 0b11111110  //reduce resolution
+  }
 }
 /*---------------------------------------------------------------------------------
  body temperature measurement
@@ -259,12 +230,11 @@ void measureTemperature()
   { 
     LastReadTime = millis();     
 
-    bodyTemperature.f = getTemperature();    // °C 
+    body_temp.f = getTemperature();    // °C 
     
     #if SIM_TEMPERATURE
-    bodyTemperature.f =  (float)analogRead(SENSOR_TEMP)*100/4096;
+    body_temp.f =  (float)analogRead(SENSOR_TEMP)*100/4096;
     #endif
-    temperatureReady = true;
   }
 }
 /*---------------------------------------------------------------------------------
@@ -323,6 +293,11 @@ void setup()
   pinMode(OXIMETER_INT_PIN,   INPUT);   // data ready 
   pinMode(PUSH_BUTTON_PIN,    INPUT_PULLUP);
 
+  // init battery voltage measurement
+  batteryADC.begin(SMOOTHED_AVERAGE, 10);	  //use moving average to smooth the signal
+  for (int i=0;i<10;i++)                    //force to clear buffer (constructor function has bug) 
+    batteryADC.add( analogRead(SENSOR_VP_PIN) ); 
+    
   attachInterrupt(digitalPinToInterrupt(PUSH_BUTTON_PIN), button_interrupt_handler, FALLING);
  
   initTimer();               
@@ -335,7 +310,7 @@ void setup()
               I2C_SCL_PIN,
               400000);        //standard speed is 100000, fast speed is 400000
   {
-    byte error, address;
+    uint8_t error, address;
     Serial.println("Scanning I2C...");
     for(address = 1; address < 127; address++ ) {
       Wire.beginTransmission(address);
@@ -392,9 +367,10 @@ void loop()
 
   handleECG();                // handle ECG and RESP
 
-  spo2.handleData();           // read and send spo2 data  
+  spo2.handleData();          // read and send spo2 data  
 
-  measureTemperature();       //  body temperature
+  measureTemperature();       // body temperature
+
   handelAcceleromter();       // motion detection with accelerometer
 
   measureBattery();           // measure battery power percent

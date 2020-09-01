@@ -5,18 +5,32 @@
 
  Reference
  https://randomnerdtutorials.com/esp32-bluetooth-low-energy-ble-arduino-ide/
+ https://www.arduino.cc/en/Reference/ArduinoBLE
+ https://www.arduino.cc/reference/en/libraries/esp32-ble-arduino/
 
+ ArduinoBLE is another lib, but it only support Nordic nRF52840 processor and 
+ using SerialHCI to drive the seperated bluetooth card, does not support esp32.
+
+ the maximum size of single data packet determined by MTU size which is 23bytes 
+ for BLE 4.0 (20b of data + 3b protocol wrapper). The MTU size is usually set 
+ during connection establishment with "MTU Request" command.  
+
+ -> notify() vs. ->indicate()
+ notif() is more energy efficient and indicate() is more reliable.
+ indicate() will hold the device until it receives acknowledgement or time out.
+
+ flutter_blue (lib for mobile app code) has not implement notify feature yet.
 ---------------------------------------------------------------------------------*/
-
 #include "firmware.h"
 #if BLE_FEATURE
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include "cppQueue.h"
 
 /*---------------------------------------------------------------------------------
- UUID Define 
+ define uuid 
  
  Alert: These definition value must be same as ble.dart in the Flutter project  
 ---------------------------------------------------------------------------------*/
@@ -41,70 +55,86 @@
 #define HRV_SERVICE_UUID                "cd5c7491-4448-7db8-ae4c-d1da8cba36d0"
 #define HRV_CHARACTERISTIC_UUID         "01bfa86f-970f-8d96-d44d-9023c47faddc"
 #define HIST_CHARACTERISTIC_UUID        "01bf1525-970f-8d96-d44d-9023c47faddc"
+
 /*---------------------------------------------------------------------------------
- 
+ local declarations
 ---------------------------------------------------------------------------------*/
 BLEServer         *pServer                    = NULL;
 BLECharacteristic *heartRate_Characteristic   = NULL;
-BLECharacteristic *SpO2_Characteristic        = NULL;
+BLECharacteristic *spo2_Characteristic        = NULL;
 BLECharacteristic *ecgStream_Characteristic   = NULL;
 BLECharacteristic *ppgStream_Characteristic   = NULL;
 BLECharacteristic *battery_Characteristic     = NULL;
-BLECharacteristic *temperature_Characteristic = NULL;
+BLECharacteristic *temp_Characteristic        = NULL;
 BLECharacteristic *hist_Characteristic        = NULL;
 BLECharacteristic *hrv_Characteristic         = NULL;
+
+volatile bool  bleDeviceConnected = false;
+         bool  oldDeviceConnected = false;
 /*---------------------------------------------------------------------------------
- global variables
+  PPG queque for BLE transfer
+
+  infrared samples are stored in the FIFO queue, then sent to base station over BLE 
+  the queue array size will be automatically resized while push data into it.
+
+  Reference and intallation guide:   
+  https://github.com/SMFSW/Queue/
+
 ---------------------------------------------------------------------------------*/
-bool deviceConnected    = false;
-bool oldDeviceConnected = false;
-
-extern bool     temperatureReady;
-extern bool     SpO2Ready;
-extern bool     ecgBufferReady;
-extern bool     ppgBufferReady;
-extern bool     hrvDataReady;
-extern bool     batteryDataReady;
-extern bool     heartRateReady;
-
+Queue	ppg_queue(PPG_QUEUE_LEN, PPG_QUEUE_SIZE, FIFO);
+Queue	ecg_queue(ECG_QUEUE_LEN, ECG_QUEUE_SIZE, FIFO);
+/*---------------------------------------------------------------------------------
+ extern variables
+---------------------------------------------------------------------------------*/
 extern uint8_t  hrv_array[HVR_ARRAY_SIZE];
-extern uint8_t  ecg_data_buff[ECG_BUFFER_SIZE];
-extern uint8_t  ppg_data_buff[PPG_BUFFER_SIZE];
 extern uint8_t  heart_rate_pack[3];
-extern uint8_t  SpO2Level;
-extern uint8_t  battery_percent;
-extern union    FloatByte bodyTemperature;
+extern uint8_t  battery_percent, old_battery_percent;
+extern union    FloatByte body_temp;
+extern float    old_temperature;
 extern uint8_t  histogram_percent[HISTGRM_PERCENT_SIZE];
-extern bool     histogramReady;
+
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
-class MyServerCallbacks: public BLEServerCallbacks 
+class MyServerCallbacks: public BLEServerCallbacks
 {
-  void onConnect(BLEServer* pServer)
+  void onConnect(BLEServer *pServer)
   {
-    deviceConnected = true;
+    bleDeviceConnected = true;
     pServer->startAdvertising();
     Serial.println("BLE: connected");
+
+    // re-send everything when re-connect ble
+    old_ecg_heart_rate  = 0xff;
+    old_spo2_percent    = 0xff;
+    old_temperature     = 0xff;
+    old_battery_percent = 0xff;
+    hrvDataReady        = true;  
+    histogramReady      = true;
+
+    Serial.println("BLE: re-send");
+  
+    ppg_queue.flush();
+    ecg_queue.flush();
   }
 
-  void onDisconnect(BLEServer* pServer)
+  void onDisconnect(BLEServer *pServer)
   {
     Serial.println("BLE: disconnected");
-    deviceConnected = false;
+    bleDeviceConnected = false;
   }
 };
 
-class ecgCallbackHandler: public BLECharacteristicCallbacks 
+class ecgCallbackHandler: public BLECharacteristicCallbacks
 {
-  void onWrite(BLECharacteristic *characteristic) 
+  void onWrite(BLECharacteristic *characteristic)
   {
     std::string value = characteristic->getValue();
     int len = value.length();
-
-    if (value.length() > 0) 
+    
+    if (value.length() > 0)
     {
-      Serial.print("BLE: ppg rec: ");
+      Serial.print("BLE: ecg rec: ");
       for (int i = 0; i < value.length(); i++)
       {
         Serial.print(String(value[i]));
@@ -112,16 +142,28 @@ class ecgCallbackHandler: public BLECharacteristicCallbacks
       Serial.println();
     }
   }
+/*void onStatus(BLECharacteristic* pCharacteristic, Status s, uint32_t code)
+  {
+    switch(s)
+    {
+      case SUCCESS_INDICATE:        Serial.printf("ecg SUCCESS_INDICATE\r\n");        break;
+      case ERROR_INDICATE_DISABLED: Serial.printf("ecg ERROR_INDICATE_DISABLED\r\n"); break;  
+      case SUCCESS_NOTIFY:          Serial.printf("ecg SUCCESS_NOTIFY\r\n");          break;
+      case ERROR_NOTIFY_DISABLED:   Serial.printf("ecg ERROR_NOTIFY_DISABLED\r\n");   break;
+		  case ERROR_NO_CLIENT:         Serial.printf("ecg ERROR_NO_CLIENT\r\n");         break;
+      default:                      Serial.printf("ecg other = %d\r\n", s);           break;
+    }     
+  }*/
 };
 
-class ppgCallbackHandler: public BLECharacteristicCallbacks 
+class ppgCallbackHandler: public BLECharacteristicCallbacks
 {
-  void onWrite(BLECharacteristic *characteristic) 
+  void onWrite(BLECharacteristic *characteristic)
   {
     std::string value = characteristic->getValue();
     int len = value.length();
 
-    if (value.length() > 0) 
+    if (value.length() > 0)
     {
       Serial.print("BLE: ppg: ");
       for (int i = 0; i < value.length(); i++)
@@ -131,41 +173,125 @@ class ppgCallbackHandler: public BLECharacteristicCallbacks
       Serial.println();
     }
   }
+
+/*void onStatus(BLECharacteristic* pCharacteristic, Status s, uint32_t code)
+  {
+    return; //disabled
+    switch(s)
+    {
+      case SUCCESS_INDICATE:        Serial.printf("SUCCESS_INDICATE\r\n");        break;
+      case ERROR_INDICATE_DISABLED: Serial.printf("ERROR_INDICATE_DISABLED\r\n"); break;  
+      case SUCCESS_NOTIFY:          Serial.printf("SUCCESS_NOTIFY\r\n");          break;
+      case ERROR_NOTIFY_DISABLED:   Serial.printf("ERROR_NOTIFY_DISABLED\r\n");   break;
+		  case ERROR_NO_CLIENT:         Serial.printf("ERROR_NO_CLIENT\r\n");         break;
+      default:                      Serial.printf("other = %d\r\n", s);           break;
+    }     
+  }*/
 };
 /*---------------------------------------------------------------------------------
-
+ called in the loop()
 ---------------------------------------------------------------------------------*/
-void sendBle(bool * readyFlag, uint8_t * data, int length, BLECharacteristic * chr)
-{
-  if (*readyFlag){
-    chr->setValue(data, length);
-    chr->notify();
-    *readyFlag = false;
-  }
-}
-
 void handleBLE(void)
-{
-  sendBle(&heartRateReady,  heart_rate_pack,    sizeof(heart_rate_pack),  heartRate_Characteristic);
-  sendBle(&hrvDataReady,    hrv_array,          sizeof(hrv_array),        hrv_Characteristic);
-  sendBle(&histogramReady,  histogram_percent,  sizeof(histogram_percent),hist_Characteristic); 
-  sendBle(&batteryDataReady,&battery_percent,   sizeof(battery_percent),  battery_Characteristic);  
-  sendBle(&SpO2Ready,       &SpO2Level,         sizeof(SpO2Level),        SpO2_Characteristic);
-  sendBle(&temperatureReady,bodyTemperature.b,  sizeof(bodyTemperature.b),temperature_Characteristic);  
-  sendBle(&ecgBufferReady,  ecg_data_buff,      sizeof(ecg_data_buff),    ecgStream_Characteristic);  
-  sendBle(&ppgBufferReady,  ppg_data_buff,      sizeof(ppg_data_buff),    ppgStream_Characteristic); 
-     
-  if (!deviceConnected && oldDeviceConnected)
-  {
-    delay(500); // give the bluetooth stack the chance to get things ready
-    pServer->startAdvertising(); // restart advertising
-    Serial.println("BLE: start advertising");
-    oldDeviceConnected = deviceConnected;
-  }
+{ 
+  // characteristic value can be up to 512 bytes long. 
+  // bluetooth stack can be congestion, if too many packets are sent, add delay() 
+  #define ecg_tx_size 10
+  #define ppg_tx_size 10
+
+  static uint16_t ecg_serial_number = 0;
+  static uint16_t ppg_serial_number = 0;
+
+  // the last byte is serial number of the tx package
+  uint16_t ecg_tx_data[ecg_tx_size+1];   
+  uint16_t ppg_tx_data[ppg_tx_size+1];
   
+  // disconnecting
+  if (!bleDeviceConnected && oldDeviceConnected) {
+      delay(500); // give the bluetooth stack the chance to get things ready
+      pServer->startAdvertising(); // restart advertising
+      Serial.println("start advertising");
+      oldDeviceConnected = bleDeviceConnected;
+  }
   // connecting
-  if (deviceConnected && !oldDeviceConnected)
-    oldDeviceConnected = deviceConnected;
+  if (bleDeviceConnected && !oldDeviceConnected) {
+      // do stuff here on connecting
+      oldDeviceConnected = bleDeviceConnected;
+  }
+
+  // only tx when ble app is connected
+  if (!bleDeviceConnected) 
+    return;         
+
+  ////////////////////////////////////////////
+  // send to BLE
+  ////////////////////////////////////////////
+  
+  //heart rate
+  if(old_ecg_heart_rate!= ecg_heart_rate)
+  {
+    heart_rate_pack[0]  = (uint8_t) ecg_heart_rate; // calculated by QRS_Calculate_Heart_Rate()
+    heart_rate_pack[1]  = (uint8_t) ppg_heart_rate; 
+    heart_rate_pack[2]  = ecg_lead_off; 
+    old_ecg_heart_rate  = ecg_heart_rate;
+    heartRate_Characteristic->setValue(&heart_rate_pack[0], sizeof(heart_rate_pack));
+    heartRate_Characteristic->notify();
+  }  
+
+  //spo2 percentage
+  if (old_spo2_percent!= spo2_percent) { 
+    old_spo2_percent = spo2_percent;
+    spo2_Characteristic->setValue(&spo2_percent, sizeof(spo2_percent));
+    spo2_Characteristic->notify();
+  }
+
+  //body temperature
+  if (old_temperature != body_temp.f){
+    old_temperature  = body_temp.f;
+    temp_Characteristic->setValue(body_temp.b, sizeof(body_temp.b));
+    temp_Characteristic->notify();
+  }  
+   
+  //battery life
+  if (old_battery_percent != battery_percent){
+    old_battery_percent  = battery_percent;
+    battery_Characteristic->setValue(&battery_percent, sizeof(battery_percent));
+    battery_Characteristic->notify();
+  }  
+  
+  //heart rate variability
+  if (hrvDataReady){
+    hrv_Characteristic->setValue(&hrv_array[0], sizeof(hrv_array));
+    hrv_Characteristic->notify();
+    hrvDataReady = false;
+  }
+
+  //heart rate histogram
+  if (histogramReady){
+    hist_Characteristic->setValue(&histogram_percent[0],sizeof(histogram_percent));
+    hist_Characteristic->notify();
+    histogramReady = false;
+  }
+
+  // ECG
+  if (ecg_queue.getCount()>=ecg_tx_size){
+    for (int i = 0; i < ecg_tx_size; i++)
+      ecg_queue.pop(&ecg_tx_data[i]);
+    ecg_tx_data[ecg_tx_size] = ecg_serial_number++;
+
+    ecgStream_Characteristic->setValue((uint8_t *)ecg_tx_data, sizeof(ecg_tx_data));
+    ecgStream_Characteristic->notify();
+  }
+
+  // PPG
+  if (ppg_queue.getCount()>=ppg_tx_size){
+    for (int i = 0; i < ppg_tx_size; i++)
+      ppg_queue.pop(&ppg_tx_data[i]);
+    ppg_tx_data[ppg_tx_size] = ppg_serial_number++;
+
+    ppgStream_Characteristic->setValue((uint8_t *)ppg_tx_data, sizeof(ppg_tx_data));
+    ppgStream_Characteristic->notify();
+  }
+
 }
 /*---------------------------------------------------------------------------------
  initialize bluetooth 
@@ -179,59 +305,43 @@ void initBLE(void)
   // Create BLE Service
   BLEService *heartRateService  = pServer->createService(HeartRate_SERVICE_UUID); 
   BLEService *sp02Service       = pServer->createService(SPO2_SERVICE_UUID);
-  BLEService *temperatureService= pServer->createService(TEMP_SERVICE_UUID);
+  BLEService *tempService       = pServer->createService(TEMP_SERVICE_UUID);
   BLEService *batteryService    = pServer->createService(BATTERY_SERVICE_UUID);
   BLEService *hrvService        = pServer->createService(HRV_SERVICE_UUID);
   BLEService *datastreamService = pServer->createService(DATASTREAM_SERVICE_UUID);
 
-  #define PROPERTY (BLECharacteristic::PROPERTY_READ|BLECharacteristic::PROPERTY_WRITE|BLECharacteristic::PROPERTY_NOTIFY)
+  // add the characteristic to the service 
+  // the indicate feature is not working on flutter_blue of the iOS app.
+  #define PROPERTY (BLECharacteristic::PROPERTY_READ    | \
+                    BLECharacteristic::PROPERTY_WRITE   | \
+                    BLECharacteristic::PROPERTY_INDICATE| \
+                    BLECharacteristic::PROPERTY_NOTIFY)
 
-  heartRate_Characteristic    = heartRateService->createCharacteristic(
-                                HeartRate_CHARACTERISTIC_UUID,
-                                PROPERTY);
+  heartRate_Characteristic    = heartRateService->createCharacteristic (HeartRate_CHARACTERISTIC_UUID,PROPERTY);
+  spo2_Characteristic         = sp02Service->createCharacteristic      (SPO2_CHARACTERISTIC_UUID,PROPERTY);
+  temp_Characteristic         = tempService->createCharacteristic      (TEMP_CHARACTERISTIC_UUID,PROPERTY);
+  battery_Characteristic      = batteryService->createCharacteristic   (BATTERY_CHARACTERISTIC_UUID,PROPERTY);
+  hrv_Characteristic          = hrvService->createCharacteristic       (HRV_CHARACTERISTIC_UUID,PROPERTY);
+  hist_Characteristic         = hrvService->createCharacteristic       (HIST_CHARACTERISTIC_UUID,PROPERTY);
+  ecgStream_Characteristic    = datastreamService->createCharacteristic(ECG_STREAM_CHARACTERISTIC_UUID,PROPERTY);
+  ppgStream_Characteristic    = datastreamService->createCharacteristic(PPG_STREAM_CHARACTERISTIC_UUID,PROPERTY);
 
-  SpO2_Characteristic         = sp02Service->createCharacteristic(
-                                SPO2_CHARACTERISTIC_UUID,
-                                PROPERTY);
-
-  temperature_Characteristic  = temperatureService->createCharacteristic(
-                                TEMP_CHARACTERISTIC_UUID,
-                                PROPERTY);
-                                                                      
-  battery_Characteristic      = batteryService->createCharacteristic(
-                                BATTERY_CHARACTERISTIC_UUID,
-                                PROPERTY);
-
-  hrv_Characteristic          = hrvService->createCharacteristic(
-                                HRV_CHARACTERISTIC_UUID,
-                                PROPERTY);
-
-  hist_Characteristic         = hrvService->createCharacteristic(
-                                HIST_CHARACTERISTIC_UUID,
-                                PROPERTY);
- 
-  ecgStream_Characteristic    = datastreamService->createCharacteristic(
-                                ECG_STREAM_CHARACTERISTIC_UUID,
-                                PROPERTY);
-  ppgStream_Characteristic    = datastreamService->createCharacteristic(
-                                PPG_STREAM_CHARACTERISTIC_UUID,
-                                PROPERTY);
-                
   heartRate_Characteristic  ->addDescriptor(new BLE2902());
-  SpO2_Characteristic       ->addDescriptor(new BLE2902());
-  temperature_Characteristic->addDescriptor(new BLE2902());
+  spo2_Characteristic       ->addDescriptor(new BLE2902());
+  temp_Characteristic       ->addDescriptor(new BLE2902());
   battery_Characteristic    ->addDescriptor(new BLE2902());
   hist_Characteristic       ->addDescriptor(new BLE2902());
   hrv_Characteristic        ->addDescriptor(new BLE2902());
   ecgStream_Characteristic  ->addDescriptor(new BLE2902());
   ppgStream_Characteristic  ->addDescriptor(new BLE2902());
+
   ecgStream_Characteristic  ->setCallbacks (new ecgCallbackHandler());
   ppgStream_Characteristic  ->setCallbacks (new ppgCallbackHandler()); 
 
   // Start the service
   heartRateService  ->start();
   sp02Service       ->start();
-  temperatureService->start();
+  tempService       ->start();
   batteryService    ->start();
   hrvService        ->start();
   datastreamService ->start();

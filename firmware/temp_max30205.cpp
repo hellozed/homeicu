@@ -88,7 +88,7 @@ float MAX30205::getTemperature(void)
 
   if (current_temperature != last_temperature){
     last_temperature = current_temperature;
-    Serial.printf("body = %3.1f°C\r\n",current_temperature);
+    //Serial.printf("body = %3.1f°C\r\n",current_temperature);
   }
   return  current_temperature;
 }

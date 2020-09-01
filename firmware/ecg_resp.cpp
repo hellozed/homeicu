@@ -48,9 +48,7 @@ static int QRS_Second_Next_Sample = 0 ;
 static int16_t QRS_Threshold_Old = 0;
 static int16_t QRS_Threshold_New = 0;
 
-
 /* Variable which holds the threshold value to calculate the maxima */
-uint16_t QRS_Heart_Rate = 0 ;
 /*  Pointer which points to the index in B4 buffer where the processed data*/
 /*  has to be filled */
 static uint16_t QRS_B4_Buffer_ptr = 0 ; 
@@ -303,11 +301,11 @@ static void QRS_check_sample_crossing_threshold( uint16_t scaled_result)
       sample_sum = sample_sum / (MAX_PEAK_TO_SEARCH - 1);
       HRAvg =  (uint16_t) sample_sum  ;
       // Compute HR without checking LeadOffStatus
-      QRS_Heart_Rate = (uint16_t) 60 *  SAMPLING_RATE;
-      QRS_Heart_Rate =  QRS_Heart_Rate / HRAvg ;
+      ecg_heart_rate = (uint16_t) 60 *  SAMPLING_RATE;
+      ecg_heart_rate =  ecg_heart_rate / HRAvg ;
 
-      if (QRS_Heart_Rate > 250)
-        QRS_Heart_Rate = 250 ;
+      if (ecg_heart_rate > 250)
+        ecg_heart_rate = 250 ;
 
       /* Setting the Current HR value in the ECG_Info structure*/
       maxima_sum =  maxima_sum / MAX_PEAK_TO_SEARCH;
@@ -371,7 +369,7 @@ static void QRS_check_sample_crossing_threshold( uint16_t scaled_result)
       sample_sum = 0;
       first_peak_detect = false;
       nopeak = 0;
-      QRS_Heart_Rate = 0;
+      ecg_heart_rate = 0;
     }
   }
   else
@@ -394,7 +392,7 @@ static void QRS_check_sample_crossing_threshold( uint16_t scaled_result)
       sample_sum = 0;
       first_peak_detect = false;
       nopeak = 0;
-      QRS_Heart_Rate = 0;
+      ecg_heart_rate = 0;
     }
   }
 }

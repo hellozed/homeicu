@@ -6,7 +6,7 @@
 /*---------------------------------------------------------------------------------
   Link options
 ---------------------------------------------------------------------------------*/
-#define BLE_FEATURE false
+#define BLE_FEATURE true
 #define WEB_FEATURE false
 #define CLI_FEATURE true
 
@@ -33,9 +33,7 @@
 ---------------------------------------------------------------------------------*/
 #define TEST_PRINT      true    // show  more print out
 #define SIM_BATTERY     true    // potentiometer A simulates the bettery voltage detction
-#define SIM_TEMPERATURE false    // potentiometer B to simulate the temperature sensor
-#define JOYTICK_TEST    true    // use joy stick y to simulate 
-#define ECG_BLE_TEST    false   // send fake ecg data to BLE
+#define SIM_TEMPERATURE false   // potentiometer B to simulate the temperature sensor
 /*---------------------------------------------------------------------------------
   PIN number defined by ESP-WROOM-32 IO port number
 ---------------------------------------------------------------------------------*/
@@ -52,10 +50,6 @@ const uint8_t PUSH_BUTTON_PIN   = 0;
 const uint8_t LED_PIN           = 2;
 const uint8_t SENSOR_VP_PIN     = 36; 
 
-#if JOYTICK_TEST
-const int JOYY_PIN          = 34;   //GPIO34 ADC
-#endif
-
 #if SIM_TEMPERATURE
 const int SENSOR_TEMP       = 35;   //GPIO35 ADC
 #endif
@@ -71,12 +65,7 @@ I2C
                       SDA   = 25
 */
 
-#define ECG_BUFFER_SIZE         5  
-#define ECG_SAMPLE_RATE         125
-  
-#define PPG_BUFFER_SIZE         5
 #define HVR_ARRAY_SIZE          13
-
 #define HISTGRM_DATA_SIZE       12*4
 #define HISTGRM_PERCENT_SIZE    HISTGRM_DATA_SIZE/4
  
@@ -110,7 +99,6 @@ extern int system_init_error;
  ***********************/
 void    ads1292r_interrupt_handler(void);
 extern  portMUX_TYPE  ads1292rMux;
-extern  bool          ecgBufferReady;
 extern  bool          hrvDataReady  ;
 extern  bool          histogramReady;
 /***********************
@@ -121,7 +109,7 @@ void Filter_CurrentRESP_sample(int16_t  CurrAqsSample, int16_t *FiltOut);
 void QRS_Calculate_Heart_Rate (int16_t  CurrSample);
 void Calculate_RespRate       (int16_t  CurrSample,volatile uint8_t *respirationRate);
 
-extern uint16_t QRS_Heart_Rate;
+extern uint16_t ecg_heart_rate, old_ecg_heart_rate;
 extern volatile uint8_t   npeakflag;
 /***********************
  * oximeter_afe4490.cpp
@@ -140,9 +128,9 @@ extern class AFE4490  afe4490;
 /***********************
  * firmware.ino
  ***********************/
-extern int32_t    heart_rate_from_oximeter;
-extern uint8_t    SpO2Level;
-extern bool       SpO2Ready;
+extern int32_t    ppg_heart_rate, old_ppg_heart_rate;
+extern uint8_t    spo2_percent,   old_spo2_percent;
+extern uint8_t    ecg_lead_off;
 /***********************
  * spo2.cpp
  ***********************/
@@ -152,11 +140,8 @@ class SPO2
     void init();
     void handleData();
     void clear_interrupt();
-    void save_to_ppg_buffer(uint8_t i);
-    
     volatile bool interrupt_flag;
   private:
-    uint16_t  ppg_data_cnt;
 };
 extern class SPO2 spo2;
 /***********************
@@ -164,6 +149,8 @@ extern class SPO2 spo2;
  ***********************/
 void initMax3010xSpo2();
 void handleMax3010xSpo2();
+void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_ir_buffer_length, uint32_t *pun_red_buffer,
+                                            float *pn_spo2, int8_t *pch_spo2_valid, int32_t *pn_heart_rate, int8_t *pch_hr_valid);
 /***********************
  * for firmware.ino
  ***********************/
@@ -178,5 +165,15 @@ void oximeter_interrupt_handler();
 
 float   getTemperature();
 boolean initTemperature();
+extern volatile bool bleDeviceConnected;
+
+/***********************
+ * for BLE.cpp
+ ***********************/
+#define PPG_QUEUE_SIZE  100
+#define PPG_QUEUE_LEN   (sizeof(uint16_t))
+
+#define ECG_QUEUE_SIZE  100
+#define ECG_QUEUE_LEN   (sizeof(uint16_t))
 
 #endif //__PUBLIC_H__

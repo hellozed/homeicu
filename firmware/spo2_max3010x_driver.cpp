@@ -320,8 +320,6 @@ float MAX3010X::readTemperature() {
     if ((response & MAX3010X_INT_DIE_TEMP_RDY_ENABLE) > 0) break; //We're done!
     delay(1); //Let's not over burden the I2C bus
   }
-  //TODO How do we want to fail? With what type of error?
-  //? if(millis() - startTime >= 100) return(-999.0);
 
   // Step 2: Read die temperature register (integer)
   int8_t tempInt = readRegister8(_i2c_read_addr, MAX3010X_DIETEMPINT);
@@ -575,9 +573,9 @@ uint16_t MAX3010X::check(void)
           //Convert array to long
           memcpy(&tempLong, temp, sizeof(tempLong));
 
-		  tempLong &= 0x3FFFF; //Zero out all but 18 bits
-          
-		  sense.IR[sense.head] = tempLong;
+          tempLong &= 0x3FFFF; //Zero out all but 18 bits
+              
+          sense.IR[sense.head] = tempLong;
         }
 
         if (activeLEDs > 2)
@@ -591,7 +589,7 @@ uint16_t MAX3010X::check(void)
           //Convert array to long
           memcpy(&tempLong, temp, sizeof(tempLong));
 
-		  tempLong &= 0x3FFFF; //Zero out all but 18 bits
+		      tempLong &= 0x3FFFF; //Zero out all but 18 bits
 
           sense.green[sense.head] = tempLong;
         }
