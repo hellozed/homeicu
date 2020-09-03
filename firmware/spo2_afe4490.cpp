@@ -94,10 +94,10 @@ void AFE4490 :: getData(void)
   unsigned long IRtemp,REDtemp;
   uint16_t  sample16;
 
-  if (spo2.interrupt_flag == false) 
+  if (spo2_interrupt_flag == false) 
     return;   // continue wait for data ready pin interrupt
   else 
-    spo2.clear_interrupt();
+    clear_interrupt();
   
   // interrupt captured, process the data
 

@@ -109,7 +109,6 @@ void Filter_CurrentRESP_sample(int16_t  CurrAqsSample, int16_t *FiltOut);
 void QRS_Calculate_Heart_Rate (int16_t  CurrSample);
 void Calculate_RespRate       (int16_t  CurrSample,volatile uint8_t *respirationRate);
 
-extern uint16_t ecg_heart_rate, old_ecg_heart_rate;
 extern volatile uint8_t   npeakflag;
 /***********************
  * oximeter_afe4490.cpp
@@ -128,22 +127,15 @@ extern class AFE4490  afe4490;
 /***********************
  * firmware.ino
  ***********************/
-extern int32_t    ppg_heart_rate, old_ppg_heart_rate;
+extern uint8_t    ppg_heart_rate, old_ppg_heart_rate;
+extern uint8_t    ecg_heart_rate, old_ecg_heart_rate;
 extern uint8_t    spo2_percent,   old_spo2_percent;
 extern uint8_t    ecg_lead_off;
 /***********************
- * spo2.cpp
+ * spo
  ***********************/
-class SPO2
-{
-  public:
-    void init();
-    void handleData();
-    void clear_interrupt();
-    volatile bool interrupt_flag;
-  private:
-};
-extern class SPO2 spo2;
+void clear_interrupt();
+extern volatile bool spo2_interrupt_flag;
 /***********************
  * spo2_max3010x.cpp
  ***********************/

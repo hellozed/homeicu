@@ -27,7 +27,7 @@ void handleCLI();
 ---------------------------------------------------------------------------------*/
 volatile uint32_t buttonInterruptTime = 0;
 volatile int      buttonEventPending = false;
-
+volatile bool     spo2_interrupt_flag = false;
 volatile SemaphoreHandle_t timerSemaphore;
 hw_timer_t * timer = NULL;
 
@@ -38,7 +38,7 @@ portMUX_TYPE timerMux     = portMUX_INITIALIZER_UNLOCKED;
 
 Smoothed <float> batteryADC; 
 
-uint16_t  ecg_heart_rate, old_ecg_heart_rate  = 0;
+uint8_t   ecg_heart_rate, old_ecg_heart_rate  = 0;
 uint8_t   ppg_heart_rate, old_ppg_heart_rate  = 0;
 uint8_t   spo2_percent,   old_spo2_percent    = 0;
 uint8_t   battery_percent,old_battery_percent = 120; // number outside 0~100 will trigger ble sending
@@ -82,6 +82,23 @@ Refer to:
 http://www.iotsharing.com/2017/06/how-to-use-binary-semaphore-mutex-counting-semaphore-resource-management.html
 http://www.gammon.com.au/interrupts
 */
+/*---------------------------------------------------------------------------------
+  button interrupt
+---------------------------------------------------------------------------------*/
+void IRAM_ATTR oximeter_interrupt_handler()
+{
+  portENTER_CRITICAL_ISR(&oximeterMux);
+  spo2_interrupt_flag = true;
+  portEXIT_CRITICAL_ISR (&oximeterMux);  
+}
+ 
+void clear_interrupt()
+{
+  portENTER_CRITICAL_ISR(&oximeterMux);
+  spo2_interrupt_flag = false;
+  portEXIT_CRITICAL_ISR (&oximeterMux);  
+}
+
 /*---------------------------------------------------------------------------------
   button interrupt
 ---------------------------------------------------------------------------------*/
@@ -167,55 +184,55 @@ void measureBattery()
   unsigned int adc;
 
   static unsigned long  LastReadTime = 0;
-  #define BATTERY_READ_INTERVAL     1000   //millis
+  #define BATTERY_READ_INTERVAL     2000   //millis
   
   // check if the right time to read
-  if (millis() - LastReadTime > BATTERY_READ_INTERVAL)
-  {
+  if (millis() - LastReadTime < BATTERY_READ_INTERVAL)
+    return;   // continue wait
 
-    LastReadTime = millis();    
 
-    // get adc sample and smooth it    
-    batteryADC.add(analogRead(SENSOR_VP_PIN));
-    adc = batteryADC.get();
+  LastReadTime = millis();    
 
-    #if SIM_BATTERY
-    // ESP32 ADC return a 12bit value 0~4095 (uint16_t) 
-    // i = 0~4095 simulate y = 3600~4100
-    // y = 3600 + (4100-3600)*i/4095
-    adc = 3600 + (4100-3600)*adc/4095;
-    #endif 
-    
-    /*
-    ADC value (3600~4100) -> Battery Life (20%~100%)
-    It is not linear relationship between ADC and battery.
-    Adc : Batterry 
-    4100 100%
-    4000 80%
-    3900 60%
-    3800 45%
-    3700 30%
-    3600 20%
-    Batter Life = x Hours
-    */
-    #define Percent(adcNow, adcH, adcL, percentH, percentL) \
-            (percentL+(percentH-percentL)*(adcNow-adcL)/(adcH-adcL))
+  // get adc sample and smooth it    
+  batteryADC.add(analogRead(SENSOR_VP_PIN));
+  adc = batteryADC.get();
 
-    if (adc >=4000)
-      battery_percent = Percent(adc, 4100, 4000,100, 80);
-    else if (adc >=3900)
-      battery_percent = Percent(adc, 4000, 3900, 80, 60);
-    else if (adc >=3800)
-      battery_percent = Percent(adc, 3900, 3800, 60, 45);
-    else if (adc >=3700)
-      battery_percent = Percent(adc, 3800, 3700, 45, 30);
-    else if (adc >=3600)
-      battery_percent = Percent(adc, 3700, 3600, 30, 20);         
-    else
-      battery_percent = 10;
+  #if SIM_BATTERY
+  // ESP32 ADC return a 12bit value 0~4095 (uint16_t) 
+  // i = 0~4095 simulate y = 3600~4100
+  // y = 3600 + (4100-3600)*i/4095
+  adc = 3600 + (4100-3600)*adc/4095;
+  #endif 
+  
+  /*
+  ADC value (3600~4100) -> Battery Life (20%~100%)
+  It is not linear relationship between ADC and battery.
+  Adc : Batterry 
+  4100 100%
+  4000 80%
+  3900 60%
+  3800 45%
+  3700 30%
+  3600 20%
+  Batter Life = x Hours
+  */
+  #define Percent(adcNow, adcH, adcL, percentH, percentL) \
+          (percentL+(percentH-percentL)*(adcNow-adcL)/(adcH-adcL))
 
-    battery_percent = battery_percent & 0b11111110  //reduce resolution
-  }
+  if (adc >=4000)
+    battery_percent = Percent(adc, 4100, 4000,100, 80);
+  else if (adc >=3900)
+    battery_percent = Percent(adc, 4000, 3900, 80, 60);
+  else if (adc >=3800)
+    battery_percent = Percent(adc, 3900, 3800, 60, 45);
+  else if (adc >=3700)
+    battery_percent = Percent(adc, 3800, 3700, 45, 30);
+  else if (adc >=3600)
+    battery_percent = Percent(adc, 3700, 3600, 30, 20);         
+  else
+    battery_percent = 10;
+
+  battery_percent = battery_percent & 0b11111110;  //reduce resolution
 }
 /*---------------------------------------------------------------------------------
  body temperature measurement
@@ -327,7 +344,22 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
   initECG();                  // with different CS pin and SPI mode.
   //------------------------------------------------
-  spo2.init(); 
+  // init spo2
+
+  #if   (SPO2_TYPE==OXI_AFE4490)
+    digitalWrite(SPO2_START_PIN, LOW);
+    delay(500);
+    digitalWrite(SPO2_START_PIN, HIGH);
+    delay(500);
+    afe4490.init();             // SPI controls ADS1292R and AFE4490,
+    attachInterrupt(digitalPinToInterrupt(OXIMETER_INT_PIN), 
+                    oximeter_interrupt_handler, RISING ); 
+  #elif (SPO2_TYPE==OXI_MAX30102)
+    initMax3010xSpo2();
+    attachInterrupt(digitalPinToInterrupt(OXIMETER_INT_PIN), 
+                    oximeter_interrupt_handler, FALLING ); 
+  #endif 
+  //------------------------------------------------
   initAcceleromter();
 
   if (initTemperature()) 
@@ -367,7 +399,11 @@ void loop()
 
   handleECG();                // handle ECG and RESP
 
-  spo2.handleData();          // read and send spo2 data  
+  #if   (SPO2_TYPE==OXI_AFE4490)
+    afe4490.getData();          // handle SpO2 and PPG 
+  #elif (SPO2_TYPE==OXI_MAX30102)
+    handleMax3010xSpo2();       // handel SpO2 and PPG
+  #endif   
 
   measureTemperature();       // body temperature
 

@@ -103,19 +103,6 @@ class MyServerCallbacks: public BLEServerCallbacks
     bleDeviceConnected = true;
     pServer->startAdvertising();
     Serial.println("BLE: connected");
-
-    // re-send everything when re-connect ble
-    old_ecg_heart_rate  = 0xff;
-    old_spo2_percent    = 0xff;
-    old_temperature     = 0xff;
-    old_battery_percent = 0xff;
-    hrvDataReady        = true;  
-    histogramReady      = true;
-
-    Serial.println("BLE: re-send");
-  
-    ppg_queue.flush();
-    ecg_queue.flush();
   }
 
   void onDisconnect(BLEServer *pServer)
@@ -142,7 +129,7 @@ class ecgCallbackHandler: public BLECharacteristicCallbacks
       Serial.println();
     }
   }
-/*void onStatus(BLECharacteristic* pCharacteristic, Status s, uint32_t code)
+  /*void onStatus(BLECharacteristic* pCharacteristic, Status s, uint32_t code)
   {
     switch(s)
     {
@@ -165,12 +152,27 @@ class ppgCallbackHandler: public BLECharacteristicCallbacks
 
     if (value.length() > 0)
     {
-      Serial.print("BLE: ppg: ");
+      Serial.print("APP->PPG: ");
       for (int i = 0; i < value.length(); i++)
       {
         Serial.print(String(value[i]));
       }
       Serial.println();
+
+      // received "OK" from APP
+      if ((value[0]='O')&&(value[0]='K'))
+      {
+        // re-send everything when re-connect ble
+        Serial.println("BLE: re-send");
+        old_ecg_heart_rate  = 0xff;
+        old_spo2_percent    = 0xff;
+        old_temperature     = 0xff;
+        old_battery_percent = 0xff;
+        hrvDataReady        = true;  
+        histogramReady      = true;
+        ppg_queue.flush();
+        ecg_queue.flush();    
+      }
     }
   }
 
@@ -203,7 +205,7 @@ void handleBLE(void)
 
   // the last byte is serial number of the tx package
   uint16_t ecg_tx_data[ecg_tx_size+1];   
-  uint16_t ppg_tx_data[ppg_tx_size+1];
+   int16_t ppg_tx_data[ppg_tx_size+1];
   
   // disconnecting
   if (!bleDeviceConnected && oldDeviceConnected) {
@@ -230,11 +232,13 @@ void handleBLE(void)
   if(old_ecg_heart_rate!= ecg_heart_rate)
   {
     heart_rate_pack[0]  = (uint8_t) ecg_heart_rate; // calculated by QRS_Calculate_Heart_Rate()
-    heart_rate_pack[1]  = (uint8_t) ppg_heart_rate; 
+    heart_rate_pack[1]  = ppg_heart_rate; 
     heart_rate_pack[2]  = ecg_lead_off; 
     old_ecg_heart_rate  = ecg_heart_rate;
     heartRate_Characteristic->setValue(&heart_rate_pack[0], sizeof(heart_rate_pack));
     heartRate_Characteristic->notify();
+    delay(3);
+    Serial.println("ble:send heart");
   }  
 
   //spo2 percentage
@@ -242,6 +246,8 @@ void handleBLE(void)
     old_spo2_percent = spo2_percent;
     spo2_Characteristic->setValue(&spo2_percent, sizeof(spo2_percent));
     spo2_Characteristic->notify();
+    delay(3);
+    Serial.println("ble:send spo2");
   }
 
   //body temperature
@@ -249,6 +255,8 @@ void handleBLE(void)
     old_temperature  = body_temp.f;
     temp_Characteristic->setValue(body_temp.b, sizeof(body_temp.b));
     temp_Characteristic->notify();
+    delay(3);
+    Serial.println("ble:send temp");
   }  
    
   //battery life
@@ -256,6 +264,8 @@ void handleBLE(void)
     old_battery_percent  = battery_percent;
     battery_Characteristic->setValue(&battery_percent, sizeof(battery_percent));
     battery_Characteristic->notify();
+    delay(3);
+    Serial.println("ble:send battery");
   }  
   
   //heart rate variability
@@ -263,6 +273,8 @@ void handleBLE(void)
     hrv_Characteristic->setValue(&hrv_array[0], sizeof(hrv_array));
     hrv_Characteristic->notify();
     hrvDataReady = false;
+    delay(3);
+    Serial.println("ble:send hrv");
   }
 
   //heart rate histogram
@@ -270,26 +282,30 @@ void handleBLE(void)
     hist_Characteristic->setValue(&histogram_percent[0],sizeof(histogram_percent));
     hist_Characteristic->notify();
     histogramReady = false;
+    delay(3);
+    Serial.println("ble:send hist");
   }
 
   // ECG
-  if (ecg_queue.getCount()>=ecg_tx_size){
+  while (ecg_queue.getCount()>=ecg_tx_size){
     for (int i = 0; i < ecg_tx_size; i++)
       ecg_queue.pop(&ecg_tx_data[i]);
     ecg_tx_data[ecg_tx_size] = ecg_serial_number++;
 
     ecgStream_Characteristic->setValue((uint8_t *)ecg_tx_data, sizeof(ecg_tx_data));
     ecgStream_Characteristic->notify();
+    delay(3);
   }
 
   // PPG
-  if (ppg_queue.getCount()>=ppg_tx_size){
+  while (ppg_queue.getCount()>=ppg_tx_size){
     for (int i = 0; i < ppg_tx_size; i++)
       ppg_queue.pop(&ppg_tx_data[i]);
     ppg_tx_data[ppg_tx_size] = ppg_serial_number++;
 
     ppgStream_Characteristic->setValue((uint8_t *)ppg_tx_data, sizeof(ppg_tx_data));
     ppgStream_Characteristic->notify();
+    delay(3);
   }
 
 }

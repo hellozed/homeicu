@@ -141,6 +141,7 @@ void initMax3010xSpo2()
  and .check() is called frequently to meet that buffer not overflow.
 ---------------------------------------------------------------------------------*/
 #define SPO2_BUFFER_SIZE  100
+#define SPO2_READ_SIZE     25         //each time read som many samples
 uint32_t irBuffer [SPO2_BUFFER_SIZE]; //infrared LED samples
 uint32_t redBuffer[SPO2_BUFFER_SIZE]; //red LED samples
 
@@ -169,38 +170,42 @@ void calculate_spo2(uint32_t *ir_buffer)
   
 void handleMax3010xSpo2()
 {
-  static int buffer_index = 0;
-
+  int i;
   int32_t  sample32; 
   int16_t  sample16;
 
   spo2Sensor.check(); //Check the sensor, read up to 3 samples
-  if (spo2Sensor.available() < SPO2_BUFFER_SIZE) 
+  if (spo2Sensor.available() < SPO2_READ_SIZE) 
     return;
 
   digitalWrite (LED_PIN, HIGH);  // LED on  
 
-  for (int i = 0; i < SPO2_BUFFER_SIZE; i++)
+  // dump old samples, and shift buffer forward
+  for (i = SPO2_READ_SIZE; i < SPO2_BUFFER_SIZE; i++)
+  {
+    redBuffer[i-SPO2_READ_SIZE] = redBuffer[i];
+    irBuffer [i-SPO2_READ_SIZE] = irBuffer [i];
+  }
+
+  for (i = SPO2_BUFFER_SIZE - SPO2_READ_SIZE; i < SPO2_BUFFER_SIZE; i++)
   {
     //FIXME red and infrared LED data swapped.
-    redBuffer[buffer_index] = spo2Sensor.getFIFOIR();
-    irBuffer [buffer_index] = spo2Sensor.getFIFORed();
+    redBuffer[i] = spo2Sensor.getFIFOIR();
+    irBuffer [i] = spo2Sensor.getFIFORed();
 
     spo2Sensor.nextSample(); //We're finished with this sample so move to next sample
 
     //the ADC is 18 bits -> 16 bits by removing DC offset, and push to BLE tx queue
-    sample32 = irBuffer [buffer_index];  //uint32 -> int32
+    sample32 = irBuffer [i];  //uint32 -> int32
     sample32 = EMA_ppg.high_pass_filter(sample32);
     sample16 = (int16_t)sample32;
     sample16 = - sample16;        //reverse the signal
 
-    //FIXME
-    {// TEST Code vvv
-    static int16_t  x = 0;
-    if (x >= 100)   x = 0;
-    sample16 = x++;
+    /* // TEST Code vvv
+    {
+    static int16_t  x = 0; if (x >= 100)x = 0; sample16 = x++;
     }
-    // TEST Code ^^^  
+    */
 
     if (bleDeviceConnected)
       ppg_queue.push(&sample16);    //FIFO for BLE

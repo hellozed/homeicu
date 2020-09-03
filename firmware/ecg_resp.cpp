@@ -298,14 +298,13 @@ static void QRS_check_sample_crossing_threshold( uint16_t scaled_result)
 
     if ( m_array_index == MAX_PEAK_TO_SEARCH )
     {
+      uint16_t u;
       sample_sum = sample_sum / (MAX_PEAK_TO_SEARCH - 1);
       HRAvg =  (uint16_t) sample_sum  ;
       // Compute HR without checking LeadOffStatus
-      ecg_heart_rate = (uint16_t) 60 *  SAMPLING_RATE;
-      ecg_heart_rate =  ecg_heart_rate / HRAvg ;
-
-      if (ecg_heart_rate > 250)
-        ecg_heart_rate = 250 ;
+      u = 60 *  SAMPLING_RATE /HRAvg;
+      if (u > 250) u = 250 ;
+      ecg_heart_rate =  (uint8_t)u;
 
       /* Setting the Current HR value in the ECG_Info structure*/
       maxima_sum =  maxima_sum / MAX_PEAK_TO_SEARCH;
