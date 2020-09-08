@@ -1,36 +1,85 @@
-#include "ADS1x9x_RESP_Processing.h"
-#include "ADS1x9x_ECG_Processing.h"
+/* --COPYRIGHT--,BSD
+ * Copyright (c) 2014, Texas Instruments Incorporated
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * *  Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * *  Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * *  Neither the name of Texas Instruments Incorporated nor the names of
+ *    its contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * --/COPYRIGHT--*/
 #include <stdlib.h>
+
+/****************************************************************/
+/* Constants*/
+/****************************************************************/
+
+/*threshold = 0.7 * maxima*/
+#define QRS_THRESHOLD_FRACTION	0.7					
+
+#define FILTERORDER 				161
+
+#define TRUE	1
+#define FALSE	0
+
+/* DC Removal Numerator Coeff*/
+#define NRCOEFF (0.992)
+
+/****************************************************************/
+/* Global functions*/
+/****************************************************************/
+
+void RESP_Algorithm_Interface(short CurrSample);
+void Resp_ProcessCurrSample(short *CurrAqsSample, short *FilteredOut);
+void RESP_Algorithm_Interface(short CurrSample);
+void ECG_FilterProcess(short * WorkingBuff, short * CoeffBuf, short * FilterOut);
+
 /*  Pointer which points to the index in B4 buffer where the processed data*/
 /*  has to be filled */
 
 //static unsigned short RESP_B4_Buffer_ptr = 0 ;
 /* Variable which will hold the calculated heart rate */
 
-unsigned short Respiration_Rate_1 = 0 ;
-//unsigned char RR_flag;
+unsigned short Respiration_Rate = 0 ;
 
 /* Variables to hold the sample data for calculating the 1st and 2nd */
 /* differentiation                                                   */
-int RESP_Second_Prev_Sample_1 = 0 ;
-int RESP_Prev_Sample_1 = 0 ;
-int RESP_Current_Sample_1 = 0 ;
-int RESP_Next_Sample_1 = 0 ;
-int RESP_Second_Next_Sample_1 = 0 ;
+int RESP_Second_Prev_Sample = 0 ;
+int RESP_Prev_Sample = 0 ;
+int RESP_Current_Sample = 0 ;
+int RESP_Next_Sample = 0 ;
+int RESP_Second_Next_Sample = 0 ;
 
-/*Flag which identifies the duration for which sample count has to be incremented*/
-//unsigned char RESP_Start_Sample_Count_Flag = 0;
-//unsigned char RESP_peak_detect = FALSE ;
-//unsigned int RESP_sample_count = 0 ;
-//unsigned int RESP_sample_index[RESP_MAX_PEAK_TO_SEARCH+2] = {0};
 /* Working Buffer Used for Filtering*/
-short RESP_WorkingBuff_1[2 * FILTERORDER];
+short RESP_WorkingBuff[2 * FILTERORDER];
 //extern unsigned short Resp_Rr_val;
 #if (FILTERORDER == 161)
 
-short RespCoeffBuf_1[FILTERORDER] = {             
+/*
+short RespCoeffBuf[FILTERORDER] = {             
 
-/* Coeff for lowpass Fc=2Hz @ 500 SPS*/
+// Coeff for lowpass Fc=2Hz @ 500 SPS
 
        15,     16,     16,     17,     18,     19,     20,     22,     23,
        25,     27,     29,     32,     34,     37,     41,     44,     48,
@@ -52,6 +101,28 @@ short RespCoeffBuf_1[FILTERORDER] = {
        22,     20,     19,     18,     17,     16,     16,     15
       
 };
+*/
+
+// Coeff for lowpass Fc=2Hz @ 125 SPS
+short RespCoeffBuf[FILTERORDER] = 
+{ 120,    124,    126,    127,    127,    125,    122,    118,    113,  
+  106,     97,     88,     77,     65,     52,     38,     24,      8,
+   -8,    -25,    -42,    -59,    -76,    -93,   -110,   -126,   -142,
+ -156,   -170,   -183,   -194,   -203,   -211,   -217,   -221,   -223,
+ -223,   -220,   -215,   -208,   -198,   -185,   -170,   -152,   -132,
+ -108,    -83,    -55,    -24,      8,     43,     80,    119,    159,
+  201,    244,    288,    333,    378,    424,    470,    516,    561,
+  606,    650,    693,    734,    773,    811,    847,    880,    911,
+  939,    964,    986,   1005,   1020,   1033,   1041,   1047,   1049,
+ 1047,   1041,   1033,   1020,   1005,    986,    964,    939,    911,
+  880,    847,    811,    773,    734,    693,    650,    606,    561,
+  516,    470,    424,    378,    333,    288,    244,    201,    159,
+  119,     80,     43,      8,    -24,    -55,    -83,   -108,   -132,
+ -152,   -170,   -185,   -198,   -208,   -215,   -220,   -223,   -223,
+ -221,   -217,   -211,   -203,   -194,   -183,   -170,   -156,   -142,
+ -126,   -110,    -93,    -76,    -59,    -42,    -25,     -8,      8,
+   24,     38,     52,     65,     77,     88,     97,    106,    113,
+  118,    122,    125,    127,    127,    126,    124,    120       };
 #endif
 
 
@@ -63,51 +134,52 @@ short RespCoeffBuf_1[FILTERORDER] = {
 ** 				FIR low pass filter with 2Hz .   														**
 **                                                                          							**
 ** Parameters	  :                                                         							**
-** 				- RESP_WorkingBuff_1	- In - input sample buffer              							**
+** 				- RESP_WorkingBuff	- In - input sample buffer              							**
 ** 				- CoeffBuf			- In - Co-eficients for FIR filter.     							**
 ** 				- FilterOut			- Out - Filtered output                 							**
 ** Return 		  : None                                                    							**
 *********************************************************************************************************/
 
-void Resp_FilterProcess(short * RESP_WorkingBuff_1, short * CoeffBuf, short* FilterOut)
+void Resp_FilterProcess(short * RESP_WorkingBuff, short * CoeffBuf, short* FilterOut)
 {
-	 short i, Val_Hi, Val_Lo, MACS;
+	 short i, Val_Hi, Val_Lo;
+	 short MACS;
 
 	short RESHI = 0;
 	short RESLO = 0;
-	short MPYS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	short MPYS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	short OP2 = *CoeffBuf++;                             // Load second operand
 	
 	for ( i = 0; i < FILTERORDER/10; i++)
 	{
-	  MACS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	  MACS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	  OP2 = *CoeffBuf++;                             // Load second operand
 	  
-	  MACS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	  MACS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	  OP2 = *CoeffBuf++;                             // Load second operand
 	  
-	  MACS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	  MACS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	  OP2 = *CoeffBuf++;                             // Load second operand
 	  
-	  MACS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	  MACS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	  OP2 = *CoeffBuf++;                             // Load second operand
 	  
-	  MACS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	  MACS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	  OP2 = *CoeffBuf++;                             // Load second operand
 	  
-	  MACS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	  MACS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	  OP2 = *CoeffBuf++;                             // Load second operand
 	  
-	  MACS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	  MACS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	  OP2 = *CoeffBuf++;                             // Load second operand
 	  
-	  MACS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	  MACS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	  OP2 = *CoeffBuf++;                             // Load second operand
 
-	  MACS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	  MACS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	  OP2 = *CoeffBuf++;                             // Load second operand
 	  
-	  MACS = *RESP_WorkingBuff_1--;                             // Load first operand -unsigned mult
+	  MACS = *RESP_WorkingBuff--;                             // Load first operand -unsigned mult
 	  OP2 = *CoeffBuf++;                             // Load second operand
 	  
 	}
@@ -115,8 +187,7 @@ void Resp_FilterProcess(short * RESP_WorkingBuff_1, short * CoeffBuf, short* Fil
 	 Val_Hi = RESHI << 1;                       // Q15 result
 	 Val_Lo = RESLO >> 15;
 	 Val_Lo &= 0x01;
-	 *FilterOut = Val_Hi | Val_Lo; 
-	
+	 *FilterOut = Val_Hi | Val_Lo; 	
 }
 /*********************************************************************************************************/
 
@@ -130,7 +201,7 @@ void Resp_FilterProcess(short * RESP_WorkingBuff_1, short * CoeffBuf, short* Fil
 ** 				- DC Removal of the current sample                          							**
 ** 				- Multi band FIR LPF with Notch at 50Hz filtering           							**
 ** Parameters	  :                                                         							**
-** 				- RESP_WorkingBuff_1	- In - input sample buffer              							**
+** 				- RESP_WorkingBuff	- In - input sample buffer              							**
 ** 				- FilterOut			- Out - Filtered output                 							**
 ** Return 		  : None                                                    							**
 *********************************************************************************************************/
@@ -149,7 +220,7 @@ void Resp_ProcessCurrSample(short *CurrAqsSample, short *FilteredOut)
 	{
 		for ( Cur_Chan =0 ; Cur_Chan < FILTERORDER; Cur_Chan++)
 		{
-			RESP_WorkingBuff_1[Cur_Chan] = 0;
+			RESP_WorkingBuff[Cur_Chan] = 0;
 		}
 
 		Pvev_DC_Sample = 0;
@@ -162,11 +233,11 @@ void Resp_ProcessCurrSample(short *CurrAqsSample, short *FilteredOut)
 	temp2 = Pvev_DC_Sample >> 2;
 	RESPData = (short) temp2;
 
-	/* Store the DC removed value in RESP_WorkingBuff_1 buffer in millivolts range*/
-	RESP_WorkingBuff_1[bufCur] = RESPData;
-	ECG_FilterProcess(&RESP_WorkingBuff_1[bufCur],RespCoeffBuf_1,(short*)&FiltOut);
+	/* Store the DC removed value in RESP_WorkingBuff buffer in millivolts range*/
+	RESP_WorkingBuff[bufCur] = RESPData;
+	ECG_FilterProcess(&RESP_WorkingBuff[bufCur],RespCoeffBuf,(short*)&FiltOut);
 	/* Store the DC removed value in Working buffer in millivolts range*/
-	RESP_WorkingBuff_1[bufStart] = RESPData;
+	RESP_WorkingBuff[bufStart] = RESPData;
 
 
 	//FiltOut = RESPData[Cur_Chan];
@@ -233,7 +304,7 @@ void Respiration_Rate_Detection(short Resp_wave)
 			else
 			{
 				startCalc = 0;
-				Respiration_Rate_1 = 0;
+				Respiration_Rate = 0;
 			}
 		}
 
@@ -246,7 +317,7 @@ void Respiration_Rate_Detection(short Resp_wave)
 			{
 				if ( SampleCount > 40 &&  SampleCount < 700)
 				{
-//						Respiration_Rate_1 = 6000/SampleCount;	// 60 * 100/SampleCount;
+//						Respiration_Rate = 6000/SampleCount;	// 60 * 100/SampleCount;
 					PtiveEdgeDetected = 1;
 					PtiveCnt = SampleCount;
 					skipCount = 4;
@@ -279,7 +350,7 @@ void Respiration_Rate_Detection(short Resp_wave)
 						PtiveCnt = PeakCount[0] + PeakCount[1] + PeakCount[2] + PeakCount[3] + 
 								PeakCount[4] + PeakCount[5] + PeakCount[6] + PeakCount[7];
 						PtiveCnt = PtiveCnt >> 3;
-						Respiration_Rate_1 = 6000/PtiveCnt;	// 60 * 100/SampleCount;
+						Respiration_Rate = 6000/PtiveCnt;	// 60 * 100/SampleCount;
 					}
 				}
 			}
@@ -344,19 +415,19 @@ void RESP_Algorithm_Interface(short CurrSample)
 	Mac += CurrSample;
 //	Mac = Mac;
 	CurrSample = (short) Mac >> 1;
-	RESP_Second_Prev_Sample_1 = RESP_Prev_Sample_1 ;
-	RESP_Prev_Sample_1 = RESP_Current_Sample_1 ;
-	RESP_Current_Sample_1 = RESP_Next_Sample_1 ;
-	RESP_Next_Sample_1 = RESP_Second_Next_Sample_1 ;
-	RESP_Second_Next_Sample_1 = CurrSample;// << 3 ;
+	RESP_Second_Prev_Sample = RESP_Prev_Sample ;
+	RESP_Prev_Sample = RESP_Current_Sample ;
+	RESP_Current_Sample = RESP_Next_Sample ;
+	RESP_Next_Sample = RESP_Second_Next_Sample ;
+	RESP_Second_Next_Sample = CurrSample;// << 3 ;
 //	fprintf(fp,"%d\n", CurrSample);
 	Decimeter++;
-	//Resp_Rr_val = RESP_Second_Next_Sample_1;
+	//Resp_Rr_val = RESP_Second_Next_Sample;
 	if ( Decimeter == 5)
 	{
 		Decimeter = 0;
 //		RESP_process_buffer();
-		Respiration_Rate_Detection(RESP_Second_Next_Sample_1);
+		Respiration_Rate_Detection(RESP_Second_Next_Sample);
 	}
 }
 /*********************************************************************************************************/

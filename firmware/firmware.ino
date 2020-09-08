@@ -14,8 +14,6 @@
 #include "version.h"
 #include <Smoothed.h> 	  // SMA library, need be installed from Arduino/Sketch/Include libraries 
 
-void initECG();
-void handleECG();
 void getTestData(void);
 void handleCLI();
 /*---------------------------------------------------------------------------------
@@ -340,9 +338,10 @@ void setup()
     }
   }
   //------------------------------------------------ 
+  // ECG init
   initSPI();                  // initialize SPI
   attachInterrupt(digitalPinToInterrupt(ADS1292_DRDY_PIN),ads1292r_interrupt_handler, FALLING); 
-  initECG();                  // with different CS pin and SPI mode.
+  ads1292r.init();            // with different CS pin and SPI mode.
   //------------------------------------------------
   // init spo2
 
@@ -397,7 +396,7 @@ void loop()
 
   handleBLE();                // handle bluetooth low energy
 
-  handleECG();                // handle ECG and RESP
+  ads1292r.getData();         // handle ECG and RESP
 
   #if   (SPO2_TYPE==OXI_AFE4490)
     afe4490.getData();          // handle SpO2 and PPG 

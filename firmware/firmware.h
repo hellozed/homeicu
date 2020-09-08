@@ -97,19 +97,22 @@ extern int system_init_error;
 /***********************
  * ads1292r.cpp (ECG)
  ***********************/
-void    ads1292r_interrupt_handler(void);
+
+class ADS1292R
+{
+public:
+  void      init(void);
+  void      getData(void);
+private:
+  uint8_t * fillTxBuffer  (uint8_t peakvalue,uint8_t respirationRate);
+  void      add_heart_rate_histogram(uint8_t hr);
+  uint8_t   mask_register_bits(uint8_t address, uint8_t data_in);
+};
+extern  ADS1292R      ads1292r;
+extern  void          ads1292r_interrupt_handler(void);
 extern  portMUX_TYPE  ads1292rMux;
 extern  bool          hrvDataReady  ;
 extern  bool          histogramReady;
-/***********************
- * ecg_resp.cpp
- ***********************/
-void Filter_CurrentECG_sample (int16_t  CurrAqsSample, int16_t *FilteredOut);
-void Filter_CurrentRESP_sample(int16_t  CurrAqsSample, int16_t *FiltOut);
-void QRS_Calculate_Heart_Rate (int16_t  CurrSample);
-void Calculate_RespRate       (int16_t  CurrSample,volatile uint8_t *respirationRate);
-
-extern volatile uint8_t   npeakflag;
 /***********************
  * oximeter_afe4490.cpp
  ***********************/

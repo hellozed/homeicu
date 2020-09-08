@@ -231,7 +231,7 @@ void handleBLE(void)
   //heart rate
   if(old_ecg_heart_rate!= ecg_heart_rate)
   {
-    heart_rate_pack[0]  = (uint8_t) ecg_heart_rate; // calculated by QRS_Calculate_Heart_Rate()
+    heart_rate_pack[0]  = (uint8_t) ecg_heart_rate; // calculated by QRS_Algorithm_Interface()
     heart_rate_pack[1]  = ppg_heart_rate; 
     heart_rate_pack[2]  = ecg_lead_off; 
     old_ecg_heart_rate  = ecg_heart_rate;

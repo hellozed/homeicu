@@ -57,6 +57,11 @@ The tri-wavelength MAX30101 sensor and bi-wavelength MAX30102 sensor were evalua
 #include "firmware.h" 
 #include <SPI.h>
 #include "cppQueue.h"
+extern unsigned short QRS_Heart_Rate, Respiration_Rate;
+void QRS_Algorithm_Interface(short CurrSample);
+void RESP_Algorithm_Interface(short CurrSample);
+void ECG_ProcessCurrSample(short *CurrAqsSample, short *FilteredOut);
+void Resp_ProcessCurrSample(short *CurrAqsSample, short *FilteredOut);
 extern Queue ecg_queue;
  
 #define SPI_DUMMY_DATA  0xFF
@@ -104,52 +109,23 @@ enum registers {
 
 #define SETTING_SIZE     12
 uint8_t register_settings[SETTING_SIZE] = {  
-//last versin orginal
-/*
-  //# means same 
   0x73,       //#REG_ID			  0x00  read only
   0x00,       //#REG_CONFIG1	0x01  set sampling rate to 125 SPS (sample rate must compatible with SAMPLING_RATE)
   0b11100000, //#REG_CONFIG2	0x02  lead-off DC comparators ON, test signal disabled
   0b00010000, //#REG_LOFF		  0x03  lead-off comparator threshold. 000-least responsive, 111-max responsive. 
-  0x00,       //#REG_CH1SET		0x04  Ch 1 enabled, gain 6 , connected to electrode in
+  0b00000000, //#REG_CH1SET		0x04  Ch 1 enabled, gain 6 , connected to electrode in
   0b01100000, //#REG_CH2SET		0x05  Ch 2 enabled, gain 12, connected to electrode in
-  0b00111100, // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
-  0x00,       // REG_LOFFSENS 0x07  LOFF settings: all disabled
-  0x00,       //#REG_LOFFSTAT 0x08  Skip register 8, LOFF Settings default
-  0b11110010, //#!REG_RESP1	  0x09  respiration: MOD/DEMOD turned only, phase 0
-  0b00000011, //#REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
-  0b00001100  //#REG_GPIO     0x0B
-*/
-//one code from online
-//simular to above
-//set value      register name        address
-/*
-  0x73,       //#REG_ID			  0x00  read only
-  0x00,       //#REG_CONFIG1	0x01  set sampling rate to 125 SPS
-  0b11100000, //#REG_CONFIG2	0x02  lead-off DC comparators ON, test signal disabled
-  0b00010000, //#REG_LOFF		  0x03  lead-off comparator threshold. 000-least responsive, 111-max responsive. 
-  0x00,       //#REG_CH1SET		0x04  Ch 1 enabled, gain 6 , connected to electrode in
-  0b01100000, //#REG_CH2SET		0x05  Ch 2 enabled, gain 12, connected to electrode in
-  0x30,       //!!REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD not connect any channel
-  0b00111111, //#!REG_LOFFSENS0x07  LOFF settings: all disabled
-  0x00,       //#REG_LOFFSTAT 0x08  Skip register 8, LOFF Settings default
-  0b11101010, //#REG_RESP1	  0x09  respiration: MOD/DEMOD turned only, phase 0
-  0b00000011, //#REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
-  0b00001100  //#REG_GPIO     0x0B
 
-*/
   //TI - this copy works 
-  0x73,       //#REG_ID			  0x00  read only
-  0x00,       //#REG_CONFIG1	0x01  set sampling rate to 125 SPS
-  0xE0,       //#REG_CONFIG2	0x02  lead-off DC comparators ON, test signal disabled
-  0b00010000, //#REG_LOFF		  0x03  lead-off comparator threshold. 000-least responsive, 111-max responsive. 
-  0x00,       //#REG_CH1SET		0x04  Ch 1 enabled, gain 6 , connected to electrode in
-  0b01100000, //#REG_CH2SET		0x05  Ch 2 enabled, gain 12, connected to electrode in
-  0x3C,       // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
+  0b00111100, // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
+/*
+  0b00101100, // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
+  0b00110000, // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD not connect any channel
+*/
   0x0F,       //#REG_LOFFSENS 0x07  LOFF settings: all disabled
   0x00,       //#REG_LOFFSTAT 0x08  Skip register 8, LOFF Settings default
   0b11101010, //#REG_RESP1	  0x09  respiration: MOD/DEMOD turned only, phase 0
-  0x03,       //#REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
+  0b00000011, //#REG_RESP2	  0x0A  respiration: Calib OFF, respiration freq defaults
   0b00001100  //#REG_GPIO     0x0B
 }; 
 #define HISTGRM_CALC_TH        10
@@ -162,21 +138,11 @@ uint8_t   heart_rate_pack  [3];
 bool      hrvDataReady        = false;
 bool      histogramReady      = false;
 uint8_t   ecg_lead_off        = false;
+uint8_t   LeadStatus;
 
 volatile uint8_t    npeakflag   = 0;
 volatile uint8_t    respirationRate = 0;
 volatile bool       ads1292r_interrupt_flag   = false;
-
-class ADS1292R
-{
-public:
-  void      init(void);
-  void      getData(void);
-private:
-  uint8_t * fillTxBuffer  (uint8_t peakvalue,uint8_t respirationRate);
-  void      add_heart_rate_histogram(uint8_t hr);
-  uint8_t   mask_register_bits(uint8_t address, uint8_t data_in);
-};
 
 ADS1292R    ads1292r;
 
@@ -186,9 +152,6 @@ void IRAM_ATTR ads1292r_interrupt_handler(void)
   ads1292r_interrupt_flag = true;
   portEXIT_CRITICAL_ISR (&ads1292rMux);  
 }
-
-void initECG()    {ads1292r.init(); }
-void handleECG()  {ads1292r.getData();}  
  
 void pin_level_high(uint8_t pin, uint32_t ms)
 {
@@ -302,11 +265,13 @@ void ADS1292R :: getData()
   int16_t     ecg_wave_sample,  ecg_filterout;
   int16_t     res_wave_sample,  resp_filterout;
   uint16_t    ecg_stream_cnt = 0;
-  uint8_t     LeadStatus;
-  union ads { uint16_t u_sample16;
-              uint8_t  u_sample8[2];
-            }sample;
   
+  union ads { 
+              uint32_t u_sample32;
+              uint16_t u_sample16[2];
+              uint8_t  u_sample8 [4];
+            }ads_sample;
+
   #define   SPI_BUFFER_SIZE   9
   uint8_t   SPI_RxBuffer[SPI_BUFFER_SIZE];
   uint8_t   SPI_TxBuffer[SPI_BUFFER_SIZE]={1,1,1, 1,1,1, 1,1,1}; //dummy data
@@ -327,16 +292,20 @@ void ADS1292R :: getData()
 
   pin_level_high(ADS1292_CS_PIN,CS_HIGH_TIME); 
 
-  //channel 1 - take the first 16 bits of respiration ADC
-  sample.u_sample8[1] = SPI_RxBuffer[3];
-  sample.u_sample8[0] = SPI_RxBuffer[4];
-  res_wave_sample  = (int16_t) sample.u_sample16;
+  //channel 1 - take the lower bits of respiration ADC
+  ads_sample.u_sample8[1] = SPI_RxBuffer[3];
+  ads_sample.u_sample8[0] = SPI_RxBuffer[4];
+  res_wave_sample         = ads_sample.u_sample16[0];
 
-  //channel 2 - take the first 16 bits of ecg ADC
-  sample.u_sample8[1] = SPI_RxBuffer[6];
-  sample.u_sample8[0] = SPI_RxBuffer[7];
-  ecg_wave_sample  = (int16_t) sample.u_sample16;
-  
+  //channel 2 - skip the lowest 4 bits and highest 4 bits, 
+  //take the 16 bits of ecg ADC
+  ads_sample.u_sample8[3] = 0x00;
+  ads_sample.u_sample8[2] = SPI_RxBuffer[6];
+  ads_sample.u_sample8[1] = SPI_RxBuffer[7];
+  ads_sample.u_sample8[0] = SPI_RxBuffer[8];
+  ads_sample.u_sample32   = ads_sample.u_sample32>>4;
+  ecg_wave_sample         = ads_sample.u_sample16[0];
+
   /*
    the first 3 bytes is the status word, 24-bit as below:
    1100 + LOFF_STAT[4:0] + GPIO[1:0] + 13 '0's).
@@ -346,10 +315,10 @@ void ADS1292R :: getData()
   BIT 4    | BIT 3   | BIT 2   | BIT 1   | BIT 0
   RLD_STAT | IN2N_OFF| IN2P_OFF| IN1N_OFF| IN1P_OFF
   */
-  sample.u_sample8[1] = SPI_RxBuffer[0] & 0x0F;
-  sample.u_sample8[0] = SPI_RxBuffer[1];
-  sample.u_sample16   = sample.u_sample16>>7;
-  LeadStatus = sample.u_sample8[0]; 
+  ads_sample.u_sample8[1] = SPI_RxBuffer[0] & 0x0F;
+  ads_sample.u_sample8[0] = SPI_RxBuffer[1];
+  ads_sample.u_sample16[0]= ads_sample.u_sample16[0]>>7;
+  LeadStatus = ads_sample.u_sample8[0]; 
   /*
   {
     static uint8_t old_LeadStatus = 0;
@@ -378,18 +347,20 @@ void ADS1292R :: getData()
   { // the measure lead is ON the body 
     ecg_lead_off      = false;
     // filter out the line noise @40Hz cutoff 161 order
-    Filter_CurrentECG_sample(ecg_wave_sample, &ecg_filterout);   
-    QRS_Calculate_Heart_Rate(ecg_filterout);
+    Resp_ProcessCurrSample (&res_wave_sample, &resp_filterout); //filter current resp sample
+    RESP_Algorithm_Interface(resp_filterout);//calculate respiration   
+    //= Respiration_Rate;
+    //FIXME add code process above data, send to BLE
 
-    Filter_CurrentRESP_sample(res_wave_sample, &resp_filterout);
-    Calculate_RespRate       (resp_filterout,  &respirationRate);   
+    ECG_ProcessCurrSample (&ecg_wave_sample, &ecg_filterout);   //filter ecg sample
+    QRS_Algorithm_Interface(ecg_filterout); //calculate heart rate
+    ecg_heart_rate = QRS_Heart_Rate;  //changed by QRS_Algorithm_Interface
     //-------------------------------------------
     // only enable this line, and use Aduino 
     // Serial Plotter to display ecg graphic
     //-------------------------------------------  
-    //Serial.printf("%d\r\n", ecg_filterout);// ecg_heart_rate-30 );
+    //Serial.printf("%d %d\r\n",ecg_filterout, ecg_heart_rate);
     //-------------------------------------------
-    
 
     if(npeakflag == 1)
     {
@@ -564,35 +535,15 @@ uint8_t ADS1292R::mask_register_bits(uint8_t address, uint8_t data_in)
 
   switch (address)
   {
-    case 1:
-      data = data & 0x87;
-	    break;
-    case 2:
-      data = data & 0xFB;
-	    data |= 0x80;		
-	    break;
-    case 3:
-	    data = data & 0xFD;
-	    data |= 0x10;
-	    break;
-    case 7:
-	    data = data & 0x3F;
-	    break;
-    case 8:
-    	data = data & 0x5F;
-	    break;
-    case 9:
-	    data |= 0x02;
-	    break;
-    case 10:
-	    data = data & 0x87;
-	    data |= 0x01;
-	    break;
-    case 11:
-	    data = data & 0x0F;
-	    break;
-    default:
-	    break;		
+    case 1: data = data & 0x87; break;
+    case 2: data = data & 0xFB; data |= 0x80;	  break;
+    case 3: data = data & 0xFD; data |= 0x10;  break;
+    case 7: data = data & 0x3F; break;
+    case 8:	data = data & 0x5F; break;
+    case 9: data |= 0x02; break;
+    case 10:data = data & 0x87; data |= 0x01;break;
+    case 11:data = data & 0x0F; break;
+    default: break;		
   }
   return data;
 }
@@ -670,7 +621,7 @@ void getTestData(void)
       if (!ecg_queue.isFull())
       {
         if (bleDeviceConnected)
-          ecg_queue.push(&index);//(fakeEcgSample[index]);
+          ecg_queue.push(&fakeEcgSample[index]);
         Serial.printf("[%d] ", index);
         index++;
         if (index >= 180) 
