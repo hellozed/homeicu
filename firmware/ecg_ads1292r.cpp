@@ -119,6 +119,7 @@ uint8_t register_settings[SETTING_SIZE] = {
   //TI - this copy works 
   0b00111100, // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
 /*
+  FIXME RLD off function 
   0b00101100, // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD inputs from Ch2 only
   0b00110000, // REG_RLDSENS	0x06  RLD settings: fmod/16, RLD enabled, RLD not connect any channel
 */
@@ -268,6 +269,7 @@ void ADS1292R :: getData()
   
   union ads { 
               uint32_t u_sample32;
+               int16_t   sample16[2];
               uint16_t u_sample16[2];
               uint8_t  u_sample8 [4];
             }ads_sample;
@@ -295,7 +297,7 @@ void ADS1292R :: getData()
   //channel 1 - take the lower bits of respiration ADC
   ads_sample.u_sample8[1] = SPI_RxBuffer[3];
   ads_sample.u_sample8[0] = SPI_RxBuffer[4];
-  res_wave_sample         = ads_sample.u_sample16[0];
+  res_wave_sample         = ads_sample.sample16[0];
 
   //channel 2 - skip the lowest 4 bits and highest 4 bits, 
   //take the 16 bits of ecg ADC
@@ -304,7 +306,7 @@ void ADS1292R :: getData()
   ads_sample.u_sample8[1] = SPI_RxBuffer[7];
   ads_sample.u_sample8[0] = SPI_RxBuffer[8];
   ads_sample.u_sample32   = ads_sample.u_sample32>>4;
-  ecg_wave_sample         = ads_sample.u_sample16[0];
+  ecg_wave_sample         = ads_sample.sample16[0];
 
   /*
    the first 3 bytes is the status word, 24-bit as below:

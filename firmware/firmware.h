@@ -130,7 +130,7 @@ extern class AFE4490  afe4490;
 /***********************
  * firmware.ino
  ***********************/
-extern uint8_t    ppg_heart_rate, old_ppg_heart_rate;
+extern uint8_t    ppg_heart_rate;
 extern uint8_t    ecg_heart_rate, old_ecg_heart_rate;
 extern uint8_t    spo2_percent,   old_spo2_percent;
 extern uint8_t    ecg_lead_off;

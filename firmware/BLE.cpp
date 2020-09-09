@@ -92,7 +92,7 @@ extern uint8_t  battery_percent, old_battery_percent;
 extern union    FloatByte body_temp;
 extern float    old_temperature;
 extern uint8_t  histogram_percent[HISTGRM_PERCENT_SIZE];
-
+extern uint8_t  LeadStatus;
 /*---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------*/
@@ -198,7 +198,7 @@ void handleBLE(void)
   // characteristic value can be up to 512 bytes long. 
   // bluetooth stack can be congestion, if too many packets are sent, add delay() 
   #define ecg_tx_size 10
-  #define ppg_tx_size 10
+  #define ppg_tx_size  5
 
   static uint16_t ecg_serial_number = 0;
   static uint16_t ppg_serial_number = 0;
@@ -227,19 +227,32 @@ void handleBLE(void)
   ////////////////////////////////////////////
   // send to BLE
   ////////////////////////////////////////////
-  
+
   //heart rate
-  if(old_ecg_heart_rate!= ecg_heart_rate)
-  {
-    heart_rate_pack[0]  = (uint8_t) ecg_heart_rate; // calculated by QRS_Algorithm_Interface()
-    heart_rate_pack[1]  = ppg_heart_rate; 
-    heart_rate_pack[2]  = ecg_lead_off; 
-    old_ecg_heart_rate  = ecg_heart_rate;
-    heartRate_Characteristic->setValue(&heart_rate_pack[0], sizeof(heart_rate_pack));
-    heartRate_Characteristic->notify();
-    delay(3);
-    Serial.println("ble:send heart");
-  }  
+  #define HEART_BEAT_READ_INTERVAL  1000
+  static unsigned long heartBeatTimer = 0;
+
+  if (millis() - heartBeatTimer > HEART_BEAT_READ_INTERVAL)
+  { 
+    heartBeatTimer = millis();     
+
+    //when ECG lead off, use PPG heart rate replace
+    if ((LeadStatus==0)&&(ppg_heart_rate!=0))  
+      ecg_heart_rate = ppg_heart_rate; 
+
+    if(old_ecg_heart_rate!= ecg_heart_rate)
+    {
+      heart_rate_pack[0]  = ecg_heart_rate; // calculated by QRS_Algorithm_Interface()
+      heart_rate_pack[1]  = ppg_heart_rate; 
+      heart_rate_pack[2]  = ecg_lead_off; 
+      old_ecg_heart_rate  = ecg_heart_rate;
+      heartRate_Characteristic->setValue(&heart_rate_pack[0], sizeof(heart_rate_pack));
+      heartRate_Characteristic->notify();
+      delay(3);
+      Serial.println("ble:send heart");
+    }  
+  }
+  
 
   //spo2 percentage
   if (old_spo2_percent!= spo2_percent) { 

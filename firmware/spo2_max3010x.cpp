@@ -140,8 +140,9 @@ void initMax3010xSpo2()
  IC internal FIFO size is 32 samples, make sure the sample rate, average, 
  and .check() is called frequently to meet that buffer not overflow.
 ---------------------------------------------------------------------------------*/
-#define SPO2_BUFFER_SIZE  100
-#define SPO2_READ_SIZE     25         //each time read som many samples
+#define SPO2_BUFFER_SIZE      100
+#define SPO2_READ_SIZE        5         //each time read so many samples
+#define SPO2_EACH_CALCULATION 25
 uint32_t irBuffer [SPO2_BUFFER_SIZE]; //infrared LED samples
 uint32_t redBuffer[SPO2_BUFFER_SIZE]; //red LED samples
 
@@ -157,15 +158,15 @@ void calculate_spo2(uint32_t *ir_buffer)
       &spo2_value, &spo2_valid, 
       &heart_rate_value, &heart_rate_valid);
       
-  if (spo2_valid==true) 
+  if (spo2_valid) 
     spo2_percent = (uint8_t) spo2_value;
-  else
-    spo2_percent = old_spo2_percent;  // new data not valid, restore the previous one
+  else //invalid data
+    spo2_percent = 0;
     
   if (heart_rate_valid)
     ppg_heart_rate = (uint8_t)heart_rate_value;       
   else
-    ppg_heart_rate = old_ppg_heart_rate;  // new data not valid, restore the previous one  
+    ppg_heart_rate = 0; 
 }
   
 void handleMax3010xSpo2()
@@ -173,12 +174,13 @@ void handleMax3010xSpo2()
   int i;
   int32_t  sample32; 
   int16_t  sample16;
+  
+  // count how many new samples received, then call calculate_spo2
+  static int newSampleCounter = 0; 
 
   spo2Sensor.check(); //Check the sensor, read up to 3 samples
   if (spo2Sensor.available() < SPO2_READ_SIZE) 
     return;
-
-  digitalWrite (LED_PIN, HIGH);  // LED on  
 
   // dump old samples, and shift buffer forward
   for (i = SPO2_READ_SIZE; i < SPO2_BUFFER_SIZE; i++)
@@ -209,9 +211,15 @@ void handleMax3010xSpo2()
 
     if (bleDeviceConnected)
       ppg_queue.push(&sample16);    //FIFO for BLE
+
+    if (++newSampleCounter>=SPO2_EACH_CALCULATION)
+    {
+      calculate_spo2(irBuffer);
+      newSampleCounter = 0;
+    }
   }
   
-  calculate_spo2(irBuffer);
+  
   
   //while(digitalRead(OXIMETER_INT_PIN)==1);  //wait until the interrupt pin asserts
 
@@ -230,8 +238,6 @@ void handleMax3010xSpo2()
   float   spo2_temperature;
   spo2_temperature = spo2Sensor.readTemperature();
   */              
-          
-  digitalWrite (LED_PIN, LOW);  // LED off
 }
 
 

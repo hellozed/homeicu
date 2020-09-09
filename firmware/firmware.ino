@@ -37,7 +37,7 @@ portMUX_TYPE timerMux     = portMUX_INITIALIZER_UNLOCKED;
 Smoothed <float> batteryADC; 
 
 uint8_t   ecg_heart_rate, old_ecg_heart_rate  = 0;
-uint8_t   ppg_heart_rate, old_ppg_heart_rate  = 0;
+uint8_t   ppg_heart_rate;
 uint8_t   spo2_percent,   old_spo2_percent    = 0;
 uint8_t   battery_percent,old_battery_percent = 120; // number outside 0~100 will trigger ble sending
 
