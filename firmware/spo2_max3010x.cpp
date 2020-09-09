@@ -59,6 +59,14 @@ https://github.com/aromring/MAX30102_by_RF
  
   The MAX3010X Breakout can handle 5V or 3.3V I2C logic. We recommend powering the board with 5V
   but it will also run at 3.3V.
+
+  interrupt feature is not used in this code
+  //maxim_max30102_write_reg(REG_INTR_ENABLE_1,0xc0); // INTR setting
+  //maxim_max30102_write_reg(REG_INTR_ENABLE_2,0x00);
+  //maxim_max30102_read_reg(REG_INTR_STATUS_1,&uch_dummy);  //Reads/clears the interrupt status register
+  //pinMode(OXIMETER_INT_PIN, INPUT);  //pin D10 connects to the interrupt output pin of the MAX30102
+  //while(digitalRead(OXIMETER_INT_PIN)==1);  //wait until the interrupt pin asserts
+
 */
 #include "firmware.h"
 #include <Wire.h>
@@ -67,6 +75,12 @@ https://github.com/aromring/MAX30102_by_RF
 extern  Queue ppg_queue;
 
 MAX3010X spo2Sensor;
+
+// average IR without attached to human body		
+// threshold of detect human body = read_unblocked_IR_value() + tolerance range		
+uint32_t unblocked_IR_value; 
+#define HUMAN_BODY_PRESENT_IR_THRESHOLD   2000
+
 /*---------------------------------------------------------------------------------
  DC offset filter (high pass)
  use EMA Exponential Moving Average to remove DC signal from the samples.
@@ -96,6 +110,7 @@ class EMA_algorithm{
 };
 EMA_algorithm EMA_ppg;
 /*---------------------------------------------------------------------------------
+ init the spo2 sensor
 ---------------------------------------------------------------------------------*/
 void initMax3010xSpo2()
 {
@@ -130,11 +145,10 @@ void initMax3010xSpo2()
 
   spo2Sensor.clearFIFO();
 
-  //maxim_max30102_write_reg(REG_INTR_ENABLE_1,0xc0); // INTR setting
-  //maxim_max30102_write_reg(REG_INTR_ENABLE_2,0x00);
-  //maxim_max30102_read_reg(REG_INTR_STATUS_1,&uch_dummy);  //Reads/clears the interrupt status register
-  //uint8_t uch_dummy;
-  //pinMode(OXIMETER_INT_PIN, INPUT);  //pin D10 connects to the interrupt output pin of the MAX30102
+   //Take an average of IR readings at power up		
+   for (int x = 0 ; x < 32 ; x++)		
+      unblocked_IR_value += spo2Sensor.getRed();  //FIXME red and infrared LED data swapped.
+   unblocked_IR_value = unblocked_IR_value/32 + HUMAN_BODY_PRESENT_IR_THRESHOLD;		
 }
 /*---------------------------------------------------------------------------------
  IC internal FIFO size is 32 samples, make sure the sample rate, average, 
@@ -174,6 +188,9 @@ void handleMax3010xSpo2()
   int i;
   int32_t  sample32; 
   int16_t  sample16;
+
+  // keep track average Ir reading
+  static uint32_t averageIrValue = 0;
   
   // count how many new samples received, then call calculate_spo2
   static int newSampleCounter = 0; 
@@ -204,40 +221,39 @@ void handleMax3010xSpo2()
     sample16 = - sample16;        //reverse the signal
 
     /* // TEST Code vvv
-    {
-    static int16_t  x = 0; if (x >= 100)x = 0; sample16 = x++;
-    }
+    {static int16_t  x = 0; if (x >= 100)x = 0; sample16 = x++;}
     */
 
-    if (bleDeviceConnected)
+    averageIrValue += irBuffer[i] / SPO2_EACH_CALCULATION;
+    
+    // only push data to ble tx buffer when 
+    // 1. ble is connected, and
+    // 2. human boy present to spo2 sensor
+    if ((bleDeviceConnected)&&(averageIrValue>unblocked_IR_value))
       ppg_queue.push(&sample16);    //FIFO for BLE
 
     if (++newSampleCounter>=SPO2_EACH_CALCULATION)
     {
       calculate_spo2(irBuffer);
       newSampleCounter = 0;
+      averageIrValue   = 0;
     }
-  }
-  
-  
-  
-  //while(digitalRead(OXIMETER_INT_PIN)==1);  //wait until the interrupt pin asserts
 
-  /*
-  max30102 temperature function
-  
-  1. the accuracy is +/-1 C, but the real precision of 0.0625 C.
-  2. the enviroment measurement is 2°C higher than the real temperature sensor.
-     due to the LED heating. The LEDs are very low power and won't affect the 
-     temp reading much but you may want to turn off the LEDs to avoid any 
-     local heating.
-  3. the body measurement is 1°C lower than real temperature sensor.
-  */
-  
-  /*
-  float   spo2_temperature;
-  spo2_temperature = spo2Sensor.readTemperature();
-  */              
+  }
 }
 
+/*
+max30102 temperature function
 
+1. the accuracy is +/-1 C, but the real precision of 0.0625 C.
+2. the enviroment measurement is 2°C higher than the real temperature sensor.
+    due to the LED heating. The LEDs are very low power and won't affect the 
+    temp reading much but you may want to turn off the LEDs to avoid any 
+    local heating.
+3. the body measurement is 1°C lower than real temperature sensor.
+*/
+
+/*
+float   spo2_temperature;
+spo2_temperature = spo2Sensor.readTemperature();
+*/              

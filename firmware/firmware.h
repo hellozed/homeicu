@@ -69,10 +69,6 @@ I2C
 #define HISTGRM_DATA_SIZE       12*4
 #define HISTGRM_PERCENT_SIZE    HISTGRM_DATA_SIZE/4
  
-union FloatByte {               // 1 float type = 4 byte 
-  float f;
-  uint8_t b[4];
-};
 /* 
 Blank project with OTA take 39% program space, 13% of dynamic memory.
 + WEB_UPDATE take:          20% program space,  7% of dynamic memory

@@ -238,6 +238,9 @@ double TMP117::readTempC()
 
 	float finalTempC = digitalTempC * TMP117_RESOLUTION; // Multiplies by the resolution for digital to final temp
 
+ 	// round the float to 0.1 resolution
+    finalTempC = (int)(finalTempC * 10 + 0.5); 
+	finalTempC = finalTempC /10
 	return finalTempC;
 }
 

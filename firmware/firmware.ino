@@ -41,8 +41,8 @@ uint8_t   ppg_heart_rate;
 uint8_t   spo2_percent,   old_spo2_percent    = 0;
 uint8_t   battery_percent,old_battery_percent = 120; // number outside 0~100 will trigger ble sending
 
-union FloatByte body_temp;
-float old_temperature = 120; // number outside 0~45 will trigger ble sending
+int16_t   body_temp_times10;
+int16_t   old_body_temp_times10 = 0; // number outside 0~45 will trigger ble sending
 
 int system_init_error = 0;  
 /*---------------------------------------------------------------------------------
@@ -245,10 +245,10 @@ void measureTemperature()
   { 
     LastReadTime = millis();     
 
-    body_temp.f = getTemperature();    // °C 
-    
+    body_temp_times10 = getTemperature()*10;    // °C 
+
     #if SIM_TEMPERATURE
-    body_temp.f =  (float)analogRead(SENSOR_TEMP)*100/4096;
+    body_temp_times10 =  (float)analogRead(SENSOR_TEMP)*1000/4096;
     #endif
   }
 }

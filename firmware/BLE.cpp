@@ -89,8 +89,7 @@ Queue	ecg_queue(ECG_QUEUE_LEN, ECG_QUEUE_SIZE, FIFO);
 extern uint8_t  hrv_array[HVR_ARRAY_SIZE];
 extern uint8_t  heart_rate_pack[3];
 extern uint8_t  battery_percent, old_battery_percent;
-extern union    FloatByte body_temp;
-extern float    old_temperature;
+extern int16_t  body_temp_times10, old_body_temp_times10;
 extern uint8_t  histogram_percent[HISTGRM_PERCENT_SIZE];
 extern uint8_t  LeadStatus;
 /*---------------------------------------------------------------------------------
@@ -166,7 +165,7 @@ class ppgCallbackHandler: public BLECharacteristicCallbacks
         Serial.println("BLE: re-send");
         old_ecg_heart_rate  = 0xff;
         old_spo2_percent    = 0xff;
-        old_temperature     = 0xff;
+        old_body_temp_times10  = 0xffff;
         old_battery_percent = 0xff;
         hrvDataReady        = true;  
         histogramReady      = true;
@@ -237,7 +236,7 @@ void handleBLE(void)
     heartBeatTimer = millis();     
 
     //when ECG lead off, use PPG heart rate replace
-    if ((LeadStatus==0)&&(ppg_heart_rate!=0))  
+    if ((LeadStatus!=0)&&(ppg_heart_rate!=0))  
       ecg_heart_rate = ppg_heart_rate; 
 
     if(old_ecg_heart_rate!= ecg_heart_rate)
@@ -249,7 +248,7 @@ void handleBLE(void)
       heartRate_Characteristic->setValue(&heart_rate_pack[0], sizeof(heart_rate_pack));
       heartRate_Characteristic->notify();
       delay(3);
-      Serial.println("ble:send heart");
+      Serial.printf("ble:send heart %u\r\n", ecg_heart_rate);
     }  
   }
   
@@ -260,16 +259,22 @@ void handleBLE(void)
     spo2_Characteristic->setValue(&spo2_percent, sizeof(spo2_percent));
     spo2_Characteristic->notify();
     delay(3);
-    Serial.println("ble:send spo2");
+    Serial.printf("ble:send spo2 %u\r\n",spo2_percent);
   }
 
   //body temperature
-  if (old_temperature != body_temp.f){
-    old_temperature  = body_temp.f;
-    temp_Characteristic->setValue(body_temp.b, sizeof(body_temp.b));
+  if (old_body_temp_times10 != body_temp_times10){
+    union  {
+      int16_t i;
+      uint8_t b[2];
+    } tx;
+
+    old_body_temp_times10  = body_temp_times10;
+    tx.i = body_temp_times10;
+    temp_Characteristic->setValue(tx.b, sizeof(tx.b));
     temp_Characteristic->notify();
     delay(3);
-    Serial.println("ble:send temp");
+    Serial.printf("ble:send temp %f\r\n", ((float) body_temp_times10)/10);
   }  
    
   //battery life
