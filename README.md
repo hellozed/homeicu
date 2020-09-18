@@ -1,12 +1,8 @@
 ![HomeICU](http://homeicu.ca/wp-content/uploads/2020/04/cropped-homeicu.png)
 
-> Attention: HomeICU project is in the developing stage and all the code and design shared here are the draft version and have not been formally released yet. 
+# HomeICU - a remote patient monitoring system for helping people recover from Covid-19
 
-> Please do NOT use the current code and design on the real human body until it receives medical device approval in your country.
-
-# HomeICU - remote vital signs monitor
-
-The website is at [www.homeicu.ca](http://homeicu.ca/).
+The project website : [www.homeicu.ca](http://homeicu.ca/).
 
 ---
 
@@ -14,9 +10,9 @@ HomeICU is an Open-Source patient monitor that uses wearable sensors to measure 
 
 This project is specially designed to tackle the COVID-19 pandemic. Millions of patients have to recover at home without monitoring by professional doctors. 
 
-The goal of HomeICU is to build features of a medical-grade patient monitoring system like the ICU in the hospital. It will measure the following vital sign parameters and let the patient's doctor view and monitor them over the Internet.
+The goal of the HomeICU project is to build features of a medical-grade patient monitoring system like the ICU in the hospital. It will measure the following vital sign parameters and let the patient's doctor view and monitor them over the Internet.
 
-Phase I:
+Phase I - done:
 
 1. body temperature
 2. oxygen saturation  (SPO₂/pulse oximetry)
@@ -34,20 +30,28 @@ Phase II:
 
 # Repository
 
-
 * **/docs**     - additional documentation
-* **/datasheet**   - IC manuals
+* **/datasheet**- IC manuals
 * **/firmware** - software running in the ESP32 microprocessor 
   (developed with Arduino IDE/C Language)
   
-* **/gui**      - GUI for iPhone, iPad and Android 
-  (Developed with Flutter/Dart Language)
+* **/gui**      - in "mychart" project, the GUI app software for iPhone, iPad and Android (Developed with Flutter/Dart Language)
 * **/hardware** - printed circuit board design files .brd, .sch 
   (Designed with Autodesk Eagle tool)
 * **/tools**   - tools for developing the project
 
 * **../homeicu-build** - directory for building binary file, no backup needed.
-   
+
+
+# Development Platform 
+ESP32 + Arduino + Autodesk Eagle + VSCode
+
+NRF52 is also an ideal microprocessor for this development, which has much less power consumption and has Jlink which can support debug. 
+
+NRF52 uses Keil MDK IDE, which is a great development environment and stack, but it is expensive and only support Windows. The alternative is SES IDE, free, and support Win, Mac, and Linux. 
+
+ESP32's price and usability are quite good, but require a Uart2USB chip, and difficult to debug.
+
 ---
 # Hardware
 
@@ -84,7 +88,7 @@ Isolated, medical-grade (5 V, 2.5 A) USB wall power adapter (100-240 VAC) with s
 ---
 # Software
 
-## Base Station 
+## Base Station (mychart project)
 Processing-based GUI, Android App, iOS devices App, web interface.
 
 The software is developed with Dart language with Flutter and one source code support all platform.
@@ -116,15 +120,11 @@ A 3-electrode cable along with a standard stereo jack is provided along with the
 
 It would be best NOT to connect the ECG front end to a human while it is also connected to:
 1) A ordinary wall wart
-2) A line powered PC/Laptop
-3) A line powered oscilloscope.
+2) A line-powered PC/Laptop
+3) A line-powered oscilloscope.
 
-Do NOT connect it to yourself when any line powered devices are connected to the circuit. Please battery or medical degree wall wart, which provide higher level of isolation between input and output.
+Do NOT connect it to yourself when any line-powered devices are connected to the circuit. Please battery or medical degree wall wart, which provides higher level of isolation between input and output.
  
-... Coming soon.
-
----
-
 ---
 # Medical Standard and Approval
 
@@ -170,4 +170,7 @@ Copyright (c), SparkFun.
 License: [MIT](http://opensource.org/licenses/MIT), Beerware: If you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us one round! 
 
 
+> Attention: HomeICU project is in the developing stage and all the code and design shared here are the draft version and have not been formally released yet. 
+
+> Please do NOT use the current code and design on the real human body until it receives medical device approval in your country.
  
