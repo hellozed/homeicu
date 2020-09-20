@@ -1,61 +1,41 @@
----
-menu: Welcome
-weight: 0 # smaller weights rise to the top of the menu
----
 
-## Welcome to HealthyPi v4
+### HomeICU with BLE
 
-**Looking for HealthyPi v3 Documentation?, v3 documentation has moved to** [healthypi3.protocentral.com](http://healthypi3.protocentral.com/)
+HomeICU haredware is powered by the ESP32 SoC module, which supports pairing with smartphones through BLE. The HomeICU app is used to communicate directly with sensor hardware, through the same BLE services, and can display all vital signs on a single screen. It displays respiration, Histogram, Heart rate variability and ECG data. 
 
-HealthyPi v4 is a HAT for the Raspberry Pi, as well as a standalone device that can measure human vital signs that are useful in medical diagnosis and treatment. HealthyPi v4 sets a new standard in open source health solutions with mobility, wireless and wearable capabilities. This device presents a snapshot of the user's medical condition within his/her environment and opens up medical research possibilities.
+#### Step 1: Download and Install the IDE
 
-![HealthyPi Display](images/HealthyPi_Complete.jpg)
+The Arduino Software (IDE) allows you to write programs and upload them to your sensor board. 
+[Download the Arduino IDE](https://www.arduino.cc/en/Main/Software#download)
+ 
+#### Step 3: Configure Arduino for ESP32 board support
 
-HealthyPi v4 measures the following parameters in real-time and with high accuracy:
+[Installing ESP32 Platform in Boards Manager](https://github.com/espressif/arduino-esp32/blob/master/docs/arduino-ide/boards_manager.md)
 
-* Electrocardiogram (ECG) data, heart rate, and heart-rate variability
-* Respiration based on impedance pneumography
-* Pulse oximetry (SPO₂)
-* Body temperature
+You will also need to select the "ESP32 Dev Module" board using the "Board:" option menu as shown in the figure below:
 
-HealthyPi v4 is affordable and accessible and the open source aspect means that it’s easy to expand on.
+# HomeICU project Usages
 
-You can now purchase a HealthyPi v4 from [Crowd Supply](https://www.crowdsupply.com/protocentral/healthypi-v4-unplugged)
+HomeICU is an open-source development platform you can use to build your own applications, such as building a wearable patch or small bedside patient mornitoring system. 
 
-### Features
-**Microcontroller and wireless connectivity:**  ESP32, in WROOM32 module format, with Dual-core Xtensa 32-bit CPU, 4 MB of on-board flash, Wi-Fi, and support for BLE.
+# Required Approvals
 
-**Wireless interface:**  Wi-Fi and Access Point (AP) modes, a 2.4 GHz radio with an on-board PCB antenna that is compatible with Bluetooth 4.2 and BLE.
+- CE / FCC / CSA safety and radio certification
+- USFDA, EU CE medical device, Health Canada clearance
 
-**Firmware programming:** Supports Arduino IDE as well as Espressif ESP-IDF.
+# FDA Guidance
+ FDA, on March 20, 2020,  issued updated guidance that allows for quicker entry into the market for digital remote monitoring equipment. [Link](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/enforcement-policy-non-invasive-remote-monitoring-devices-used-support-patient-monitoring-during)
 
-**Sensors:**
-ECG and respiration front end: Texas Instruments (TI) ADS1292R 24-bit analog front end with signal-to-noise ratio (SNR) of 107 dB
-Pulse oximetry front end: TI AFE4400 pulse oximetry front end with integrated LED driver and 22-bit ADC.
+# CPT Code
 
-**Temperature sensor:** Maxim MAX30205 digital body temperature sensor for monitoring skin temperature.
+- CPT Code 99453: Remote monitoring of physiologic parameter(s) (e.g., weight, blood pressure, pulse oximetry, respiratory flow rate), initial; set-up and patient education on use of equipment. (Initial set-up and patient education of monitoring equipment)
 
-**Form factor:** Raspberry Pi HAT form factor (65 mm X 56 mm).
+- CPT Code 99454: Device(s) supply with daily recording(s) or programmed alert(s) transmission, every 30 days. (Initial collection, transmission, and report/summary services to the clinician managing the patient)
 
-### Ports and interfaces
+- CPT Code 99457: Remote physiologic monitoring treatment management services, clinical staff/physician/other qualified health care professional time in a calendar month requiring interactive communication with the patient/caregiver during the month; first 20 minutes
 
-* **On / Off Switch :** Powering the HealthyPi v4
-* **USB-CDC :** On-board USB-TO-UART converter
-* **2x Sparkfun QWIIC:** I2C compatible ports for interfacing any QWIIC based sensors and actuators
-* **Sliding switch :** Transition between two different modes(HPi3 mode and Wearable mode).
-* **On-board 3 LED :** Power indication and Modes indication
-* **Push-button :** Switching between Communication Protocols (BLE and Wi-Fi/Web server)
+- CPT Code 99458: Every additional 20 minutes (List separately in addition to code for primary procedure)
 
-### Multiple operating modes, no programming required
+- CPT Code 99091: Collection and interpretation of physiologic data (e.g., ECG, blood pressure, glucose monitoring) digitally stored and/or transmitted by the patient and/or caregiver to the physician or other qualified health care professional, qualified by education, training, licensure/ regulation (when applicable) requiring a minimum of 30 minutes of time, each 30 days.
 
-#### [Wearable mode](https://healthypi.protocentral.com/HealthyPiv4_with_BLE.html)
-
-![Wearable mode](images/wearable_mode.jpg)
-
-The device communicates to android app via BLE. The real time vital signs (heart rate, respiration rate, spo2 and body temperature, histogram, heart rate variability) along with device battery level can be monitored from the Android mobile application. Additionally, you can also view live streaming of ECG. Added on-board power source (Battery) enhances the device to be used in a complete wearable platform. This mode also contains the [HealthyPi Webserver](https://healthypi.protocentral.com/HealthyPiv4_webserver.html).The HealthyPi v4 webserver page displays live monitoring of physiological data. Additionally with added on OTA updates feature, you can easily update the firmware in minutes.
-
-#### [Raspberry Pi "HAT" mode (HealthyPi v3 compatible)](https://healthypi.protocentral.com/setting%20up%20complete%20kit.html)
-
-![HPi3 mode](images/Pi3_mode.png)
-
-Using the Raspberry Pi as its computing and display platform, the HealthyPi v4 add-on HAT turns the Raspberry Pi into a vital sign monitoring system, fully compatible with HealthyPi 3.The included GUI displays ECG, respiration and PPG waveforms and their calculated rate values along with temperature can be  streamed live through Raspberry Pi display or Computer monitor depending on the user's choice. The user can also record the data for research and analysis.
+Further reading: https://www.cms.gov
