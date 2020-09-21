@@ -1,4 +1,4 @@
-# HomeICU - Remote Patient Monitor for COVID-19 Patients
+# HomeICU - Remote Patient Monitor for COVID-19
 
 The project website: [www.homeicu.ca](http://homeicu.ca/).
 
