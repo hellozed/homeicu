@@ -1,6 +1,11 @@
 # HomeICU - Remote Patient Monitor for COVID-19
 
-The project website: [www.homeicu.ca](http://homeicu.ca/).
+* **The project website:** [www.homeicu.ca](http://homeicu.ca/)
+
+* **firmware:** [github.com/hellozed/homeicu](https://github.com/hellozed/homeicu)
+ 
+* **base station:** [github.com/hellozed/mychart](https://github.com/hellozed/mychart)
+
 
 ---
 
@@ -112,12 +117,6 @@ Accelerometer: MMA8452Q
 * Battery:
 Rechargeable 1000 mAh Lithium Polymer (LiPo) battery.
 
-* Electrode and Connector
-Three-electrode cable with ECG "snap connectors" on one end and a stereo connector on the other, and single-use ECG electrodes.
-
-* Probe:
-Finger-clip SpO₂ probe
-
 * USB:
 On-board battery charging
 
@@ -126,22 +125,22 @@ Isolated, medical-grade (5 V, 2.5 A) USB wall power adapter (100-240 VAC) with s
 
 ---
 
-## Code Standard
+# Code Standard
 This project has referenced codes from many different open-source projects and several different programming languages such as Arduino, C/C++, Flutter/Dart, and Python.
 
 - It’s better to throw coding standards out and allow free expression.
 
 - To build a prototype ASAP is more urgent than spending time on tidy up coding standards and make source code stylish and beautiful.
 
-## Program binary file into ESP32 board
+# Program binary file into ESP32 board
 You need a breakout board bridges USB to UART for Arduino. This board brings out the DTR pin as opposed to the RTS pin of the FTDI cable. The DTR pin allows an Arduino target to auto-reset when a new Sketch is downloaded. This is a nice feature to have and allows a sketch to be downloaded without having to hit the reset button. 
 
 You can build this breakout board or just purchase one "SparkFun FT231X" from their website. 
 
 ---
-# Connecting the ECG Electrodes
+# ECG Electrodes and SpO2 probe
 
-A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the board. 
+The initial prototype of the sensor board uses a 3-electrode ECG cable along with a standard stereo jack and a SpO2 finger probe. The formal version will replace them with a wearable sensor tag, no cable or probe is required.
 
 It would be best NOT to connect the ECG front end to a human while it is also connected to:
 1) An ordinary wall wart
@@ -153,7 +152,7 @@ Do NOT connect it to yourself when any line-powered devices are connected to the
 ---
 # License
 
-The hardware and software are open-source and licensed under the following licenses:
+The HomeICU hardware, firmware, and MyChart base station software are open-source and licensed under the following licenses:
 
 MIT License(http://opensource.org/licenses/MIT)
 
@@ -161,17 +160,15 @@ MIT License(http://opensource.org/licenses/MIT)
 # Credits
 This application uses many Open Source components. You can find the source code of their open-source projects along with the license information below. We acknowledge and are grateful to these developers for their contributions to open source.
 
-## Project: [Arduino Library for Healthypi-v4](https://github.com/Protocentral/protocentral_healthypi_v4) 
-
-Copyright (c) 2019 ProtoCentral.
+* Project: [Arduino Library for Healthypi-v4](https://github.com/Protocentral/protocentral_healthypi_v4) Copyright (c) 2019 ProtoCentral.
 
 License: [MIT](http://opensource.org/licenses/MIT)
 
-## Project: [SparkFun](https://www.sparkfun.com)
+* Project: [SparkFun](https://www.sparkfun.com) Copyright (c), SparkFun.
 
-Copyright (c), SparkFun.
+License: [MIT](http://opensource.org/licenses/MIT)
 
-License: [MIT](http://opensource.org/licenses/MIT), Beerware: If you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us one round! 
+Beerware: If you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us one round! 
 
 
 # Safety Notice
@@ -192,27 +189,28 @@ Unless we receive the medical device approval, please only use this project unde
 
 - You MUST NOT power the device from a non-isolated power source.
 
-## Required Approvals
+# Required Approvals
+
+So far, HomeICU has NOT received any medical device certifications (FDA, CE, etc.) This device is NOT for consumer usage. It is not intended for direct interface with a patient, or patient diagnostics.
 
 - CE / FCC / CSA safety and radio certification
 - USFDA, EU CE medical device, Health Canada clearance
-- 
-So far, HomeICU has NOT received any medical device certifications (FDA, CE, etc.) This device is NOT for consumer usage. It is not intended for direct interface with a patient, or patient diagnostics.
 
-## FDA Guidance
+
+# FDA Guidance
  FDA, on March 20, 2020, issued updated guidance that allows for quicker entry into the market for digital remote monitoring equipment. [Link](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/enforcement-policy-non-invasive-remote-monitoring-devices-used-support-patient-monitoring-during)
 
 ## CPT Code
 
-- CPT Code 99453: Remote monitoring of physiologic parameter(s) (e.g., weight, blood pressure, pulse oximetry, respiratory flow rate), initial; set-up and patient education on the use of equipment. (Initial set-up and patient education of monitoring equipment)
-
-- CPT Code 99454: Device(s) supply with daily recording(s) or programmed alert(s) transmission, every 30 days. (Initial collection, transmission, and report/summary services to the clinician managing the patient)
-
-- CPT Code 99457: Remote physiologic monitoring treatment management services, clinical staff/physician/other qualified health care professional time in a calendar month requiring interactive communication with the patient/caregiver during the month; first 20 minutes
-
-- CPT Code 99458: Every additional 20 minutes (List separately in addition to code for primary procedure)
-
-- CPT Code 99091: Collection and interpretation of physiologic data (e.g., ECG, blood pressure, glucose monitoring) digitally stored and/or transmitted by the patient and/or caregiver to the physician or other qualified health care professional, qualified by education, training, licensure/ regulation (when applicable) requiring a minimum of 30 minutes, every 30 days.
-
-Further reading: https://www.cms.gov
+> CPT Code 99453: Remote monitoring of physiologic parameter(s) (e.g., weight, blood pressure, pulse oximetry, respiratory flow rate), initial; set-up and patient education on the use of equipment. (Initial set-up and patient education of monitoring equipment)
+> 
+> CPT Code 99454: Device(s) supply with daily recording(s) or programmed alert(s) transmission, every 30 days. (Initial collection, transmission, and report/summary services to the clinician managing the patient)
+> 
+> CPT Code 99457: Remote physiologic monitoring treatment management services, clinical staff/physician/other qualified health care professional time in a calendar month requiring interactive communication with the patient/caregiver during the month; first 20 minutes
+> 
+> CPT Code 99458: Every additional 20 minutes (List separately in addition to code for primary procedure)
+> 
+> CPT Code 99091: Collection and interpretation of physiologic data (e.g., ECG, blood pressure, glucose monitoring) digitally stored and/or transmitted by the patient and/or caregiver to the physician or other qualified health care professional, qualified by education, training, licensure/ regulation (when applicable) requiring a minimum of 30 minutes, every 30 days.
+> 
+> Further reading: https://www.cms.gov
 
